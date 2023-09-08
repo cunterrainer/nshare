@@ -1,4 +1,4 @@
-project "fileshare"
+project "NetworkShare"
     language "C++"
     cppdialect "C++17"
     flags "FatalWarnings"
