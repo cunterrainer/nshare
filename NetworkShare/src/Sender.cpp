@@ -8,6 +8,7 @@
 
 #include "SFML/Network/Packet.hpp"
 #include "Sender.h"
+#include "Hash.h"
 
 struct FileData
 {
@@ -27,6 +28,9 @@ FileData LoadFile(const char* path)
     f.data = (char *)malloc(f.size * sizeof(char));
     fread(f.data, f.size, 1, fileptr);
     fclose(fileptr);
+
+    std::string_view view(f.data, f.size);
+    std::cout << "Hash: " << hash::sha256(view) << std::endl;
     return f;
 }
 

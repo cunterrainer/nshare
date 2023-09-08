@@ -77,6 +77,7 @@ project "NetworkShare"
             "shift-overflow"
         }
         disablewarnings "unknown-warning-option"
+        disablewarnings "sign-compare"
 
     filter "toolset:gcc*"
         warnings "Extra"

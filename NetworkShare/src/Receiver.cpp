@@ -7,9 +7,10 @@
 
 #include "SFML/Config.hpp"
 #include "SFML/Network.hpp"
+#include "SFML/Network/Packet.hpp"
 
 #include "Receiver.h"
-#include "SFML/Network/Packet.hpp"
+#include "Hash.h"
 
 void Receiver()
 {
@@ -57,8 +58,9 @@ void Receiver()
         std::cout << "Received " << received << " bytes" << std::endl;
     }
     std::cout << d << std::endl;
-    std::ofstream os("a.txt", std::ios::binary);
-    os << d;
-    system("sha256sum a.txt");
+    std::cout << hash::sha256(d) << std::endl;
+    //std::ofstream os("a.txt", std::ios::binary);
+    //os << d;
+    //system("sha256sum a.txt");
 }
 
