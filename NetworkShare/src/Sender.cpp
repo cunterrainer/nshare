@@ -9,6 +9,7 @@
 #include "SFML/Network/Packet.hpp"
 #include "Sender.h"
 #include "Hash.h"
+#include "MD5.h"
 
 struct FileData
 {
@@ -20,6 +21,7 @@ FileData LoadFile(const char* path)
 {
     FileData f;
     system((std::string("sha256sum ") + path).c_str());
+    system((std::string("md5sum ") + path).c_str());
     FILE* fileptr = fopen(path, "rb");
     fseek(fileptr, 0, SEEK_END);
     f.size = ftell(fileptr);
@@ -30,7 +32,8 @@ FileData LoadFile(const char* path)
     fclose(fileptr);
 
     std::string_view view(f.data, f.size);
-    std::cout << "Hash: " << hash::sha256(view) << std::endl;
+    std::cout << "Sha256: " << hash::sha256(view) << std::endl;
+    std::cout << "MD5:    " << md5(view) << std::endl;
     return f;
 }
 

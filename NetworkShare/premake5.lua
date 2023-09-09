@@ -68,7 +68,6 @@ project "NetworkShare"
             "unreachable-code",
             "unused",
             "alloca",
-            "conversion",
             "deprecated",
             "format-security",
             "null-dereference",
@@ -76,8 +75,7 @@ project "NetworkShare"
             "vla",
             "shift-overflow"
         }
-        disablewarnings "unknown-warning-option"
-        disablewarnings "sign-compare"
+        disablewarnings { "unknown-warning-option", "sign-compare", "parentheses" }
 
     filter "toolset:gcc*"
         warnings "Extra"
