@@ -6,6 +6,7 @@
 #include <string>
 #include <thread>
 
+#include "ProgressBar.h"
 #include "SFML/Config.hpp"
 #include "SFML/Network.hpp"
 
@@ -70,8 +71,8 @@ void Sender(const std::string& path)
     fileInfo << sf::Uint64(f.size);
     socket.send(fileInfo);
 
+    ProgressBarInit();
     uint64_t bytesRemaining = f.size;
-    std::cout << ": " << f.size << std::endl;
     while (bytesRemaining > 0)
     {
         size_t sent;
@@ -82,6 +83,7 @@ void Sender(const std::string& path)
             Err << "Error sending bytes" << Endl;
         }
         bytesRemaining -= sent;
+        ProgressBar((float)(f.size-bytesRemaining), (float)f.size);
     }
     free(f.data);
 }

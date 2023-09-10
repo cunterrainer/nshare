@@ -15,11 +15,12 @@
 #include "Hash.h"
 #include "MD5.h"
 #include "Log.h"
+#include "ProgressBar.h"
 
 
 bool CheckIntegrity(std::string_view sha256, std::string_view md5, std::string_view data)
 {
-    std::cout << "Checking integrity..." << std::endl;
+    Ver << "Checking integrity..." << Endl;
     std::string sha256Received = hash::sha256(data); 
     std::string md5Received = hash::md5(data);
     if (sha256Received != sha256)
@@ -69,9 +70,9 @@ void Receiver()
     sf::Uint64 fileSize;
     client.receive(fileInfo);
     fileInfo >> fileSize;
-    std::cout << "Fileinfo: " <<  fileSize << std::endl;
 
 
+    ProgressBarInit();
     std::unique_ptr<char[]> data = std::make_unique<char[]>(fileSize);
     uint64_t remainingBytes = fileSize;
     while (remainingBytes > 0)
@@ -82,6 +83,7 @@ void Receiver()
             Err << "Error receiving " << received << Endl;
         }
         remainingBytes -= received;
+        ProgressBar((float)(fileSize-remainingBytes), (float)fileSize);
     }
     CheckIntegrity(sha256, md5, std::string_view(data.get(), fileSize));
     //std::ofstream os("a.txt", std::ios::binary);
