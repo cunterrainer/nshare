@@ -68,7 +68,7 @@ void Sender(const std::string& path)
         socket.send(hashData, 64+32);
     }
     sf::Packet fileInfo;
-    fileInfo << sf::Uint64(f.size);
+    fileInfo << path << sf::Uint64(f.size);
     socket.send(fileInfo);
 
     ProgressBarInit();

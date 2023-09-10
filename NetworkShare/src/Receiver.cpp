@@ -68,9 +68,9 @@ void Receiver()
 
     sf::Packet fileInfo;
     sf::Uint64 fileSize;
+    std::string path;
     client.receive(fileInfo);
-    fileInfo >> fileSize;
-
+    fileInfo >> path >> fileSize;
 
     ProgressBarInit();
     std::unique_ptr<char[]> data = std::make_unique<char[]>(fileSize);
@@ -85,9 +85,13 @@ void Receiver()
         remainingBytes -= received;
         ProgressBar((float)(fileSize-remainingBytes), (float)fileSize);
     }
-    CheckIntegrity(sha256, md5, std::string_view(data.get(), fileSize));
-    //std::ofstream os("a.txt", std::ios::binary);
-    //os << d;
-    //system("sha256sum a.txt");
+
+    std::string_view dataView(data.get(), fileSize);
+    if(CheckIntegrity(sha256, md5, dataView))
+    {
+        Ver << "Writing to file: " << path << Endl;
+        std::ofstream os(path, std::ios::binary);
+        os << dataView;
+    }
 }
 
