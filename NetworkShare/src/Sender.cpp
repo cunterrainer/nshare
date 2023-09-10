@@ -1,13 +1,16 @@
+#include <chrono>
 #include <cstdio>
 #include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <string>
+#include <thread>
 
 #include "SFML/Config.hpp"
 #include "SFML/Network.hpp"
 
 #include "SFML/Network/Packet.hpp"
+#include "SFML/System/Sleep.hpp"
 #include "Sender.h"
 #include "Hash.h"
 #include "MD5.h"
@@ -56,7 +59,6 @@ void Sender(const std::string& path)
     }
     std::cout << "Connected\n";
 
-
     FileData f = LoadFile(path.c_str());
     {
         char hashData[64 + 32];
@@ -78,7 +80,7 @@ void Sender(const std::string& path)
 
         if (socket.send(&f.data[i], bytes2send, sent) != sf::Socket::Done)
         {
-            // error...
+            Err << "Error sending bytes" << Endl;
         }
         if (bytes2send != sent)
             Err << "Failed to send all bytes expected: " << bytes2send << " sent: " << sent << Endl;

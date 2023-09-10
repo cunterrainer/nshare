@@ -3,6 +3,7 @@
 #include <sstream>
 #include <cstdint>
 #include <string>
+#include <memory>
 #include <fstream>
 
 #include "SFML/Config.hpp"
@@ -15,6 +16,27 @@
 #include "MD5.h"
 #include "Log.h"
 
+
+bool CheckIntegrity(std::string_view sha256, std::string_view md5, std::string_view data)
+{
+    std::cout << "Checking integrity..." << std::endl;
+    std::string sha256Received = hash::sha256(data); 
+    std::string md5Received = hash::md5(data);
+    if (sha256Received != sha256)
+    {
+        Err << "Sha256 hash doesn't match, integrity compromised\nExpected hash:   " << sha256 << "\nCalculated hash: " << sha256Received << Endl;
+        return false;
+    }
+    if (md5Received != md5)
+    {
+        Err << "MD5 hash doesn't match, integrity compromised\nExpected hash:   " << md5 << "\nCalculated hash: " << md5Received << Endl;
+        return false;
+    }
+    Suc << "Passed integrity check\nSha256: " << sha256 << "\nMD5: " << md5 << Endl;
+    return true;
+}
+
+
 void Receiver()
 {
     std::cout << "Receiver " << std::endl;
@@ -23,27 +45,25 @@ void Receiver()
     // bind the listener to a port
     if (listener.listen(53000) != sf::Socket::Done)
     {
-        std::cerr << "Listen failed\n";
-        // error...
+        Err << "Failed listening to port " << Endl;
+        return;
     }
 
     // accept a new connection
     sf::TcpSocket client;
     if (listener.accept(client) != sf::Socket::Done)
     {
-        std::cerr << "Accept failed\n";
-        // error...
+        Err << "Failed to accept connection" << Endl;
+        return;
     }
-    std::cout << "Connected\n";
+    Log << "Connected" << Endl;
     
 
     size_t got;
-    char hashData[64+32];
+    char hashData[64+32]; // first 64 bytes sha256 next 32 bytes md5
     client.receive(hashData, 64+32, got);
     std::string_view sha256(hashData, 64);
     std::string_view md5(&hashData[64], 32);
-    std::cout << "Sha256: " << sha256 << std::endl;
-    std::cout << "MD5:    " << md5 << std::endl;
 
     sf::Packet fileInfo;
     sf::Uint64 fileSize;
@@ -52,38 +72,19 @@ void Receiver()
     std::cout << "Fileinfo: " <<  fileSize << std::endl;
 
 
-    std::string d;
-    char data[BytesPerSend];
-    /* size_t bytesRemaining = fileSize; */
-    size_t remaining = fileSize;
-    while (remaining > 0)
+    std::unique_ptr<char[]> data = std::make_unique<char[]>(fileSize);
+    uint64_t remainingBytes = fileSize;
+    while (remainingBytes > 0)
     {
         size_t received = 0;
-        if (client.receive(data, BytesPerSend, received) != sf::Socket::Done)
+        if (client.receive(&data.get()[fileSize-remainingBytes], BytesPerSend, received) != sf::Socket::Done)
         {
             Err << "Error receiving " << received << Endl;
-            // error...
         }
-        remaining -= received;
-        d.append(data, received);
+        remainingBytes -= received;
     }
     Log << "Received " << fileSize << " bytes" << Endl;
-
-    std::cout << "Checking integrity..." << std::endl;
-    std::string sha256Received = hash::sha256(d); 
-    std::string md5Received = hash::md5(d);
-    /* if (sha256Received != sha256) */
-    /* { */
-    /*     Err << "Sha256 hash doesn't match, integrity compromised\nExpected hash:   " << sha256 << "\nCalculated hash: " << sha256Received << Endl; */
-    /*     return; */
-    /* } */
-    std::cout << d.size() << std::endl;
-    if (md5Received != md5)
-    {
-        Err << "MD5 hash doesn't match, integrity compromised\nExpected hash:   " << md5 << "\nCalculated hash: " << md5Received << Endl;
-        return;
-    }
-    Suc << "Passed integrity check\nSha256: " << sha256 << "\nMD5: " << md5 << Endl;
+    CheckIntegrity(sha256, md5, std::string_view(data.get(), fileSize));
     //std::ofstream os("a.txt", std::ios::binary);
     //os << d;
     //system("sha256sum a.txt");
