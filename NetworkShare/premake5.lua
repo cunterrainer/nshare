@@ -2,6 +2,7 @@ project "NetworkShare"
     language "C++"
     cppdialect "C++17"
     flags "FatalWarnings"
+    defines "SFML_STATIC"
 
     files {
         "src/**.cpp",
@@ -24,7 +25,8 @@ project "NetworkShare"
             "opengl32",
             "shell32",
             "ole32",
-            "uuid"
+            "uuid",
+            "Ws2_32"
         }
 
     filter "system:linux"

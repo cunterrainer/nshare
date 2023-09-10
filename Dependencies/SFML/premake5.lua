@@ -18,6 +18,15 @@ project "SFML-Network"
         "include/SFML/*.hpp"
     }
 
+    includedirs {
+        "include",
+        "src",
+        -- "extlibs/headers",
+        -- "extlibs/headers/AL",
+        -- "extlibs/headers/freetype2",
+        -- "extlibs/headers/stb_image"
+    }
+
     filter "system:windows"
         files {
             "src/SFML/Network/Win32/*.cpp",
@@ -31,12 +40,3 @@ project "SFML-Network"
             "src/SFML/System/Unix/*.cpp",
             "src/SFML/System/Unix/*.hpp"
         }
-
-    includedirs {
-        "include",
-        "src",
-        -- "extlibs/headers",
-        -- "extlibs/headers/AL",
-        -- "extlibs/headers/freetype2",
-        -- "extlibs/headers/stb_image"
-    }
