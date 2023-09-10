@@ -11,6 +11,7 @@
 #include "Sender.h"
 #include "Hash.h"
 #include "MD5.h"
+#include "Log.h"
 
 struct FileData
 {
@@ -50,7 +51,7 @@ void Sender(const std::string& path)
     sf::Socket::Status status = socket.connect(sf::IpAddress::LocalHost, 53000);
     if (status != sf::Socket::Done)
     {
-        std::cerr << "Connection failed" << std::endl;
+        Err << "Failed to establish a connection" << Endl;
         return;
     }
     std::cout << "Connected\n";
