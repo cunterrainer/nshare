@@ -39,7 +39,7 @@ bool CheckIntegrity(std::string_view sha256, std::string_view md5, std::string_v
 
 void Receiver()
 {
-    std::cout << "Receiver " << std::endl;
+    Ver << "Receiver" << Endl;
     sf::TcpListener listener;
 
     // bind the listener to a port
@@ -56,7 +56,7 @@ void Receiver()
         Err << "Failed to accept connection" << Endl;
         return;
     }
-    Log << "Connected" << Endl;
+    Ver << "Receiver connected" << Endl;
     
 
     size_t got;
@@ -83,7 +83,6 @@ void Receiver()
         }
         remainingBytes -= received;
     }
-    Log << "Received " << fileSize << " bytes" << Endl;
     CheckIntegrity(sha256, md5, std::string_view(data.get(), fileSize));
     //std::ofstream os("a.txt", std::ios::binary);
     //os << d;

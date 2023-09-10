@@ -1,4 +1,5 @@
 #pragma once
+#include <cstring>
 #include <string>
 #include <utility>
 #include <type_traits>
@@ -79,6 +80,8 @@ private:
     }
 public:
     inline explicit Logger(const char* info, bool isColored, OutputStream& os, ColorType outcolor = fmt::Color::White) noexcept : m_Os(os), m_LogInfo(info), m_IsColored(isColored), m_OutputColor(outcolor) {}
+
+    inline OutputStream& GetOStream() const noexcept { return m_Os; }
 
     // Warning: not thread safe use Print(), Println() or operator() for thread safety
     inline const Logger& operator<<(std::ostream& (*osmanip)(std::ostream&)) const noexcept
@@ -186,6 +189,37 @@ public:
         Print(std::forward<Args>(args)...);
     }
 };
+
+template <typename OutputStream>
+struct ToggledLogger
+{
+private:
+    Logger<OutputStream> m_Logger;
+    mutable bool m_On = false;
+public:
+    inline explicit ToggledLogger(const char* info, bool isColored, OutputStream& os, ColorType outcolor = fmt::Color::White) noexcept : m_Logger(info, isColored, os, outcolor) {}
+
+    inline void SetOn() const noexcept { m_On = true;  }
+    inline void SetOff() const noexcept { m_On = false; }
+
+    inline const ToggledLogger& operator<<(std::ostream& (*osmanip)(std::ostream&)) const noexcept
+    {
+        if(m_On)
+            m_Logger << *osmanip;
+        return *this;
+    }
+
+    // Warning: not thread safe use Print(), Println() or operator() for thread safety
+    template <class T>
+    inline const ToggledLogger& operator<<(const T& msg) const noexcept
+    {
+        if(m_On)
+            m_Logger << msg;
+        return *this;
+    }
+};
+
 inline const Logger Log("[INFO] ", false, std::cout);
 inline const Logger Err("[ERROR] ", true, std::cerr, fmt::Color::LightRed);
 inline const Logger Suc("[INFO] ", true, std::cout, fmt::Color::LightGreen);
+inline const ToggledLogger Ver("[INFO] ", false, std::cout); // Verbose

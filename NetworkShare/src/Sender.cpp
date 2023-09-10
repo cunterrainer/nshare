@@ -9,6 +9,7 @@
 #include "SFML/Config.hpp"
 #include "SFML/Network.hpp"
 
+#include "SFML/Network/IpAddress.hpp"
 #include "SFML/Network/Packet.hpp"
 #include "SFML/System/Sleep.hpp"
 #include "Sender.h"
@@ -41,23 +42,22 @@ FileData LoadFile(const char* path)
     std::string_view view(f.data, f.size);
     f.sha256 = hash::sha256(view);
     f.md5 = hash::md5(view);
-    std::cout << "Sha256: " << f.sha256 << std::endl;
-    std::cout << "MD5:    " << f.md5 << std::endl;
+    Ver << "Sha256: " << f.sha256 << Endl;
+    Ver << "MD5: " << f.md5 << Endl;
     return f;
 }
 
 
 void Sender(const std::string& path)
 {
-    std::cout << "Sender" << std::endl;
+    Ver << "Sender" << Endl;
     sf::TcpSocket socket;
-    sf::Socket::Status status = socket.connect(sf::IpAddress::LocalHost, 53000);
-    if (status != sf::Socket::Done)
+    if (socket.connect(sf::IpAddress::LocalHost, 53000) != sf::Socket::Done)
     {
         Err << "Failed to establish a connection" << Endl;
         return;
     }
-    std::cout << "Connected\n";
+    Ver << "Sender connected" << Endl;
 
     FileData f = LoadFile(path.c_str());
     {
@@ -83,19 +83,5 @@ void Sender(const std::string& path)
         }
         bytesRemaining -= sent;
     }
-
-    /* for (size_t i = 0; i < f.size; i += BytesPerSend) */
-    /* { */
-    /*     size_t sent; */
-    /*     const size_t bytes2send = bytesRemaining < BytesPerSend ? bytesRemaining : BytesPerSend; */
-    /*     bytesRemaining -= BytesPerSend; */
-
-    /*     if (socket.send(&f.data[i], bytes2send, sent) != sf::Socket::Done) */
-    /*     { */
-    /*         Err << "Error sending bytes" << Endl; */
-    /*     } */
-    /*     if (bytes2send != sent) */
-    /*         Err << "Failed to send all bytes expected: " << bytes2send << " sent: " << sent << Endl; */
-    /* } */
     free(f.data);
 }
