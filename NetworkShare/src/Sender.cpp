@@ -70,20 +70,32 @@ void Sender(const std::string& path)
     fileInfo << sf::Uint64(f.size);
     socket.send(fileInfo);
 
-    size_t bytesRemaining = f.size;
+    uint64_t bytesRemaining = f.size;
     std::cout << ": " << f.size << std::endl;
-    for (size_t i = 0; i < f.size; i += BytesPerSend)
+    while (bytesRemaining > 0)
     {
         size_t sent;
         const size_t bytes2send = bytesRemaining < BytesPerSend ? bytesRemaining : BytesPerSend;
-        bytesRemaining -= BytesPerSend;
 
-        if (socket.send(&f.data[i], bytes2send, sent) != sf::Socket::Done)
+        if (socket.send(&f.data[f.size-bytesRemaining], bytes2send, sent) != sf::Socket::Done)
         {
             Err << "Error sending bytes" << Endl;
         }
-        if (bytes2send != sent)
-            Err << "Failed to send all bytes expected: " << bytes2send << " sent: " << sent << Endl;
+        bytesRemaining -= sent;
     }
+
+    /* for (size_t i = 0; i < f.size; i += BytesPerSend) */
+    /* { */
+    /*     size_t sent; */
+    /*     const size_t bytes2send = bytesRemaining < BytesPerSend ? bytesRemaining : BytesPerSend; */
+    /*     bytesRemaining -= BytesPerSend; */
+
+    /*     if (socket.send(&f.data[i], bytes2send, sent) != sf::Socket::Done) */
+    /*     { */
+    /*         Err << "Error sending bytes" << Endl; */
+    /*     } */
+    /*     if (bytes2send != sent) */
+    /*         Err << "Failed to send all bytes expected: " << bytes2send << " sent: " << sent << Endl; */
+    /* } */
     free(f.data);
 }
