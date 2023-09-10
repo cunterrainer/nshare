@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstdint>
+#include <cstring>
 #include <iostream>
 #include <string>
 
@@ -15,12 +16,14 @@ struct FileData
 {
     char* data;
     size_t size;
+    std::string sha256; // 64 chars
+    std::string md5;    // 32 chars
 };
 
 FileData LoadFile(const char* path)
 {
     FileData f;
-    system((std::string("sha256sum ") + path).c_str());
+    system((std::string("sha256sum -b ") + path).c_str());
     system((std::string("md5sum ") + path).c_str());
     FILE* fileptr = fopen(path, "rb");
     fseek(fileptr, 0, SEEK_END);
@@ -32,8 +35,10 @@ FileData LoadFile(const char* path)
     fclose(fileptr);
 
     std::string_view view(f.data, f.size);
-    std::cout << "Sha256: " << hash::sha256(view) << std::endl;
-    std::cout << "MD5:    " << md5(view) << std::endl;
+    f.sha256 = hash::sha256(view);
+    f.md5 = hash::md5(view);
+    std::cout << "Sha256: " << f.sha256 << std::endl;
+    std::cout << "MD5:    " << f.md5 << std::endl;
     return f;
 }
 
@@ -52,6 +57,14 @@ void Sender(const std::string& path)
 
 
     FileData f = LoadFile(path.c_str());
+    {
+        char hashData[64 + 32];
+        std::memcpy(hashData, f.sha256.c_str(), 64);
+        std::memcpy(&hashData[64], f.md5.c_str(), 32);
+        socket.send(hashData, 64+32);
+    }
+    /* socket.send(f.sha256.c_str(), 64); */
+    /* socket.send(f.md5.c_str(), 32); */
     sf::Packet fileInfo;
     fileInfo << sf::Uint64(f.size);
     socket.send(fileInfo);

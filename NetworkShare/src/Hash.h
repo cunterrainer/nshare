@@ -7,6 +7,7 @@
 #include <cstring>
 #include <codecvt>
 #include <sstream>
+#include <iomanip>
 #include <type_traits>
 #include <string_view>
 
@@ -203,7 +204,7 @@ namespace hash
             }
 
             std::stringstream stream;
-            stream << std::hex << m_H[0] << m_H[1] << m_H[2] << m_H[3] << m_H[4] << m_H[5] << m_H[6] << m_H[7];
+            stream << std::hex << std::setfill('0') << std::setw(8) << m_H[0] << std::setw(8) << m_H[1] << std::setw(8) << m_H[2] << std::setw(8) << m_H[3] << std::setw(8)<< m_H[4] << std::setw(8) << m_H[5] << std::setw(8) << m_H[6] << std::setw(8) << m_H[7];
             return stream.str();
         }
     };

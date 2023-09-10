@@ -35,7 +35,9 @@ documentation and/or software.
  
 /* system implementation headers */
 #include <cstdio>
- 
+
+namespace hash
+{
  
 // Constants for MD5Transform routine.
 #define S11 7
@@ -368,9 +370,10 @@ std::string md5(const std::string& str)
     return md5.hexdigest();
 }
 
-std::string md5(std::string_view str)
+std::string md5(const std::string_view& str)
 {
     MD5 md5 = MD5(str);
 
     return md5.hexdigest();
+}
 }

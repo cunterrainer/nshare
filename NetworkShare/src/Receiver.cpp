@@ -11,6 +11,7 @@
 
 #include "Receiver.h"
 #include "Hash.h"
+#include "MD5.h"
 
 void Receiver()
 {
@@ -32,6 +33,15 @@ void Receiver()
         // error...
     }
     std::cout << "Connected\n";
+    
+
+    size_t got;
+    char hashData[64+32];
+    client.receive(hashData, 64+32, got);
+    std::string_view sha256(hashData, 64);
+    std::string_view md5(&hashData[64], 32);
+    std::cout << "Sha256: " << sha256 << std::endl;
+    std::cout << "MD5:    " << md5 << std::endl;
 
     sf::Packet fileInfo;
     sf::Uint64 fileSize;
@@ -58,7 +68,14 @@ void Receiver()
         std::cout << "Received " << received << " bytes" << std::endl;
     }
     std::cout << d << std::endl;
-    std::cout << hash::sha256(d) << std::endl;
+    std::cout << "Checking integrity..." << std::endl;
+    std::string sha256Received = hash::sha256(d); 
+    std::string md5Received = hash::md5(d);
+    if (sha256Received != sha256)
+        std::cerr << "Error: Sha256 hash doesn't match integrity compromised" << std::endl << sha256Received << std::endl;
+    if (md5Received != md5)
+        std::cerr << "Error: MD5 hash doesn't match integrity compromised" << std::endl;
+
     //std::ofstream os("a.txt", std::ios::binary);
     //os << d;
     //system("sha256sum a.txt");
