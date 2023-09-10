@@ -64,24 +64,24 @@ void Sender(const std::string& path)
         std::memcpy(&hashData[64], f.md5.c_str(), 32);
         socket.send(hashData, 64+32);
     }
-    /* socket.send(f.sha256.c_str(), 64); */
-    /* socket.send(f.md5.c_str(), 32); */
     sf::Packet fileInfo;
     fileInfo << sf::Uint64(f.size);
     socket.send(fileInfo);
 
     size_t bytesRemaining = f.size;
     std::cout << ": " << f.size << std::endl;
-    for (size_t i = 0; i < f.size; i += 100)
+    for (size_t i = 0; i < f.size; i += BytesPerSend)
     {
-        const size_t bytes2send = bytesRemaining < 100 ? bytesRemaining : 100;
-        bytesRemaining -= 100;
-        std::cout << i << " " << bytes2send << std::endl;
+        size_t sent;
+        const size_t bytes2send = bytesRemaining < BytesPerSend ? bytesRemaining : BytesPerSend;
+        bytesRemaining -= BytesPerSend;
 
-        if (socket.send(&f.data[i], bytes2send) != sf::Socket::Done)
+        if (socket.send(&f.data[i], bytes2send, sent) != sf::Socket::Done)
         {
             // error...
         }
+        if (bytes2send != sent)
+            Err << "Failed to send all bytes expected: " << bytes2send << " sent: " << sent << Endl;
     }
     free(f.data);
 }

@@ -10,8 +10,10 @@
 #include "SFML/Network/Packet.hpp"
 
 #include "Receiver.h"
+#include "Sender.h"
 #include "Hash.h"
 #include "MD5.h"
+#include "Log.h"
 
 void Receiver()
 {
@@ -51,31 +53,37 @@ void Receiver()
 
 
     std::string d;
-    char data[100];
-    size_t bytesRemaining = fileSize;
-    for(size_t i = 0; i < fileSize; i += 100)
+    char data[BytesPerSend];
+    /* size_t bytesRemaining = fileSize; */
+    size_t remaining = fileSize;
+    while (remaining > 0)
     {
-        std::size_t received;
-        const size_t bytes2receive = bytesRemaining < 100 ? bytesRemaining : 100;
-        bytesRemaining -= 100;
-        
-        // TCP socket:
-        if (client.receive(data, bytes2receive, received) != sf::Socket::Done)
+        size_t received = 0;
+        if (client.receive(data, BytesPerSend, received) != sf::Socket::Done)
         {
+            Err << "Error receiving " << received << Endl;
             // error...
         }
-        d.append(data, bytes2receive);
-        std::cout << "Received " << received << " bytes" << std::endl;
+        remaining -= received;
+        d.append(data, received);
     }
-    std::cout << d << std::endl;
+    Log << "Received " << fileSize << " bytes" << Endl;
+
     std::cout << "Checking integrity..." << std::endl;
     std::string sha256Received = hash::sha256(d); 
     std::string md5Received = hash::md5(d);
-    if (sha256Received != sha256)
-        std::cerr << "Error: Sha256 hash doesn't match integrity compromised" << std::endl << sha256Received << std::endl;
+    /* if (sha256Received != sha256) */
+    /* { */
+    /*     Err << "Sha256 hash doesn't match, integrity compromised\nExpected hash:   " << sha256 << "\nCalculated hash: " << sha256Received << Endl; */
+    /*     return; */
+    /* } */
+    std::cout << d.size() << std::endl;
     if (md5Received != md5)
-        std::cerr << "Error: MD5 hash doesn't match integrity compromised" << std::endl;
-
+    {
+        Err << "MD5 hash doesn't match, integrity compromised\nExpected hash:   " << md5 << "\nCalculated hash: " << md5Received << Endl;
+        return;
+    }
+    Suc << "Passed integrity check\nSha256: " << sha256 << "\nMD5: " << md5 << Endl;
     //std::ofstream os("a.txt", std::ios::binary);
     //os << d;
     //system("sha256sum a.txt");
