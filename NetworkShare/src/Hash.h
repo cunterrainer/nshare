@@ -71,7 +71,7 @@ namespace Hash
         }
 
 
-        constexpr bool IsLittleEndian()
+        inline bool IsLittleEndian()
         {
             int32_t num = 1;
             return *(char*)&num == 1;
