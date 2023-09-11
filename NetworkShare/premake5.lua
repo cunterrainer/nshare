@@ -48,8 +48,8 @@ project "NetworkShare"
     filter "toolset:msc*"
         warnings "High"
         externalwarnings "Default"
-        buildoptions { "/sdl" }
         defines "MSC"
+        disablewarnings "4146"
 
     filter { "toolset:gcc* or toolset:clang*" }
         enablewarnings {

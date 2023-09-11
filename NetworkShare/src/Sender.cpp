@@ -15,7 +15,6 @@
 #include "SFML/System/Sleep.hpp"
 #include "Sender.h"
 #include "Hash.h"
-#include "MD5.h"
 #include "Log.h"
 
 struct FileData
@@ -41,8 +40,8 @@ FileData LoadFile(const char* path)
     fclose(fileptr);
 
     std::string_view view(f.data, f.size);
-    f.sha256 = hash::sha256(view);
-    f.md5 = hash::md5(view);
+    f.sha256 = Hash::sha256(view);
+    f.md5 = Hash::md5(view);
     Ver << "Sha256: " << f.sha256 << Endl;
     Ver << "MD5: " << f.md5 << Endl;
     return f;

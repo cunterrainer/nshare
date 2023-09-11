@@ -13,7 +13,6 @@
 #include "Receiver.h"
 #include "Sender.h"
 #include "Hash.h"
-#include "MD5.h"
 #include "Log.h"
 #include "ProgressBar.h"
 
@@ -21,8 +20,8 @@
 bool CheckIntegrity(std::string_view sha256, std::string_view md5, std::string_view data)
 {
     Ver << "Checking integrity..." << Endl;
-    std::string sha256Received = hash::sha256(data); 
-    std::string md5Received = hash::md5(data);
+    std::string sha256Received = Hash::sha256(data); 
+    std::string md5Received = Hash::md5(data);
     if (sha256Received != sha256)
     {
         Err << "Sha256 hash doesn't match, integrity compromised\nExpected hash:   " << sha256 << "\nCalculated hash: " << sha256Received << Endl;
