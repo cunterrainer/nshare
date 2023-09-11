@@ -295,7 +295,7 @@ namespace Hash
         static constexpr uint4 S44 = 21;
     public:
         // default ctor, just initailize
-        MD5::MD5()
+        MD5()
         {
             init();
         }
@@ -303,14 +303,14 @@ namespace Hash
         //////////////////////////////////////////////
 
         // nifty shortcut ctor, compute MD5 for string and finalize it right away
-        MD5::MD5(const std::string& text)
+        MD5(const std::string& text)
         {
             init();
             update(text.c_str(), (size_type)text.length());
             finalize();
         }
 
-        MD5::MD5(std::string_view text)
+        MD5(std::string_view text)
         {
             init();
             update(text.data(), (size_type)text.length());
@@ -321,7 +321,7 @@ namespace Hash
 
         // MD5 block update operation. Continues an MD5 message-digest
         // operation, processing another message block
-        void MD5::update(const unsigned char input[], size_type length)
+        void update(const unsigned char input[], size_type length)
         {
             // compute number of bytes mod 64
             size_type index = count[0] / 8 % blocksize;
@@ -359,7 +359,7 @@ namespace Hash
         //////////////////////////////
 
         // for convenience provide a verson with signed char
-        void MD5::update(const char input[], size_type length)
+        void update(const char input[], size_type length)
         {
             update((const unsigned char*)input, length);
         }
@@ -368,7 +368,7 @@ namespace Hash
 
         // MD5 finalization. Ends an MD5 message-digest operation, writing the
         // the message digest and zeroizing the context.
-        MD5& MD5::finalize()
+        MD5& finalize()
         {
             static unsigned char padding[64] = {
               0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -405,7 +405,7 @@ namespace Hash
         //////////////////////////////
 
         // return hex representation of digest as string
-        std::string MD5::hexdigest() const
+        std::string hexdigest() const
         {
             if (!finalized)
                 return "";
@@ -420,7 +420,7 @@ namespace Hash
 
         friend std::ostream& operator<<(std::ostream&, MD5 md5);
     private:
-        void MD5::init()
+        void init()
         {
             finalized = false;
 
@@ -437,7 +437,7 @@ namespace Hash
         //////////////////////////////
 
         // apply MD5 algo on a block
-        void MD5::transform(const uint1 block[blocksize])
+        void transform(const uint1 block[blocksize])
         {
           uint4 a = state[0], b = state[1], c = state[2], d = state[3], x[16];
           decode (x, block, blocksize);
@@ -526,7 +526,7 @@ namespace Hash
         //////////////////////////////
 
         // decodes input (unsigned char) into output (uint4). Assumes len is a multiple of 4.
-        static void MD5::decode(uint4 output[], const uint1 input[], size_type len)
+        static void decode(uint4 output[], const uint1 input[], size_type len)
         {
             for (unsigned int i = 0, j = 0; j < len; i++, j += 4)
                 output[i] = ((uint4)input[j]) | (((uint4)input[j + 1]) << 8) |
@@ -537,7 +537,7 @@ namespace Hash
 
         // encodes input (uint4) into output (unsigned char). Assumes len is
         // a multiple of 4.
-        static void MD5::encode(uint1 output[], const uint4 input[], size_type len)
+        static void encode(uint1 output[], const uint4 input[], size_type len)
         {
             for (size_type i = 0, j = 0; j < len; i++, j += 4) {
                 output[j] = input[i] & 0xff;
@@ -552,43 +552,43 @@ namespace Hash
         // low level logic operations
         ///////////////////////////////////////////////
         // F, G, H and I are basic MD5 functions.
-        static inline MD5::uint4 MD5::F(uint4 x, uint4 y, uint4 z) {
+        static inline uint4 F(uint4 x, uint4 y, uint4 z) {
             return x & y | ~x & z;
         }
 
-        static inline MD5::uint4 MD5::G(uint4 x, uint4 y, uint4 z) {
+        static inline uint4 G(uint4 x, uint4 y, uint4 z) {
             return x & z | y & ~z;
         }
 
-        static inline MD5::uint4 MD5::H(uint4 x, uint4 y, uint4 z) {
+        static inline uint4 H(uint4 x, uint4 y, uint4 z) {
             return x ^ y ^ z;
         }
 
-        static inline MD5::uint4 MD5::I(uint4 x, uint4 y, uint4 z) {
+        static inline uint4 I(uint4 x, uint4 y, uint4 z) {
             return y ^ (x | ~z);
         }
 
         // rotate_left rotates x left n bits.
-        static inline MD5::uint4 MD5::rotate_left(uint4 x, int n) {
+        static inline uint4 rotate_left(uint4 x, int n) {
             return (x << n) | (x >> (32 - n));
         }
 
 
         // FF, GG, HH, and II transformations for rounds 1, 2, 3, and 4.
         // Rotation is separate from addition to prevent recomputation.
-        static inline void MD5::FF(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac) {
+        static inline void FF(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac) {
             a = rotate_left(a + F(b, c, d) + x + ac, s) + b;
         }
 
-        static inline void MD5::GG(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac) {
+        static inline void GG(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac) {
             a = rotate_left(a + G(b, c, d) + x + ac, s) + b;
         }
 
-        static inline void MD5::HH(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac) {
+        static inline void HH(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac) {
             a = rotate_left(a + H(b, c, d) + x + ac, s) + b;
         }
 
-        static inline void MD5::II(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac) {
+        static inline void II(uint4& a, uint4 b, uint4 c, uint4 d, uint4 x, uint4 s, uint4 ac) {
             a = rotate_left(a + I(b, c, d) + x + ac, s) + b;
         }
 
