@@ -122,7 +122,7 @@ namespace Hash
             binRep.push_back(0b10000000);
             if (chunkBytesLeft >= 56)
             {
-                for (size_t i = 0; i < 64 - chunkBytesLeft; ++i)
+                for (size_t i = 0; i < (size_t)(64 - chunkBytesLeft); ++i)
                     binRep.push_back(0);
             }
 

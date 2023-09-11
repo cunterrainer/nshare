@@ -2,6 +2,7 @@ project "SFML-Network"
     kind "StaticLib"
     language "C++"
     staticruntime "on"
+    warnings "off"
 
     defines {
         "SFML_STATIC",

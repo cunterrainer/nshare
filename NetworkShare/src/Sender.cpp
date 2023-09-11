@@ -75,7 +75,7 @@ void Sender(const std::string& path)
     while (bytesRemaining > 0)
     {
         size_t sent;
-        const size_t bytes2send = bytesRemaining < BytesPerSend ? bytesRemaining : BytesPerSend;
+        const size_t bytes2send = bytesRemaining < BytesPerSend ? (size_t)bytesRemaining : BytesPerSend;
 
         if (socket.send(&f.data[f.size-bytesRemaining], bytes2send, sent) != sf::Socket::Done)
         {

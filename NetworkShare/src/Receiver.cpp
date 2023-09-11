@@ -72,7 +72,7 @@ void Receiver()
     fileInfo >> path >> fileSize;
 
     ProgressBarInit();
-    std::unique_ptr<char[]> data = std::make_unique<char[]>(fileSize);
+    std::unique_ptr<char[]> data = std::make_unique<char[]>((size_t)fileSize);
     uint64_t remainingBytes = fileSize;
     while (remainingBytes > 0)
     {
@@ -85,7 +85,7 @@ void Receiver()
         ProgressBar((float)(fileSize-remainingBytes), (float)fileSize);
     }
 
-    std::string_view dataView(data.get(), fileSize);
+    std::string_view dataView(data.get(), (size_t)fileSize);
     if(CheckIntegrity(sha256, md5, dataView))
     {
         Ver << "Writing to file: " << path << Endl;
