@@ -43,7 +43,7 @@ void Receiver()
     sf::TcpListener listener;
 
     // bind the listener to a port
-    if (listener.listen(53000) != sf::Socket::Done)
+    if (listener.listen(5300) != sf::Socket::Done)
     {
         Err << "Failed listening to port " << Endl;
         return;
@@ -73,16 +73,18 @@ void Receiver()
 
     ProgressBarInit();
     std::unique_ptr<char[]> data = std::make_unique<char[]>((size_t)fileSize);
-    uint64_t remainingBytes = fileSize;
+    size_t remainingBytes = (size_t)fileSize;
     while (remainingBytes > 0)
     {
         size_t received = 0;
-        if (client.receive(&data.get()[fileSize-remainingBytes], BytesPerSend, received) != sf::Socket::Done)
+        if (client.receive(&data.get()[fileSize-remainingBytes], remainingBytes, received) != sf::Socket::Done)
         {
             Err << "Error receiving " << received << Endl;
         }
         remainingBytes -= received;
-        ProgressBar((float)(fileSize-remainingBytes), (float)fileSize);
+        uint64_t p = (uint64_t)(((float)(fileSize - remainingBytes) / (float)fileSize) * 100.f);
+        if (p % 10 == 0)
+            ProgressBar((float)(fileSize-remainingBytes), (float)fileSize);
     }
 
     std::string_view dataView(data.get(), (size_t)fileSize);

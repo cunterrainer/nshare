@@ -11,9 +11,11 @@ int main(int argc, const char** argv)
 {
     Ver.SetOn();
     if (argc == 1)
-        return 1;
-    if(argv[1][0] == 's')
+        Receiver();
+        //Sender("../vendor/premake5.exe");
+    else if(argv[1][0] == 's')
         Sender(std::string(argv[2]));
     else
         Receiver();
+    std::cin.get();
 }

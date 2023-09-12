@@ -2,9 +2,10 @@
 #include <cstdio>
 #include <cstdint>
 #include <cstring>
-#include <iostream>
+#include <fstream>
 #include <string>
-#include <thread>
+#include <vector>
+#include <iostream>
 
 #include "ProgressBar.h"
 #include "SFML/Config.hpp"
@@ -19,30 +20,32 @@
 
 struct FileData
 {
-    char* data;
+    std::vector<char> data;
     size_t size;
     std::string sha256; // 64 chars
     std::string md5;    // 32 chars
 };
 
-FileData LoadFile(const char* path)
+FileData LoadFile(const std::string& path)
 {
     FileData f;
-    system((std::string("sha256sum -b ") + path).c_str());
-    system((std::string("md5sum ") + path).c_str());
-    FILE* fileptr = fopen(path, "rb");
-    fseek(fileptr, 0, SEEK_END);
-    f.size = ftell(fileptr);
-    rewind(fileptr);
+    std::ifstream infile(path, std::ios::in | std::ios::binary);
+    if (!infile.is_open())
+    {
+        Err << "Failed to open file [" << path << ']' << Endl;
+    }
 
-    f.data = (char *)malloc(f.size * sizeof(char));
-    fread(f.data, f.size, 1, fileptr);
-    fclose(fileptr);
+    infile.seekg(0, std::ios::end);
+    f.size = infile.tellg();
+    infile.seekg(0, std::ios::beg);
 
-    std::string_view view(f.data, f.size);
-    f.sha256 = Hash::sha256(view);
+    f.data.reserve(f.size);
+    infile.read(f.data.data(), f.size);
+
+    std::string_view view(f.data.data(), f.size);
+    //f.sha256 = Hash::sha256(view);
+    //Ver << "Sha256: " << f.sha256 << Endl;
     f.md5 = Hash::md5(view);
-    Ver << "Sha256: " << f.sha256 << Endl;
     Ver << "MD5: " << f.md5 << Endl;
     return f;
 }
@@ -52,14 +55,14 @@ void Sender(const std::string& path)
 {
     Ver << "Sender" << Endl;
     sf::TcpSocket socket;
-    if (socket.connect(sf::IpAddress::LocalHost, 53000) != sf::Socket::Done)
+    FileData f = LoadFile(path.c_str());
+    if (socket.connect(sf::IpAddress::LocalHost, 5300) != sf::Socket::Done)
     {
         Err << "Failed to establish a connection" << Endl;
         return;
     }
     Ver << "Sender connected" << Endl;
 
-    FileData f = LoadFile(path.c_str());
     {
         char hashData[64 + 32];
         std::memcpy(hashData, f.sha256.c_str(), 64);
@@ -67,6 +70,7 @@ void Sender(const std::string& path)
         socket.send(hashData, 64+32);
     }
     sf::Packet fileInfo;
+    std::cout << f.size << std::endl;
     fileInfo << path << sf::Uint64(f.size);
     socket.send(fileInfo);
 
@@ -82,7 +86,9 @@ void Sender(const std::string& path)
             Err << "Error sending bytes" << Endl;
         }
         bytesRemaining -= sent;
-        ProgressBar((float)(f.size-bytesRemaining), (float)f.size);
+        uint64_t p = (uint64_t)(((float)(f.size - bytesRemaining) / (float)f.size) * 100.f);
+        if (p % 10 == 0)
+            ProgressBar((float)(ByteToMB(f.size - bytesRemaining)), ByteToMB(f.size));
     }
-    free(f.data);
+    std::cout << "Done\n";
 }

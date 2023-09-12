@@ -117,5 +117,4 @@ project "NetworkShare"
     filter { "configurations:Debug" }
         kind "ConsoleApp"
     filter { "configurations:Release" }
-        kind "WindowedApp"
-        entrypoint "mainCRTStartup"
+        kind "ConsoleApp"

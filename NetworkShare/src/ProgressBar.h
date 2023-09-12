@@ -6,12 +6,14 @@
     #include <cstddef>
     #include <cstring>
     #define STD std::
+    #define INLINE inline
     using sizet = std::size_t;
 #else
     #include <stdio.h>
     #include <stddef.h>
     #include <string.h>
     #define STD
+    #define INLINE static
     typedef size_t sizet;
 #endif
 
@@ -25,7 +27,7 @@ typedef struct
 } ProgressBarS;
 
 
-static ProgressBarS* ProgressBarGet()
+INLINE ProgressBarS* ProgressBarGet()
 {
     static char bar[PROGRESS_BAR_REAL_SIZE];
     static ProgressBarS pBar = { bar, 0 };
@@ -33,7 +35,7 @@ static ProgressBarS* ProgressBarGet()
 }
 
 
-static void ProgressBarInit()
+INLINE void ProgressBarInit()
 {
     ProgressBarS* pBar = ProgressBarGet();
     pBar->size = 0;
@@ -46,7 +48,7 @@ static void ProgressBarInit()
 }
 
 
-static void ProgressBarAdd(sizet blocks)
+INLINE void ProgressBarAdd(sizet blocks)
 {
     ProgressBarS* pBar = ProgressBarGet();
     blocks = blocks - pBar->size;
@@ -64,7 +66,7 @@ static void ProgressBarAdd(sizet blocks)
 }
 
 
-static void ProgressBar(float current, float hundred)
+INLINE void ProgressBar(float current, float hundred)
 {
     const float percentDone = (current / hundred) * 100.f;
     const sizet newBlocksToAdd = (sizet)(percentDone * PROGRESS_BAR_SIZE / 100);
