@@ -16,6 +16,7 @@
 #include "Hash.h"
 #include "Log.h"
 #include "ProgressBar.h"
+#include "Profiler.h"
 
 
 bool CheckIntegrity(std::string_view sha256, std::string_view md5, std::string_view data)
@@ -83,7 +84,7 @@ void Receiver()
             Err << "Error receiving " << fileSize - remainingBytes << Endl;
         }
         remainingBytes -= received;
-        ProgressBar((float)(fileSize-remainingBytes), (float)fileSize);
+        //ProgressBar((float)(fileSize-remainingBytes), (float)fileSize);
     }
 
     std::string_view dataView(data.get(), (size_t)fileSize);

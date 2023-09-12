@@ -7,13 +7,13 @@
 #include <vector>
 #include <iostream>
 
-#include "ProgressBar.h"
-#include "SFML/Config.hpp"
-#include "SFML/Network.hpp"
-
 #include "SFML/Network/IpAddress.hpp"
 #include "SFML/Network/Packet.hpp"
 #include "SFML/System/Sleep.hpp"
+#include "SFML/Config.hpp"
+#include "SFML/Network.hpp"
+
+#include "ProgressBar.h"
 #include "Sender.h"
 #include "Hash.h"
 #include "Log.h"
@@ -87,7 +87,7 @@ void Sender(const std::string& path)
         }
 
         bytesRemaining -= sent;
-        ProgressBar((float)(ByteToMB(f.size - bytesRemaining)), ByteToMB(f.size));
+        //ProgressBar((float)(ByteToMB(f.size - bytesRemaining)), ByteToMB(f.size));
     }
     std::cout << "Done\n";
 }

@@ -11,8 +11,9 @@ int main(int argc, const char** argv)
 {
     Ver.SetOn();
     if (argc == 1)
-        Receiver();
+        //Receiver();
         //Sender("../vendor/premake5.exe");
+        Sender("../ubuntu-22.04.2-desktop-amd64.iso");
     else if(argv[1][0] == 's')
         Sender(std::string(argv[2]));
     else
