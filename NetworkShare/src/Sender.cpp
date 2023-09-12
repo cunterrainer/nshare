@@ -43,8 +43,8 @@ FileData LoadFile(const std::string& path)
     infile.read(f.data.data(), f.size);
 
     std::string_view view(f.data.data(), f.size);
-    //f.sha256 = Hash::sha256(view);
-    //Ver << "Sha256: " << f.sha256 << Endl;
+    f.sha256 = Hash::sha256(view);
+    Ver << "Sha256: " << f.sha256 << Endl;
     f.md5 = Hash::md5(view);
     Ver << "MD5: " << f.md5 << Endl;
     return f;
@@ -85,10 +85,9 @@ void Sender(const std::string& path)
         {
             Err << "Error sending bytes" << Endl;
         }
+
         bytesRemaining -= sent;
-        uint64_t p = (uint64_t)(((float)(f.size - bytesRemaining) / (float)f.size) * 100.f);
-        if (p % 10 == 0)
-            ProgressBar((float)(ByteToMB(f.size - bytesRemaining)), ByteToMB(f.size));
+        ProgressBar((float)(ByteToMB(f.size - bytesRemaining)), ByteToMB(f.size));
     }
     std::cout << "Done\n";
 }

@@ -5,6 +5,7 @@
 #include <string>
 #include <memory>
 #include <fstream>
+#include <algorithm>
 
 #include "SFML/Config.hpp"
 #include "SFML/Network.hpp"
@@ -73,18 +74,16 @@ void Receiver()
 
     ProgressBarInit();
     std::unique_ptr<char[]> data = std::make_unique<char[]>((size_t)fileSize);
+    size_t received = 0;
     size_t remainingBytes = (size_t)fileSize;
     while (remainingBytes > 0)
     {
-        size_t received = 0;
-        if (client.receive(&data.get()[fileSize-remainingBytes], remainingBytes, received) != sf::Socket::Done)
+        if (client.receive(&data.get()[fileSize - remainingBytes], std::min(remainingBytes, (size_t)65535/*max tcp packet size*/), received) != sf::Socket::Done)
         {
-            Err << "Error receiving " << received << Endl;
+            Err << "Error receiving " << fileSize - remainingBytes << Endl;
         }
         remainingBytes -= received;
-        uint64_t p = (uint64_t)(((float)(fileSize - remainingBytes) / (float)fileSize) * 100.f);
-        if (p % 10 == 0)
-            ProgressBar((float)(fileSize-remainingBytes), (float)fileSize);
+        ProgressBar((float)(fileSize-remainingBytes), (float)fileSize);
     }
 
     std::string_view dataView(data.get(), (size_t)fileSize);
