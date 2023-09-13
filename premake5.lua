@@ -37,13 +37,14 @@ filter { "configurations:Release" }
     runtime "Release"
     symbols "off"
     optimize "Speed"
-    defines "RELEASE"
+    defines { "RELEASE", "NDEBUG" }
+
+filter "toolset:gcc*"
+    flags "LinkTimeOptimization"
 filter {}
 
 -- only for visual studio
-flags {
-    "MultiProcessorCompile"
-}
+flags "MultiProcessorCompile"
 staticruntime "on"
 removeunreferencedcodedata "on"
 
