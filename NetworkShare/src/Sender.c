@@ -22,7 +22,7 @@ uint64_t get_file_size(const char* path)
     struct _stat64 buf;
     if (_stat64(path, &buf) != 0)
     {
-        err("Failed to get file size");
+        err("Failed to get file size [%s]", path);
         return 0;
     }
     return buf.st_size;
@@ -34,11 +34,25 @@ uint64_t get_file_size(const char* path)
 }
 
 
-void receive_confirmation(sfTcpSocket* socket)
+void send_receive_confirmation(sfTcpSocket* socket)
 {
     char data[1];
     size_t rec;
     sfTcpSocket_receive(socket, data, 1, &rec);
+}
+
+
+sfTcpSocket* sender_connect()
+{
+    sfTcpSocket* socket = sfTcpSocket_create();
+    if (sfTcpSocket_connect(socket, sfIpAddress_LocalHost, 5300, sfTime_Zero) != sfSocketDone)
+    {
+        sfTcpSocket_destroy(socket);
+        err("Failed to establish a connection");
+        return NULL;
+    }
+    ver("Sender connected");
+    return socket;
 }
 
 
@@ -92,14 +106,8 @@ bool send_file(sfTcpSocket* socket, const char* path, char* hash_data)
 void sender(const char* path)
 {
     ver("Sender");
-    sfTcpSocket* socket = sfTcpSocket_create();
-    if (sfTcpSocket_connect(socket, sfIpAddress_LocalHost, 5300, sfTime_Zero) != sfSocketDone)
-    {
-        sfTcpSocket_destroy(socket);
-        err("Failed to establish a connection");
-        return;
-    }
-    ver("Sender connected");
+    sfTcpSocket* socket = sender_connect();
+    if (socket == NULL) return;
 
     sfPacket* packet = sfPacket_create();
     sfPacket_writeString(packet, path);
@@ -108,11 +116,11 @@ void sender(const char* path)
     sfPacket_destroy(packet);
 
     char hash_data[65 + 33];
-    send_file(socket, path, hash_data);
-    receive_confirmation(socket);
+    if (!send_file(socket, path, hash_data)) return;
+    send_receive_confirmation(socket);
     sfTcpSocket_send(socket, hash_data, 65 + 33);
     ver("Sha256: %s\n[INFO]    MD5: %s", hash_data, &hash_data[65]);
-     
+
     sfTcpSocket_destroy(socket);
     ver("Sender done");
 }

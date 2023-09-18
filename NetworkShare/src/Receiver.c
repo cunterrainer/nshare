@@ -41,20 +41,36 @@ void receive_bytes(sfTcpSocket* socket, char* data, size_t bytes)
 }
 
 
-void receive_file(sfTcpSocket* socket, size_t fsize, char* hash_data)
+bool receive_file(sfTcpSocket* socket, size_t fsize, char* hash_data)
 {
+    FILE* fp = fopen("path", "wb");
+    if (!fp)
+    {
+        err("Failed to open file [%s]", "path");
+        return false;
+    }
+
     Hash_MD5 md5 = hash_md5_init();
     Hash_Sha256 sha256 = hash_sha256_init();
 
     size_t remaining = fsize;
-    char buffer[BYTES_PER_SEND];
     while (remaining > 0)
     {
         size_t received;
+        char buffer[BYTES_PER_SEND];
+
         if (sfTcpSocket_receive(socket, buffer, BYTES_PER_SEND, &received) != sfSocketDone)
         {
+            fclose(fp);
             err("Error receiving bytes %u remaining from file", remaining);
-            return;
+            return false;
+        }
+
+        if (fwrite(buffer, 1, received, fp) != received)
+        {
+            fclose(fp);
+            err("Error writing to file %u remaining", remaining);
+            return false;
         }
 
         remaining -= received;
@@ -62,10 +78,12 @@ void receive_file(sfTcpSocket* socket, size_t fsize, char* hash_data)
         hash_sha256_update_binary(&sha256, buffer, received);
     }
 
+    fclose(fp);
     hash_md5_finalize(&md5);
     hash_sha256_finalize(&sha256);
     hash_md5_hexdigest(&md5, &hash_data[65]);
     hash_sha256_hexdigest(&sha256, hash_data);
+    return true;
 }
 
 
@@ -99,7 +117,7 @@ void receive()
     sfPacket_destroy(packet);
 
     char own_hash_data[65 + 33];
-    receive_file(socket, fsize, own_hash_data);
+    if (!receive_file(socket, fsize, own_hash_data)) return;
     sfTcpSocket_send(socket, own_hash_data, 1); // sent confirmation bit to tell the sender we're ready to get the checksums
 
     char hashData[65 + 33]; // first 64 bytes sha256 next 32 bytes md5 + null term char
