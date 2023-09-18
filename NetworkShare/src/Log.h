@@ -1,3 +1,75 @@
+#include <stdio.h>
+#include <stdarg.h>
+
+#ifdef WINDOWS
+    #include <Windows.h>
+    typedef WORD ColorType;
+    static const ColorType Color_White = 0b0111;
+    static const ColorType Color_LightRed = 0b1100;
+    static const ColorType Color_LightGreen = 10;
+#elif defined(LINUX) || defined(MACOS)
+    #include <unistd.h>
+    typedef const char* const ColorType;
+    static inline ColorType Color_White = "\033[0m";
+    static inline ColorType Color_LightRed = "\033[1;31m";
+    static inline ColorType Color_LightGreen = "\033[1;32m";
+#endif
+
+static void log_set_color(ColorType color)
+{
+#ifdef WINDOWS
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), color);
+#elif defined(LINUX) || defined(MACOS)
+    if (m_IsColored && isatty(STDOUT_FILENO))
+        printf("%s", color);
+#endif
+}
+
+static void Log(const char* format, ...)
+{
+    fprintf(stdout, "[INFO] ");
+    va_list arglist;
+    va_start(arglist, format);
+    vfprintf(stdout, format, arglist);
+    va_end(arglist);
+    fputc('\n', stdout);
+}
+
+static void err(const char* format, ...)
+{
+    log_set_color(Color_LightRed);
+    fprintf(stderr, "[ERROR] ");
+    va_list arglist;
+    va_start(arglist, format);
+    vfprintf(stderr, format, arglist);
+    va_end(arglist);
+    fputc('\n', stderr);
+    log_set_color(Color_White);
+}
+
+static void suc(const char* format, ...)
+{
+    log_set_color(Color_LightGreen);
+    fprintf(stdout, "[INFO] ");
+    va_list arglist;
+    va_start(arglist, format);
+    vfprintf(stdout, format, arglist);
+    va_end(arglist);
+    fputc('\n', stdout);
+    log_set_color(Color_White);
+}
+
+static void ver(const char* format, ...)
+{
+    fprintf(stdout, "[INFO] ");
+    va_list arglist;
+    va_start(arglist, format);
+    vfprintf(stdout, format, arglist);
+    va_end(arglist);
+    fputc('\n', stdout);
+}
+
+#ifdef __cplusplus
 #pragma once
 #include <cstring>
 #include <string>
@@ -224,3 +296,4 @@ inline const Logger Log("[INFO] ", false, std::cout);
 inline const Logger Err("[ERROR] ", true, std::cerr, fmt::Color::LightRed);
 inline const Logger Suc("[INFO] ", true, std::cout, fmt::Color::LightGreen);
 inline const ToggledLogger Ver("[INFO] ", false, std::cout); // Verbose
+#endif // __cplusplus

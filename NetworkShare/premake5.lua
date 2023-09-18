@@ -1,22 +1,22 @@
 project "NetworkShare"
-    language "C++"
-    cppdialect "C++17"
+    language "C"
+    cdialect "C11"
     flags "FatalWarnings"
     defines "SFML_STATIC"
 
     files {
-        "src/**.cpp",
+        "src/**.c",
         "src/**.h"
     }
 
     includedirs {
         "src",
-        "../Dependencies/SFML/include"
+        "../Dependencies/CSFML/include"
     }
 
-    externalincludedirs "../Dependencies/SFML/include"
+    externalincludedirs "../Dependencies/CSFML/include"
 
-    links "SFML-Network"
+    links { "CSFML-Network", "SFML-Network" }
 
     filter "system:windows"
         defines "_CRT_SECURE_NO_WARNINGS"
@@ -55,15 +55,12 @@ project "NetworkShare"
         enablewarnings {
             "cast-align",
             "cast-qual",
-            "ctor-dtor-privacy",
             "disabled-optimization",
             "format=2",
             "init-self",
             "missing-include-dirs",
-            "overloaded-virtual",
             "redundant-decls",
             "shadow",
-            "sign-promo",
             "switch-default",
             "undef",
             "uninitialized",
@@ -77,7 +74,7 @@ project "NetworkShare"
             "vla",
             "shift-overflow"
         }
-        disablewarnings { "unknown-warning-option", "sign-compare", "parentheses" }
+        disablewarnings { "unknown-warning-option", "sign-compare", "parentheses", "unused-function" }
 
     filter "toolset:gcc*"
         warnings "Extra"
@@ -86,8 +83,6 @@ project "NetworkShare"
             linkgroups "on" -- activate position independent linking
         filter "toolset:gcc*"
         enablewarnings {
-            "noexcept",
-            "strict-null-sentinel",
             "array-bounds=2",
             "duplicated-branches",
             "duplicated-cond",
@@ -99,6 +94,7 @@ project "NetworkShare"
         }
         disablewarnings "cast-function-type"
         defines "GCC"
+        links "stdc++"
 
     filter "toolset:clang*"
         warnings "Extra"

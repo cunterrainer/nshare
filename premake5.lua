@@ -50,3 +50,4 @@ removeunreferencedcodedata "on"
 
 include "NetworkShare"
 include "Dependencies/SFML"
+include "Dependencies/CSFML"
