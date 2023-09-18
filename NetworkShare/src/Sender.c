@@ -34,53 +34,12 @@ uint64_t get_file_size(const char* path)
 }
 
 
-typedef struct
+void receive_confirmation(sfTcpSocket* socket)
 {
-    char* data;
-    sfUint32 size;
-    const char* sha256; // 64 chars
-    const char* md5;    // 32 chars
-}FileData;
-
-
-FileData LoadFile(const char* path)
-{
-    FileData f = { .data = NULL, .size = 0, .sha256 = NULL, .md5 = NULL };
-    FILE* fp = fopen(path, "rb");
-    if (!fp)
-    {
-        err("Failed to open file [%s]", path);
-        return f;
-    }
-
-    fseek(fp, 0, SEEK_END);
-    f.size = ftell(fp);
-    rewind(fp);
-
-    f.data = malloc(f.size);
-    if (f.data == NULL)
-    {
-        fclose(fp);
-        err("Failed to allocate memory for file content");
-        return f;
-    }
-
-    /* copy the file into the buffer */
-    if (1 != fread(f.data, f.size, 1, fp))
-    {
-        fclose(fp);
-        free(f.data);
-        err("Failed to read file content");
-        return f;
-    }
-    fclose(fp);
-
-    f.sha256 = hash_sha256_binary(f.data, f.size, NULL);
-    f.md5 = hash_md5_binary(f.data, f.size, NULL);
-    printf("%s\n%s\n", f.sha256, f.md5);
-    return f;
+    char data[1];
+    size_t rec;
+    sfTcpSocket_receive(socket, data, 1, &rec);
 }
-
 
 
 bool send_file(sfTcpSocket* socket, const char* path, char* hash_data)
@@ -109,7 +68,7 @@ bool send_file(sfTcpSocket* socket, const char* path, char* hash_data)
         }
 
         size_t sent;
-        if (sfTcpSocket_sendPartial(socket, buffer, bytes2send, &sent) == sfSocketError)
+        if (sfTcpSocket_sendPartial(socket, buffer, bytes2send, &sent) != sfSocketDone)
         {
             fclose(fp);
             err("Error sending bytes %u remaining", bytesRemaining);
@@ -142,27 +101,18 @@ void sender(const char* path)
     }
     ver("Sender connected");
 
-    FileData fdata = LoadFile(path);
-    if (fdata.sha256 == NULL) return;
-
-    {
-        char hashData[65 + 33];
-        memcpy(hashData, fdata.sha256, 64);
-        memcpy(&hashData[64], fdata.md5, 32);
-        sfTcpSocket_send(socket, hashData, 64+32);
-    }
-
     sfPacket* packet = sfPacket_create();
     sfPacket_writeString(packet, path);
-    sfPacket_writeUint32(packet, fdata.size);
+    sfPacket_writeUint32(packet, (sfUint32)get_file_size(path));
     sfTcpSocket_sendPacket(socket, packet);
     sfPacket_destroy(packet);
 
     char hash_data[65 + 33];
     send_file(socket, path, hash_data);
-    Log("%s\n%s", hash_data, &hash_data[65]);
+    receive_confirmation(socket);
+    sfTcpSocket_send(socket, hash_data, 65 + 33);
+    ver("Sha256: %s\n[INFO]    MD5: %s", hash_data, &hash_data[65]);
      
-    free(fdata.data);
     sfTcpSocket_destroy(socket);
     ver("Sender done");
 }

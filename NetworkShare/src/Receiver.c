@@ -34,8 +34,8 @@ void receive_bytes(sfTcpSocket* socket, char* data, size_t bytes)
         if (sfTcpSocket_receive(socket, &data[received], bytes, &received) != sfSocketDone)
         {
             err("Error receiving bytes %u remaining", bytes);
+            return;
         }
-        printf("%lld\n", received);
         bytes -= received;
     }
 }
@@ -51,9 +51,9 @@ void receive_file(sfTcpSocket* socket, size_t fsize, char* hash_data)
     while (remaining > 0)
     {
         size_t received;
-        if (sfTcpSocket_receive(socket, buffer, BYTES_PER_SEND, &received) == sfSocketError)
+        if (sfTcpSocket_receive(socket, buffer, BYTES_PER_SEND, &received) != sfSocketDone)
         {
-            err("Error receiving bytes %u remaining", remaining);
+            err("Error receiving bytes %u remaining from file", remaining);
             return;
         }
 
@@ -91,25 +91,24 @@ void receive()
     sfTcpListener_destroy(listener);
     ver("Receiver connected");
 
-    char hashData[65 + 33]; // first 64 bytes sha256 next 32 bytes md5
-    receive_bytes(socket, hashData, 96);
-    memmove(&hashData[65], &hashData[64], 32);
-    hashData[64] = 0;
-    hashData[97] = 0;
-
     char path[100]; // TODO: might not be big enough
     sfPacket* packet = sfPacket_create();
     sfTcpSocket_receivePacket(socket, packet);
     sfPacket_readString(packet, path);
     sfUint32 fsize = sfPacket_readUint32(packet);
+    sfPacket_destroy(packet);
 
     char own_hash_data[65 + 33];
     receive_file(socket, fsize, own_hash_data);
+    sfTcpSocket_send(socket, own_hash_data, 1); // sent confirmation bit to tell the sender we're ready to get the checksums
 
-    ver("Receiver done");
+    char hashData[65 + 33]; // first 64 bytes sha256 next 32 bytes md5 + null term char
+    receive_bytes(socket, hashData, 98);
+
     if (!check_integrity(hashData, own_hash_data))
     {
         // TODO: ask user if we should remove file
     }
     sfTcpSocket_destroy(socket);
+    ver("Receiver done");
 }
