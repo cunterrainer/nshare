@@ -8,6 +8,15 @@
 #include "Sender.h"
 
 
+int prompt(const char* message)
+{
+    hint("%s", message);
+    int c, ret = tolower(getchar());
+    while ((c = getchar()) != '\n' && c != EOF);
+    return ret;
+}
+
+
 bool check_integrity(const char* received_hashes, const char* own_hash_data)
 {
     ver("Checking integrity...");
@@ -125,7 +134,9 @@ void receive()
 
     if (!check_integrity(hashData, own_hash_data))
     {
-        // TODO: ask user if we should remove file
+        int c = prompt("Checksums don't match do you want to delete the file? [Y|N]: ");
+        if (c != 'n') remove("path");
+        ver("Deleted file [%s]", "path");
     }
     sfTcpSocket_destroy(socket);
     ver("Receiver done");

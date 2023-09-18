@@ -7,12 +7,14 @@
     static const ColorType Color_White = 0b0111;
     static const ColorType Color_LightRed = 0b1100;
     static const ColorType Color_LightGreen = 10;
+    static const ColorType Color_LightYellow = 6;
 #elif defined(LINUX) || defined(MACOS)
     #include <unistd.h>
     typedef const char* const ColorType;
     static inline ColorType Color_White = "\033[0m";
     static inline ColorType Color_LightRed = "\033[1;31m";
     static inline ColorType Color_LightGreen = "\033[1;32m";
+    static inline ColorType Color_LightYellow = "\033[33m";
 #endif
 
 static void log_set_color(ColorType color)
@@ -44,6 +46,17 @@ static void err(const char* format, ...)
     vfprintf(stderr, format, arglist);
     va_end(arglist);
     fputc('\n', stderr);
+    log_set_color(Color_White);
+}
+
+static void hint(const char* format, ...)
+{
+    log_set_color(Color_LightYellow);
+    fprintf(stdout, "[HINT] ");
+    va_list arglist;
+    va_start(arglist, format);
+    vfprintf(stdout, format, arglist);
+    va_end(arglist);
     log_set_color(Color_White);
 }
 
