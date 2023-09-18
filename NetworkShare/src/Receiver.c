@@ -5,40 +5,67 @@
 
 #include "Log.h"
 #include "Hash.h"
+#include "Sender.h"
 
 
-bool check_integrity(const char* hashes, const char* data, size_t size)
+bool check_integrity(const char* received_hashes, const char* own_hash_data)
 {
     ver("Checking integrity...");
-    const char* data_md5 = hash_md5_binary(data, size, NULL);
-    const char* data_sha256 = hash_sha256_binary(data, size, NULL);
-
-    if (strcmp(data_sha256, hashes) != 0)
+    if (strcmp(own_hash_data, received_hashes) != 0)
     {
-        err("Sha256 hash doesn't match, integrity compromised\nExpected hash:   %s\nCalculated hash: %s", hashes, data_sha256);
+        err("Sha256 hash doesn't match, integrity compromised\nExpected hash:   %s\nCalculated hash: %s", received_hashes, own_hash_data);
         return false;
     }
-    if (strcmp(data_sha256, hashes) != 0)
+    if (strcmp(&own_hash_data[65], &received_hashes[65]) != 0)
     {
-        err("MD5 hash doesn't match, integrity compromised\nExpected hash:   %s\nCalculated hash: %s", &hashes[65], data_md5);
+        err("MD5 hash doesn't match, integrity compromised\nExpected hash:   %s\nCalculated hash: %s", &received_hashes[65], &own_hash_data[65]);
         return false;
     }
-    suc("Passed integrity check\nSha256: %s\nMD5: %s", data_sha256, data_md5);
+    suc("Passed integrity check\nSha256: %s\nMD5: %s", own_hash_data, &own_hash_data[65]);
     return true;
 }
 
 
-void receive_bytes(sfTcpSocket* socket, void* data, size_t bytes)
+void receive_bytes(sfTcpSocket* socket, char* data, size_t bytes)
 {
-    size_t received;
+    size_t received = 0;
     while (bytes > 0)
     {
-        if (sfTcpSocket_receive(socket, data, bytes, &received) != sfSocketDone)
+        if (sfTcpSocket_receive(socket, &data[received], bytes, &received) != sfSocketDone)
         {
             err("Error receiving bytes %u remaining", bytes);
         }
+        printf("%lld\n", received);
         bytes -= received;
     }
+}
+
+
+void receive_file(sfTcpSocket* socket, size_t fsize, char* hash_data)
+{
+    Hash_MD5 md5 = hash_md5_init();
+    Hash_Sha256 sha256 = hash_sha256_init();
+
+    size_t remaining = fsize;
+    char buffer[BYTES_PER_SEND];
+    while (remaining > 0)
+    {
+        size_t received;
+        if (sfTcpSocket_receive(socket, buffer, BYTES_PER_SEND, &received) == sfSocketError)
+        {
+            err("Error receiving bytes %u remaining", remaining);
+            return;
+        }
+
+        remaining -= received;
+        hash_md5_update_binary(&md5, buffer, received);
+        hash_sha256_update_binary(&sha256, buffer, received);
+    }
+
+    hash_md5_finalize(&md5);
+    hash_sha256_finalize(&sha256);
+    hash_md5_hexdigest(&md5, &hash_data[65]);
+    hash_sha256_hexdigest(&sha256, hash_data);
 }
 
 
@@ -69,7 +96,6 @@ void receive()
     memmove(&hashData[65], &hashData[64], 32);
     hashData[64] = 0;
     hashData[97] = 0;
-    printf("%s\n%s\n", hashData, &hashData[65]);
 
     char path[100]; // TODO: might not be big enough
     sfPacket* packet = sfPacket_create();
@@ -77,29 +103,13 @@ void receive()
     sfPacket_readString(packet, path);
     sfUint32 fsize = sfPacket_readUint32(packet);
 
-    char* content = malloc(fsize);
-    receive_bytes(socket, content, fsize);
+    char own_hash_data[65 + 33];
+    receive_file(socket, fsize, own_hash_data);
+
     ver("Receiver done");
-
-    if (check_integrity(hashData, content, fsize))
+    if (!check_integrity(hashData, own_hash_data))
     {
-        ver("Writing to file [%s] (not yet implemented)", path);
+        // TODO: ask user if we should remove file
     }
-    free(content);
     sfTcpSocket_destroy(socket);
-
-
-    //ProgressBarInit();
-    //std::unique_ptr<char[]> data = std::make_unique<char[]>((size_t)fileSize);
-    //size_t received = 0;
-    //size_t remainingBytes = (size_t)fileSize;
-    //while (remainingBytes > 0)
-    //{
-    //    if (client.receive(&data.get()[fileSize - remainingBytes], std::min(remainingBytes, (size_t)65535/*max tcp packet size*/), received) != sf::Socket::Done)
-    //    {
-    //        Err << "Error receiving " << fileSize - remainingBytes << Endl;
-    //    }
-    //    remainingBytes -= received;
-    //    //ProgressBar((float)(fileSize-remainingBytes), (float)fileSize);
-    //}
 }
