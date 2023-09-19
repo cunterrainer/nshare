@@ -6,7 +6,7 @@
     internal stack buffer or a provided one
 
     C interface:
-    all functions start with hash_ and structs with Hash_
+    all functions start with hash_ and structs with Hash_ private classes start with Hash_Private_
     hash_private_ functions are for the implementation and should not be called
     either use the provided functions, all have the same scheme:
 
@@ -20,10 +20,11 @@
 
     or if you need to update the hash e.g. while reading chunks from a file (not supported for SHA3, Shake128 and Shake256
 
-        Hash_Sha256 s = hash_sha256_init();
-        hash_sha256_update_binary(&s, str, size);
-        hash_sha256_finalize(&s);
-        const char* hash = hash_sha256_hexdigest(&s, buffer);
+        Hash_Sha256 s;
+        hash_sha256_init(s);
+        hash_sha256_update_binary(s, str, size);
+        hash_sha256_finalize(s);
+        const char* hash = hash_sha256_hexdigest(s, buffer);
 
     C++ interface:
     all functions and classes are in the namespace Hash
@@ -32,7 +33,7 @@
         Hash::File::sha256("main.c", std::ios::binary);
 
     or if you need to update the hash e.g. while reading chunks from a file (not supported for SHA3, Shake128 and Shake256
-        Sha256 s;
+        Hash::Sha256 s;
         s.Update("Hello world");
         s.Finalize();
         std::string hash = s.Hexdigest();
@@ -172,10 +173,11 @@ typedef struct
     uint8_t bufferSize;
     uint32_t h[8];
     uint8_t buffer[64];
-} Hash_Sha256;
+} Hash_Private_Sha256;
+typedef Hash_Private_Sha256 Hash_Sha256[1];
 
 
-HASH_INLINE void hash_private_sha256_compress(Hash_Sha256* s, const uint32_t* const w)
+HASH_INLINE void hash_private_sha256_compress(Hash_Sha256 s, const uint32_t* const w)
 {
     static const uint32_t k[64] =
     {
@@ -225,7 +227,7 @@ HASH_INLINE void hash_private_sha256_compress(Hash_Sha256* s, const uint32_t* co
 }
 
 
-HASH_INLINE void hash_private_sha256_transform(Hash_Sha256* s)
+HASH_INLINE void hash_private_sha256_transform(Hash_Sha256 s)
 {
     static uint32_t w[64];
     for (size_t i = 0; i < 16; ++i)
@@ -250,24 +252,22 @@ HASH_INLINE void hash_private_sha256_transform(Hash_Sha256* s)
 
 
 
-HASH_INLINE Hash_Sha256 hash_sha256_init()
+HASH_INLINE void hash_sha256_init(Hash_Sha256 s)
 {
-    Hash_Sha256 s;
-    s.bitlen = 0;
-    s.bufferSize = 0;
-    s.h[0] = 0x6a09e667;
-    s.h[1] = 0xbb67ae85;
-    s.h[2] = 0x3c6ef372;
-    s.h[3] = 0xa54ff53a;
-    s.h[4] = 0x510e527f;
-    s.h[5] = 0x9b05688c;
-    s.h[6] = 0x1f83d9ab;
-    s.h[7] = 0x5be0cd19;
-    return s;
+    s->bitlen = 0;
+    s->bufferSize = 0;
+    s->h[0] = 0x6a09e667;
+    s->h[1] = 0xbb67ae85;
+    s->h[2] = 0x3c6ef372;
+    s->h[3] = 0xa54ff53a;
+    s->h[4] = 0x510e527f;
+    s->h[5] = 0x9b05688c;
+    s->h[6] = 0x1f83d9ab;
+    s->h[7] = 0x5be0cd19;
 };
 
 
-HASH_INLINE void hash_sha256_update_binary(Hash_Sha256* s, const char* data, size_t size)
+HASH_INLINE void hash_sha256_update_binary(Hash_Sha256 s, const char* data, size_t size)
 {
     const uint8_t* d = (const uint8_t*)data;
     for (size_t i = 0; i < size; ++i)
@@ -282,12 +282,12 @@ HASH_INLINE void hash_sha256_update_binary(Hash_Sha256* s, const char* data, siz
     }
 }
 
-HASH_INLINE void hash_sha256_update(Hash_Sha256* s, const char* data)
+HASH_INLINE void hash_sha256_update(Hash_Sha256 s, const char* data)
 {
     hash_sha256_update_binary(s, data, strlen(data));
 }
 
-HASH_INLINE void hash_sha256_finalize(Hash_Sha256* s)
+HASH_INLINE void hash_sha256_finalize(Hash_Sha256 s)
 {
     uint8_t start = s->bufferSize;
     uint8_t end = s->bufferSize < 56 ? 56 : 64;
@@ -309,7 +309,7 @@ HASH_INLINE void hash_sha256_finalize(Hash_Sha256* s)
 
 
 // if buffer == NULL returns internal buffer, buffer size must be at least 65 (Null term char)
-HASH_INLINE const char* hash_sha256_hexdigest(Hash_Sha256* s, char* buffer)
+HASH_INLINE const char* hash_sha256_hexdigest(const Hash_Sha256 s, char* buffer)
 {
     static char hex[65];
     char* buff = buffer == NULL ? hex : buffer;
@@ -324,10 +324,11 @@ HASH_INLINE const char* hash_sha256_hexdigest(Hash_Sha256* s, char* buffer)
 // if buffer == NULL returns internal buffer, buffer size must be at least 65 (Null term char)
 HASH_INLINE const char* hash_sha256_binary(const char* str, size_t size, char* buffer)
 {
-    Hash_Sha256 s = hash_sha256_init();
-    hash_sha256_update_binary(&s, str, size);
-    hash_sha256_finalize(&s);
-    return hash_sha256_hexdigest(&s, buffer);
+    Hash_Sha256 s;
+    hash_sha256_init(s);
+    hash_sha256_update_binary(s, str, size);
+    hash_sha256_finalize(s);
+    return hash_sha256_hexdigest(s, buffer);
 }
 
 HASH_INLINE const char* hash_sha256(const char* str, char* buffer)
@@ -355,41 +356,39 @@ HASH_INLINE const char* hash_sha256_file_easy(const char* path, const char* mode
 // ===============================Hash_Sha224===================================
 typedef Hash_Sha256 Hash_Sha224;
 
-HASH_INLINE Hash_Sha224 hash_sha224_init()
+HASH_INLINE void hash_sha224_init(Hash_Sha224 s)
 {
-    Hash_Sha224 s;
-    s.bitlen = 0;
-    s.bufferSize = 0;
-    s.h[0] = 0xC1059ED8;
-    s.h[1] = 0x367CD507;
-    s.h[2] = 0x3070DD17;
-    s.h[3] = 0xF70E5939;
-    s.h[4] = 0xFFC00B31;
-    s.h[5] = 0x68581511;
-    s.h[6] = 0x64F98FA7;
-    s.h[7] = 0xBEFA4FA4;
-    return s;
+    s->bitlen = 0;
+    s->bufferSize = 0;
+    s->h[0] = 0xC1059ED8;
+    s->h[1] = 0x367CD507;
+    s->h[2] = 0x3070DD17;
+    s->h[3] = 0xF70E5939;
+    s->h[4] = 0xFFC00B31;
+    s->h[5] = 0x68581511;
+    s->h[6] = 0x64F98FA7;
+    s->h[7] = 0xBEFA4FA4;
 };
 
 
-HASH_INLINE void hash_sha224_update_binary(Hash_Sha224* s, const char* data, size_t size)
+HASH_INLINE void hash_sha224_update_binary(Hash_Sha224 s, const char* data, size_t size)
 {
     hash_sha256_update_binary(s, data, size);
 }
 
-HASH_INLINE void hash_sha224_update(Hash_Sha224* s, const char* data)
+HASH_INLINE void hash_sha224_update(Hash_Sha224 s, const char* data)
 {
     hash_sha224_update_binary(s, data, strlen(data));
 }
 
-HASH_INLINE void hash_sha224_finalize(Hash_Sha224* s)
+HASH_INLINE void hash_sha224_finalize(Hash_Sha224 s)
 {
     hash_sha256_finalize(s);
 }
 
 
 // if buffer == NULL returns internal buffer, buffer size must be at least 57 (Null term char)
-HASH_INLINE const char* hash_sha224_hexdigest(Hash_Sha224* s, char* buffer)
+HASH_INLINE const char* hash_sha224_hexdigest(const Hash_Sha224 s, char* buffer)
 {
     static char hex[57];
     char* buff = buffer == NULL ? hex : buffer;
@@ -404,10 +403,11 @@ HASH_INLINE const char* hash_sha224_hexdigest(Hash_Sha224* s, char* buffer)
 // if buffer == NULL returns internal buffer, buffer size must be at least 65 (Null term char)
 HASH_INLINE const char* hash_sha224_binary(const char* str, size_t size, char* buffer)
 {
-    Hash_Sha224 s = hash_sha224_init();
-    hash_sha224_update_binary(&s, str, size);
-    hash_sha224_finalize(&s);
-    return hash_sha224_hexdigest(&s, buffer);
+    Hash_Sha224 s;
+    hash_sha224_init(s);
+    hash_sha224_update_binary(s, str, size);
+    hash_sha224_finalize(s);
+    return hash_sha224_hexdigest(s, buffer);
 }
 
 HASH_INLINE const char* hash_sha224(const char* str, char* buffer)
@@ -440,10 +440,11 @@ typedef struct
     uint64_t h[8];
     uint8_t buffer[128];
     size_t t; // only use for sha512t
-} Hash_Sha512;
+} Hash_Private_Sha512;
+typedef Hash_Private_Sha512 Hash_Sha512[1];
 
 
-HASH_INLINE void hash_private_sha512_compress(Hash_Sha512* s, const uint64_t* const w)
+HASH_INLINE void hash_private_sha512_compress(Hash_Sha512 s, const uint64_t* const w)
 {
     static const uint64_t k[80] =
     {
@@ -501,7 +502,7 @@ HASH_INLINE void hash_private_sha512_compress(Hash_Sha512* s, const uint64_t* co
 }
 
 
-HASH_INLINE void hash_private_sha512_transform(Hash_Sha512* s)
+HASH_INLINE void hash_private_sha512_transform(Hash_Sha512 s)
 {
     static uint64_t w[80];
     for (size_t i = 0; i < 16; ++i)
@@ -530,29 +531,27 @@ HASH_INLINE void hash_private_sha512_transform(Hash_Sha512* s)
 
 
 
-HASH_INLINE Hash_Sha512 hash_sha512_init()
+HASH_INLINE void hash_sha512_init(Hash_Sha512 s)
 {
-    Hash_Sha512 s;
-    s.bitlen = 0;
-    s.bufferSize = 0;
-    s.h[0] = 0x6a09e667f3bcc908;
-    s.h[1] = 0xbb67ae8584caa73b;
-    s.h[2] = 0x3c6ef372fe94f82b;
-    s.h[3] = 0xa54ff53a5f1d36f1;
-    s.h[4] = 0x510e527fade682d1;
-    s.h[5] = 0x9b05688c2b3e6c1f;
-    s.h[6] = 0x1f83d9abfb41bd6b;
-    s.h[7] = 0x5be0cd19137e2179;
-    return s;
+    s->bitlen = 0;
+    s->bufferSize = 0;
+    s->h[0] = 0x6a09e667f3bcc908;
+    s->h[1] = 0xbb67ae8584caa73b;
+    s->h[2] = 0x3c6ef372fe94f82b;
+    s->h[3] = 0xa54ff53a5f1d36f1;
+    s->h[4] = 0x510e527fade682d1;
+    s->h[5] = 0x9b05688c2b3e6c1f;
+    s->h[6] = 0x1f83d9abfb41bd6b;
+    s->h[7] = 0x5be0cd19137e2179;
 };
 
-HASH_INLINE void hash_sha512_reset(Hash_Sha512* s)
+HASH_INLINE void hash_sha512_reset(Hash_Sha512 s)
 {
     s->bitlen = 0;
     s->bufferSize = 0;
 }
 
-HASH_INLINE void hash_sha512_update_binary(Hash_Sha512* s, const char* data, size_t size)
+HASH_INLINE void hash_sha512_update_binary(Hash_Sha512 s, const char* data, size_t size)
 {
     const uint8_t* d = (const uint8_t*)data;
     for (size_t i = 0; i < size; ++i)
@@ -567,12 +566,12 @@ HASH_INLINE void hash_sha512_update_binary(Hash_Sha512* s, const char* data, siz
     }
 }
 
-HASH_INLINE void hash_sha512_update(Hash_Sha512* s, const char* data)
+HASH_INLINE void hash_sha512_update(Hash_Sha512 s, const char* data)
 {
     hash_sha512_update_binary(s, data, strlen(data));
 }
 
-HASH_INLINE void hash_sha512_finalize(Hash_Sha512* s)
+HASH_INLINE void hash_sha512_finalize(Hash_Sha512 s)
 {
     uint8_t start = s->bufferSize;
     uint8_t end = s->bufferSize < 112 ? 120 : 128; // 120 instead of 112 because m_Bitlen is a 64 bit uint
@@ -594,7 +593,7 @@ HASH_INLINE void hash_sha512_finalize(Hash_Sha512* s)
 
 
 // if buffer == NULL returns internal buffer, buffer size must be at least 129 (Null term char)
-HASH_INLINE const char* hash_sha512_hexdigest(Hash_Sha512* s, char* buffer)
+HASH_INLINE const char* hash_sha512_hexdigest(const Hash_Sha512 s, char* buffer)
 {
     static char hex[129];
     char* buff = buffer == NULL ? hex : buffer;
@@ -609,10 +608,11 @@ HASH_INLINE const char* hash_sha512_hexdigest(Hash_Sha512* s, char* buffer)
 // if buffer == NULL returns internal buffer, buffer size must be at least 129 (Null term char)
 HASH_INLINE const char* hash_sha512_binary(const char* str, size_t size, char* buffer)
 {
-    Hash_Sha512 s = hash_sha512_init();
-    hash_sha512_update_binary(&s, str, size);
-    hash_sha512_finalize(&s);
-    return hash_sha512_hexdigest(&s, buffer);
+    Hash_Sha512 s;
+    hash_sha512_init(s);
+    hash_sha512_update_binary(s, str, size);
+    hash_sha512_finalize(s);
+    return hash_sha512_hexdigest(s, buffer);
 }
 
 HASH_INLINE const char* hash_sha512(const char* str, char* buffer)
@@ -639,31 +639,30 @@ HASH_INLINE const char* hash_sha512_file_easy(const char* path, const char* mode
 
 // ===============================Hash_Sha512T==================================
 typedef Hash_Sha512 Hash_Sha512T;
-HASH_INLINE Hash_Sha512T hash_sha512t_init(size_t t)
+HASH_INLINE void hash_sha512t_init(Hash_Sha512T s, size_t t)
 {
     assert(t != 384 && "t = 384 is not allowed use Hash_Sha384 instead!");
     assert(t >= 4 && t <= 2048 && "t must satisfy t >= 4 && t <= 2048!");
-    Hash_Sha512T s;
-    s.bitlen = 0;
-    s.bufferSize = 0;
-    s.h[0] = 0xcfac43c256196cad;
-    s.h[1] = 0x1ec20b20216f029e;
-    s.h[2] = 0x99cb56d75b315d8e;
-    s.h[3] = 0x00ea509ffab89354;
-    s.h[4] = 0xf4abf7da08432774;
-    s.h[5] = 0x3ea0cd298e9bc9ba;
-    s.h[6] = 0xba267c0e5ee418ce;
-    s.h[7] = 0xfe4568bcb6db84dc;
-    s.t = t;
+    s->bitlen = 0;
+    s->bufferSize = 0;
+    s->h[0] = 0xcfac43c256196cad;
+    s->h[1] = 0x1ec20b20216f029e;
+    s->h[2] = 0x99cb56d75b315d8e;
+    s->h[3] = 0x00ea509ffab89354;
+    s->h[4] = 0xf4abf7da08432774;
+    s->h[5] = 0x3ea0cd298e9bc9ba;
+    s->h[6] = 0xba267c0e5ee418ce;
+    s->h[7] = 0xfe4568bcb6db84dc;
+    s->t = t;
 
     char str[13], buff[129];
     memset(str, 0, 13);
     sprintf(str, "SHA-512/%u", (unsigned int)t);
 
-    hash_sha512_update(&s, str);
-    hash_sha512_finalize(&s);
-    hash_sha512_hexdigest(&s, buff);
-    hash_sha512_reset(&s);
+    hash_sha512_update(s, str);
+    hash_sha512_finalize(s);
+    hash_sha512_hexdigest(s, buff);
+    hash_sha512_reset(s);
 
     size_t k = 0;
     for (size_t i = 0; i < 128; i += 16)
@@ -671,30 +670,29 @@ HASH_INLINE Hash_Sha512T hash_sha512t_init(size_t t)
         char hex[17];
         hex[16] = 0;
         memcpy(hex, &buff[i], 16);
-        s.h[k++] = strtoull(hex, NULL, 16);
+        s->h[k++] = strtoull(hex, NULL, 16);
     }
-    return s;
 };
 
 
-HASH_INLINE void hash_sha512t_update_binary(Hash_Sha512T* s, const char* data, size_t size)
+HASH_INLINE void hash_sha512t_update_binary(Hash_Sha512T s, const char* data, size_t size)
 {
     hash_sha512_update_binary(s, data, size);
 }
 
-HASH_INLINE void hash_sha512t_update(Hash_Sha512T* s, const char* data)
+HASH_INLINE void hash_sha512t_update(Hash_Sha512T s, const char* data)
 {
     hash_sha512t_update_binary(s, data, strlen(data));
 }
 
-HASH_INLINE void hash_sha512t_finalize(Hash_Sha512T* s)
+HASH_INLINE void hash_sha512t_finalize(Hash_Sha512T s)
 {
     hash_sha512_finalize(s);
 }
 
 
 // if buffer == NULL returns internal buffer, buffer size must be at least (t/4)+1 (Null term char)
-HASH_INLINE const char* hash_sha512t_hexdigest(Hash_Sha512T* s, char* buffer)
+HASH_INLINE const char* hash_sha512t_hexdigest(const Hash_Sha512T s, char* buffer)
 {
     static char hex[513]; // use max allowed size to avoid memory allocation
     char* buff = buffer == NULL ? hex : buffer;
@@ -709,10 +707,11 @@ HASH_INLINE const char* hash_sha512t_hexdigest(Hash_Sha512T* s, char* buffer)
 // if buffer == NULL returns internal buffer, buffer size must be at least (t/4)+1 (Null term char)
 HASH_INLINE const char* hash_sha512t_binary(size_t t, const char* str, size_t size, char* buffer)
 {
-    Hash_Sha512T s = hash_sha512t_init(t);
-    hash_sha512t_update_binary(&s, str, size);
-    hash_sha512t_finalize(&s);
-    return hash_sha512t_hexdigest(&s, buffer);
+    Hash_Sha512T s;
+    hash_sha512t_init(s, t);
+    hash_sha512t_update_binary(s, str, size);
+    hash_sha512t_finalize(s);
+    return hash_sha512t_hexdigest(s, buffer);
 }
 
 HASH_INLINE const char* hash_sha512t(size_t t, const char* str, char* buffer)
@@ -731,8 +730,7 @@ HASH_INLINE const char* hash_sha512t_file(size_t t, const char* path, const char
     char* content = hash_util_load_file(path, mode, &fsize);
     if (content == NULL) return "";
     const char* hash = hash_sha512t_binary(t, content, fsize, buffer);
-    if (content != NULL)
-        free(content);
+    if (content != NULL) free(content);
     return hash;
 }
 
@@ -746,41 +744,39 @@ HASH_INLINE const char* hash_sha512t_file_easy(size_t t, const char* path, const
 
 // ===============================Hash_Sha384===================================
 typedef Hash_Sha512 Hash_Sha384;
-HASH_INLINE Hash_Sha384 hash_sha384_init()
+HASH_INLINE void hash_sha384_init(Hash_Sha384 s)
 {
-    Hash_Sha384 s;
-    s.bitlen = 0;
-    s.bufferSize = 0;
-    s.h[0] = 0xcbbb9d5dc1059ed8;
-    s.h[1] = 0x629a292a367cd507;
-    s.h[2] = 0x9159015a3070dd17;
-    s.h[3] = 0x152fecd8f70e5939;
-    s.h[4] = 0x67332667ffc00b31;
-    s.h[5] = 0x8eb44a8768581511;
-    s.h[6] = 0xdb0c2e0d64f98fa7;
-    s.h[7] = 0x47b5481dbefa4fa4;
-    return s;
+    s->bitlen = 0;
+    s->bufferSize = 0;
+    s->h[0] = 0xcbbb9d5dc1059ed8;
+    s->h[1] = 0x629a292a367cd507;
+    s->h[2] = 0x9159015a3070dd17;
+    s->h[3] = 0x152fecd8f70e5939;
+    s->h[4] = 0x67332667ffc00b31;
+    s->h[5] = 0x8eb44a8768581511;
+    s->h[6] = 0xdb0c2e0d64f98fa7;
+    s->h[7] = 0x47b5481dbefa4fa4;
 };
 
 
-HASH_INLINE void hash_sha384_update_binary(Hash_Sha384* s, const char* data, size_t size)
+HASH_INLINE void hash_sha384_update_binary(Hash_Sha384 s, const char* data, size_t size)
 {
     hash_sha512_update_binary(s, data, size);
 }
 
-HASH_INLINE void hash_sha384_update(Hash_Sha384* s, const char* data)
+HASH_INLINE void hash_sha384_update(Hash_Sha384 s, const char* data)
 {
     hash_sha384_update_binary(s, data, strlen(data));
 }
 
-HASH_INLINE void hash_sha384_finalize(Hash_Sha384* s)
+HASH_INLINE void hash_sha384_finalize(Hash_Sha384 s)
 {
     hash_sha512_finalize(s);
 }
 
 
 // if buffer == NULL returns internal buffer, buffer size must be at least 97 (Null term char)
-HASH_INLINE const char* hash_sha384_hexdigest(Hash_Sha384* s, char* buffer)
+HASH_INLINE const char* hash_sha384_hexdigest(const Hash_Sha384 s, char* buffer)
 {
     static char hex[97]; // use max allowed size to avoid memory allocation
     char* buff = buffer == NULL ? hex : buffer;
@@ -795,10 +791,11 @@ HASH_INLINE const char* hash_sha384_hexdigest(Hash_Sha384* s, char* buffer)
 // if buffer == NULL returns internal buffer, buffer size must be at least 97 (Null term char)
 HASH_INLINE const char* hash_sha384_binary(const char* str, size_t size, char* buffer)
 {
-    Hash_Sha384 s = hash_sha384_init();
-    hash_sha384_update_binary(&s, str, size);
-    hash_sha384_finalize(&s);
-    return hash_sha384_hexdigest(&s, buffer);
+    Hash_Sha384 s;
+    hash_sha384_init(s);
+    hash_sha384_update_binary(s, str, size);
+    hash_sha384_finalize(s);
+    return hash_sha384_hexdigest(s, buffer);
 }
 
 HASH_INLINE const char* hash_sha384(const char* str, char* buffer)
@@ -830,10 +827,11 @@ typedef struct
     uint8_t bufferSize;
     uint8_t buffer[64];
     uint32_t h[5];
-} Hash_Sha1;
+} Hash_Private_Sha1;
+typedef Hash_Private_Sha1 Hash_Sha1[1];
 
 
-HASH_INLINE void hash_private_hash_sha1_transform(Hash_Sha1* s)
+HASH_INLINE void hash_private_hash_sha1_transform(Hash_Sha1 s)
 {
     uint32_t w[80] = { 0 };
     for (size_t i = 0; i < 16; ++i)
@@ -899,21 +897,19 @@ HASH_INLINE void hash_private_hash_sha1_transform(Hash_Sha1* s)
 
 
 
-HASH_INLINE Hash_Sha1 hash_sha1_init()
+HASH_INLINE void hash_sha1_init(Hash_Sha1 s)
 {
-    Hash_Sha1 s;
-    s.bitlen = 0;
-    s.bufferSize = 0;
-    s.h[0] = 0x67452301;
-    s.h[1] = 0xEFCDAB89;
-    s.h[2] = 0x98BADCFE;
-    s.h[3] = 0x10325476;
-    s.h[4] = 0xC3D2E1F0;
-    return s;
+    s->bitlen = 0;
+    s->bufferSize = 0;
+    s->h[0] = 0x67452301;
+    s->h[1] = 0xEFCDAB89;
+    s->h[2] = 0x98BADCFE;
+    s->h[3] = 0x10325476;
+    s->h[4] = 0xC3D2E1F0;
 }
 
 
-HASH_INLINE void hash_sha1_update_binary(Hash_Sha1* s, const char* data, size_t size)
+HASH_INLINE void hash_sha1_update_binary(Hash_Sha1 s, const char* data, size_t size)
 {
     const uint8_t* d = (const uint8_t*)data;
     for (size_t i = 0; i < size; ++i)
@@ -929,13 +925,13 @@ HASH_INLINE void hash_sha1_update_binary(Hash_Sha1* s, const char* data, size_t 
 }
 
 
-HASH_INLINE void hash_sha1_update(Hash_Sha1* s, const char* data)
+HASH_INLINE void hash_sha1_update(Hash_Sha1 s, const char* data)
 {
     hash_sha1_update_binary(s, data, strlen(data));
 }
 
 
-HASH_INLINE void hash_sha1_finalize(Hash_Sha1* s)
+HASH_INLINE void hash_sha1_finalize(Hash_Sha1 s)
 {
     uint8_t start = s->bufferSize;
     uint8_t end = s->bufferSize < 56 ? 56 : 64;
@@ -957,7 +953,7 @@ HASH_INLINE void hash_sha1_finalize(Hash_Sha1* s)
 
 
 // if buffer == NULL returns internal buffer, buffer size must be at least 41 (Null term char)
-HASH_INLINE const char* hash_sha1_hexdigest(Hash_Sha1* s, char* buffer)
+HASH_INLINE const char* hash_sha1_hexdigest(const Hash_Sha1 s, char* buffer)
 {
     static char hex[41]; // use max allowed size to avoid memory allocation
     char* buff = buffer == NULL ? hex : buffer;
@@ -972,10 +968,11 @@ HASH_INLINE const char* hash_sha1_hexdigest(Hash_Sha1* s, char* buffer)
 // if buffer == NULL returns internal buffer, buffer size must be at least 41 (Null term char)
 HASH_INLINE const char* hash_sha1_binary(const char* str, size_t size, char* buffer)
 {
-    Hash_Sha1 s = hash_sha1_init();
-    hash_sha1_update_binary(&s, str, size);
-    hash_sha1_finalize(&s);
-    return hash_sha1_hexdigest(&s, buffer);
+    Hash_Sha1 s;
+    hash_sha1_init(s);
+    hash_sha1_update_binary(s, str, size);
+    hash_sha1_finalize(s);
+    return hash_sha1_hexdigest(s, buffer);
 }
 
 HASH_INLINE const char* hash_sha1(const char* str, char* buffer)
@@ -1009,7 +1006,8 @@ typedef struct
     uint32_t count[2];   // 64bit counter for number of bits (lo, hi)
     uint32_t state[4];   // digest so far
     uint8_t digest[16]; // the result
-} Hash_MD5;
+} Hash_Private_MD5;
+typedef Hash_Private_MD5 Hash_MD5[1];
 
 
 // low level logic operations
@@ -1080,7 +1078,7 @@ HASH_INLINE void hash_private_md5_encode(uint8_t output[], const uint32_t input[
 
 
 // apply Hash_MD5 algo on a block
-HASH_INLINE void hash_private_md5_transform(Hash_MD5* m, const uint8_t block[HASH_PRIVATE_Hash_MD5_BLOCKSIZE])
+HASH_INLINE void hash_private_md5_transform(Hash_MD5 m, const uint8_t block[HASH_PRIVATE_Hash_MD5_BLOCKSIZE])
 {
     // Constants for Hash_MD5Transform routine.
     static const uint32_t S11 = 7;
@@ -1185,7 +1183,7 @@ HASH_INLINE void hash_private_md5_transform(Hash_MD5* m, const uint8_t block[HAS
 }
 
 
-HASH_INLINE void hash_private_md5_update_binary(Hash_MD5* m, const unsigned char* input, size_t size)
+HASH_INLINE void hash_private_md5_update_binary(Hash_MD5 m, const unsigned char* input, size_t size)
 {
     const uint32_t s = (uint32_t)size;
     // compute number of bytes mod 64
@@ -1223,30 +1221,27 @@ HASH_INLINE void hash_private_md5_update_binary(Hash_MD5* m, const unsigned char
 
 
 
-HASH_INLINE Hash_MD5 hash_md5_init()
+HASH_INLINE void hash_md5_init(Hash_MD5 m)
 {
-    Hash_MD5 m;
-    m.finalized = 0;
-
-    m.count[0] = 0;
-    m.count[1] = 0;
+    m->finalized = 0;
+    m->count[0] = 0;
+    m->count[1] = 0;
 
     // load magic initialization constants.
-    m.state[0] = 0x67452301;
-    m.state[1] = 0xefcdab89;
-    m.state[2] = 0x98badcfe;
-    m.state[3] = 0x10325476;
-    return m;
+    m->state[0] = 0x67452301;
+    m->state[1] = 0xefcdab89;
+    m->state[2] = 0x98badcfe;
+    m->state[3] = 0x10325476;
 }
 
 
-HASH_INLINE void hash_md5_update_binary(Hash_MD5* m, const char* data, size_t size)
+HASH_INLINE void hash_md5_update_binary(Hash_MD5 m, const char* data, size_t size)
 {
     hash_private_md5_update_binary(m, (const unsigned char*)data, size);
 }
 
 
-HASH_INLINE void hash_md5_update(Hash_MD5* m, const char* data)
+HASH_INLINE void hash_md5_update(Hash_MD5 m, const char* data)
 {
     hash_md5_update_binary(m, data, strlen(data));
 }
@@ -1254,7 +1249,7 @@ HASH_INLINE void hash_md5_update(Hash_MD5* m, const char* data)
 
 // Hash_MD5 finalization. Ends an Hash_MD5 message-digest operation, writing the
 // the message digest and zeroizing the context.
-HASH_INLINE void  hash_md5_finalize(Hash_MD5* m)
+HASH_INLINE void  hash_md5_finalize(Hash_MD5 m)
 {
     static unsigned char padding[64] = {
       0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -1288,7 +1283,7 @@ HASH_INLINE void  hash_md5_finalize(Hash_MD5* m)
 
 
 // if buffer == NULL returns internal buffer, buffer size must be at least 33 (Null term char)
-HASH_INLINE const char* hash_md5_hexdigest(Hash_MD5* m, char* buffer)
+HASH_INLINE const char* hash_md5_hexdigest(const Hash_MD5 m, char* buffer)
 {
     if (!m->finalized)
         return "";
@@ -1305,10 +1300,11 @@ HASH_INLINE const char* hash_md5_hexdigest(Hash_MD5* m, char* buffer)
 // if buffer == NULL returns internal buffer, buffer size must be at least 33 (Null term char)
 HASH_INLINE const char* hash_md5_binary(const char* str, size_t size, char* buffer)
 {
-    Hash_MD5 m = hash_md5_init();
-    hash_md5_update_binary(&m, str, size);
-    hash_md5_finalize(&m);
-    return hash_md5_hexdigest(&m, buffer);
+    Hash_MD5 m;
+    hash_md5_init(m);
+    hash_md5_update_binary(m, str, size);
+    hash_md5_finalize(m);
+    return hash_md5_hexdigest(m, buffer);
 }
 
 HASH_INLINE const char* hash_md5(const char* str, char* buffer)

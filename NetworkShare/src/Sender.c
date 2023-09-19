@@ -65,8 +65,10 @@ bool send_file(sfTcpSocket* socket, const char* path, char* hash_data)
         return false;
     }
 
-    Hash_MD5 md5 = hash_md5_init();
-    Hash_Sha256 sha256 = hash_sha256_init();
+    Hash_MD5 md5;
+    hash_md5_init(md5);
+    Hash_Sha256 sha256;
+    hash_sha256_init(sha256);
     uint64_t bytesRemaining = get_file_size(path);
 
     while (bytesRemaining > 0)
@@ -90,15 +92,15 @@ bool send_file(sfTcpSocket* socket, const char* path, char* hash_data)
         }
 
         bytesRemaining -= bytes2send;
-        hash_md5_update_binary(&md5, buffer, bytes2send);
-        hash_sha256_update_binary(&sha256, buffer, bytes2send);
+        hash_md5_update_binary(md5, buffer, bytes2send);
+        hash_sha256_update_binary(sha256, buffer, bytes2send);
     }
 
     fclose(fp);
-    hash_md5_finalize(&md5);
-    hash_sha256_finalize(&sha256);
-    hash_md5_hexdigest(&md5, &hash_data[65]);
-    hash_sha256_hexdigest(&sha256, hash_data);
+    hash_md5_finalize(md5);
+    hash_sha256_finalize(sha256);
+    hash_md5_hexdigest(md5, &hash_data[65]);
+    hash_sha256_hexdigest(sha256, hash_data);
     return true;
 }
 

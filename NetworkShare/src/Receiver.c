@@ -105,8 +105,10 @@ bool receive_file(sfTcpSocket* socket, size_t fsize, char* hash_data)
         return false;
     }
 
-    Hash_MD5 md5 = hash_md5_init();
-    Hash_Sha256 sha256 = hash_sha256_init();
+    Hash_MD5 md5;
+    hash_md5_init(md5);
+    Hash_Sha256 sha256;
+    hash_sha256_init(sha256);
 
     size_t remaining = fsize;
     while (remaining > 0)
@@ -129,15 +131,15 @@ bool receive_file(sfTcpSocket* socket, size_t fsize, char* hash_data)
         }
 
         remaining -= received;
-        hash_md5_update_binary(&md5, buffer, received);
-        hash_sha256_update_binary(&sha256, buffer, received);
+        hash_md5_update_binary(md5, buffer, received);
+        hash_sha256_update_binary(sha256, buffer, received);
     }
 
     fclose(fp);
-    hash_md5_finalize(&md5);
-    hash_sha256_finalize(&sha256);
-    hash_md5_hexdigest(&md5, &hash_data[65]);
-    hash_sha256_hexdigest(&sha256, hash_data);
+    hash_md5_finalize(md5);
+    hash_sha256_finalize(sha256);
+    hash_md5_hexdigest(md5, &hash_data[65]);
+    hash_sha256_hexdigest(sha256, hash_data);
     return true;
 }
 
