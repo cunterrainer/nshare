@@ -72,6 +72,7 @@ static void suc(const char* format, ...)
     log_set_color(Color_White);
 }
 
+// verbose logger
 static void ver(const char* format, ...)
 {
     fprintf(stdout, "[INFO] ");

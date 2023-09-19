@@ -1,3 +1,9 @@
+#ifdef WINDOWS
+#include <io.h>
+#define F_OK 0
+#define access _access
+#endif
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -6,6 +12,7 @@
 #include "Log.h"
 #include "Hash.h"
 #include "Sender.h"
+#include "cstring.h"
 
 
 int prompt(const char* message)
@@ -14,6 +21,45 @@ int prompt(const char* message)
     int c, ret = tolower(getchar());
     while ((c = getchar()) != '\n' && c != EOF);
     return ret;
+}
+
+
+bool file_exists(const char* path)
+{
+    if (access(path, F_OK) == 0)
+        return true;
+    return false;
+}
+
+
+const char* get_file_extension(const char* path, size_t size, size_t* pos)
+{
+    for (size_t i = size; i > 0; --i)
+    {
+        *pos = i;
+        if (path[i] == '.') return &path[i];
+    }
+    return NULL;
+}
+
+
+const char* get_unique_file_name(const char* path)
+{
+    if (!file_exists(path)) return path;
+    ver("File [%s] already exists, generating unique file name");
+
+    size_t pos = 0;
+    size_t size = strlen(path);
+    /*const char* extension = */ get_file_extension(path, size, &pos);
+
+    string filename;
+    string_create(filename, path);
+    size_t a = string_find(filename, "ua", 0);
+    printf("l: %s\n", &string_cstr(filename)[a]);
+    string_print(filename);
+    string_free(filename);
+
+    return get_file_extension(path, size, &pos);
 }
 
 
@@ -124,6 +170,7 @@ void receive()
     sfPacket_readString(packet, path);
     sfUint32 fsize = sfPacket_readUint32(packet);
     sfPacket_destroy(packet);
+    printf("%s\n", get_unique_file_name(path));
 
     char own_hash_data[65 + 33];
     if (!receive_file(socket, fsize, own_hash_data)) return;
