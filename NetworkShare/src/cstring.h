@@ -551,4 +551,5 @@ static inline void string_print(const string s)
     printf("s: %zu c: %zu nc: %zu [%s]\n", s[0].size, s[0].capacity, s->_null_char, s[0].data);
     puts(s->data);
 }
+#undef STRING_RETURN_IF_NULL
 #endif

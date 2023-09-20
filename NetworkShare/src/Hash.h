@@ -29,10 +29,11 @@
     C++ interface:
     all functions and classes are in the namespace Hash
     either use the provided functions, all have the same scheme:
+
         Hash::sha256("Hello world"); // returns std::string
         Hash::File::sha256("main.c", std::ios::binary);
 
-    or if you need to update the hash e.g. while reading chunks from a file (not supported for SHA3, Shake128 and Shake256
+    or if you need to update the hash e.g. while reading chunks from a file (not supported for SHA3, Shake128 and Shake256)
         Hash::Sha256 s;
         s.Update("Hello world");
         s.Finalize();
@@ -41,9 +42,9 @@
 #define HASH_ENABLE_MD5    1 // md5
 #define HASH_ENABLE_SHA1   1 // sha1
 #define HASH_ENABLE_SHA2   1 // sha224, sha256, sha384, sha512, sha512/t
-#define HASH_ENABLE_KECCAK 1 // sha3, shake128 and shake256
+#define HASH_ENABLE_KECCAK 1 // sha3-224, sha3-256, sha3-384, sha3-512, shake128 and shake256
 #define HASH_ENABLE_C_FUNCTIONS 1
-#define HASH_KECCAK_LITTLE_ENDIAN 1
+#define HASH_KECCAK_LITTLE_ENDIAN 1 // true for most systems (windows, linux, macos)
 #define HASH_SHAKE_128_MALLOC_LIMIT 64 // if outsizeBytes is greater and no buffer is provided we will heap allocate
 #define HASH_SHAKE_256_MALLOC_LIMIT 64 // if outsizeBytes is greater and no buffer is provided we will heap allocate
 
@@ -122,7 +123,7 @@ HASH_INLINE const char* hash_util_hash_file(const char* path, const char* mode, 
     return hash;
 }
 
-#define hash_define_util_swap_endian(type) \
+#define HASH_DEFINE_UTIL_SWAP_ENDIAN(type) \
     HASH_INLINE type hash_util_swap_endian_##type(type u) \
     { \
         assert(CHAR_BIT == 8 && "CHAR_BIT != 8"); \
@@ -139,8 +140,8 @@ HASH_INLINE const char* hash_util_hash_file(const char* path, const char* mode, 
  \
         return dest.u; \
     }
-hash_define_util_swap_endian(uint32_t)
-hash_define_util_swap_endian(uint64_t)
+HASH_DEFINE_UTIL_SWAP_ENDIAN(uint32_t)
+HASH_DEFINE_UTIL_SWAP_ENDIAN(uint64_t)
 
 
 HASH_INLINE int hash_util_is_little_endian()
@@ -166,6 +167,7 @@ HASH_INLINE uint32_t hash_util_left_rotate_u32(uint32_t n, unsigned int c)
 // ================================Util====================================
 
 
+#if HASH_ENABLE_SHA2 == 1
 // ===============================Hash_Sha256===================================
 typedef struct
 {
@@ -818,8 +820,10 @@ HASH_INLINE const char* hash_sha384_file_easy(const char* path, const char* mode
     return hash_util_hash_file(path, mode, hash_sha384_binary, NULL);
 }
 // ===============================Hash_Sha384===================================
+#endif // HASH_ENABLE_SHA2
 
 
+#if HASH_ENABLE_SHA1 == 1
 // ================================Hash_Sha1====================================
 typedef struct
 {
@@ -995,14 +999,16 @@ HASH_INLINE const char* hash_sha1_file_easy(const char* path, const char* mode)
     return hash_util_hash_file(path, mode, hash_sha1_binary, NULL);
 }
 // ================================Hash_Sha1====================================
+#endif // HASH_ENABLE_SHA1
 
 
+#if HASH_ENABLE_MD5
 // =================================Hash_MD5====================================
-#define HASH_PRIVATE_Hash_MD5_BLOCKSIZE 64
+#define HASH_PRIVATE_MD5_BLOCKSIZE 64
 typedef struct
 {
     int finalized;
-    uint8_t buffer[HASH_PRIVATE_Hash_MD5_BLOCKSIZE]; // bytes that didn't fit in last 64 byte chunk
+    uint8_t buffer[HASH_PRIVATE_MD5_BLOCKSIZE]; // bytes that didn't fit in last 64 byte chunk
     uint32_t count[2];   // 64bit counter for number of bits (lo, hi)
     uint32_t state[4];   // digest so far
     uint8_t digest[16]; // the result
@@ -1078,7 +1084,7 @@ HASH_INLINE void hash_private_md5_encode(uint8_t output[], const uint32_t input[
 
 
 // apply Hash_MD5 algo on a block
-HASH_INLINE void hash_private_md5_transform(Hash_MD5 m, const uint8_t block[HASH_PRIVATE_Hash_MD5_BLOCKSIZE])
+HASH_INLINE void hash_private_md5_transform(Hash_MD5 m, const uint8_t block[HASH_PRIVATE_MD5_BLOCKSIZE])
 {
     // Constants for Hash_MD5Transform routine.
     static const uint32_t S11 = 7;
@@ -1099,7 +1105,7 @@ HASH_INLINE void hash_private_md5_transform(Hash_MD5 m, const uint8_t block[HASH
     static const uint32_t S44 = 21;
 
     uint32_t a = m->state[0], b = m->state[1], c = m->state[2], d = m->state[3], x[16];
-    hash_private_md5_decode(x, block, HASH_PRIVATE_Hash_MD5_BLOCKSIZE);
+    hash_private_md5_decode(x, block, HASH_PRIVATE_MD5_BLOCKSIZE);
 
     /* Round 1 */
     a = hash_private_md5_FF(a, b, c, d, x[0], S11, 0xd76aa478); /* 1 */
@@ -1187,7 +1193,7 @@ HASH_INLINE void hash_private_md5_update_binary(Hash_MD5 m, const unsigned char*
 {
     const uint32_t s = (uint32_t)size;
     // compute number of bytes mod 64
-    uint32_t index = m->count[0] / 8 % HASH_PRIVATE_Hash_MD5_BLOCKSIZE;
+    uint32_t index = m->count[0] / 8 % HASH_PRIVATE_MD5_BLOCKSIZE;
 
     // Update number of bits
     if ((m->count[0] += (s << 3)) < (s << 3))
@@ -1207,7 +1213,7 @@ HASH_INLINE void hash_private_md5_update_binary(Hash_MD5 m, const unsigned char*
         hash_private_md5_transform(m, m->buffer);
 
         // transform chunks of blocksize (64 bytes)
-        for (i = firstpart; i + HASH_PRIVATE_Hash_MD5_BLOCKSIZE <= s; i += HASH_PRIVATE_Hash_MD5_BLOCKSIZE)
+        for (i = firstpart; i + HASH_PRIVATE_MD5_BLOCKSIZE <= s; i += HASH_PRIVATE_MD5_BLOCKSIZE)
             hash_private_md5_transform(m, &input[i]);
 
         index = 0;
@@ -1326,7 +1332,9 @@ HASH_INLINE const char* hash_md5_file_easy(const char* path, const char* mode)
 {
     return hash_util_hash_file(path, mode, hash_md5_binary, NULL);
 }
+#undef HASH_PRIVATE_MD5_BLOCKSIZE
 // =================================Hash_MD5====================================
+#endif // HASH_ENABLE_MD5
 #endif // HASH_ENABLE_C_FUNCTIONS
 
 
@@ -2949,7 +2957,7 @@ HASH_INLINE void hash_private_keccak_store64(uint8_t* x, uint64_t u)
     unsigned int i;
 
     for (i = 0; i < 8; ++i) {
-        x[i] = u;
+        x[i] = (uint8_t)u;
         u >>= 8;
     }
 }
@@ -2970,17 +2978,17 @@ HASH_INLINE void hash_private_keccak_xor64(uint8_t* x, uint64_t u)
 
 
 
-#define hash_private_keccak_ROL64(a, offset) ((((uint64_t)a) << offset) ^ (((uint64_t)a) >> (64-offset)))
-#define hash_private_keccak_i(x, y) ((x)+5*(y))
+#define HASH_PRIVATE_KECCAK_ROL64(a, offset) ((((uint64_t)a) << offset) ^ (((uint64_t)a) >> (64-offset)))
+#define HASH_PRIVATE_KECCAK_I(x, y) ((x)+5*(y))
 
 #if HASH_KECCAK_LITTLE_ENDIAN == 1
-#define hash_private_keccak_readLane(x, y)          (((uint64_t*)state)[hash_private_keccak_i(x, y)])
-#define hash_private_keccak_writeLane(x, y, lane)   (((uint64_t*)state)[hash_private_keccak_i(x, y)]) = (lane)
-#define hash_private_keccak_XORLane(x, y, lane)     (((uint64_t*)state)[hash_private_keccak_i(x, y)]) ^= (lane)
+#define HASH_PRIVATE_KECCAK_READLANE(x, y)          (((uint64_t*)state)[HASH_PRIVATE_KECCAK_I(x, y)])
+#define hash_private_keccak_WRITELANE(x, y, lane)   (((uint64_t*)state)[HASH_PRIVATE_KECCAK_I(x, y)]) = (lane)
+#define hash_private_keccak_XORLANE(x, y, lane)     (((uint64_t*)state)[HASH_PRIVATE_KECCAK_I(x, y)]) ^= (lane)
 #else
-#define hash_private_keccak_readLane(x, y)          hash_private_keccak_load64((uint8_t*)state+sizeof(uint64_t)*hash_private_keccak_i(x, y))
-#define hash_private_keccak_writeLane(x, y, lane)   hash_private_keccak_store64((uint8_t*)state+sizeof(uint64_t)*hash_private_keccak_i(x, y), lane)
-#define hash_private_keccak_XORLane(x, y, lane)     hash_private_keccak_xor64((uint8_t*)state+sizeof(uint64_t)*hash_private_keccak_i(x, y), lane)
+#define HASH_PRIVATE_KECCAK_READLANE(x, y)          hash_private_keccak_load64((uint8_t*)state+sizeof(uint64_t)*HASH_PRIVATE_KECCAK_I(x, y))
+#define hash_private_keccak_WRITELANE(x, y, lane)   hash_private_keccak_store64((uint8_t*)state+sizeof(uint64_t)*HASH_PRIVATE_KECCAK_I(x, y), lane)
+#define hash_private_keccak_XORLANE(x, y, lane)     hash_private_keccak_xor64((uint8_t*)state+sizeof(uint64_t)*HASH_PRIVATE_KECCAK_I(x, y), lane)
 #endif
 
 /**
@@ -3012,13 +3020,13 @@ HASH_INLINE void hash_private_keccak_KeccakF1600_StatePermute(void* state)
 
             /* Compute the parity of the columns */
             for (x = 0; x < 5; x++)
-                C[x] = hash_private_keccak_readLane(x, 0) ^ hash_private_keccak_readLane(x, 1) ^ hash_private_keccak_readLane(x, 2) ^ hash_private_keccak_readLane(x, 3) ^ hash_private_keccak_readLane(x, 4);
+                C[x] = HASH_PRIVATE_KECCAK_READLANE(x, 0) ^ HASH_PRIVATE_KECCAK_READLANE(x, 1) ^ HASH_PRIVATE_KECCAK_READLANE(x, 2) ^ HASH_PRIVATE_KECCAK_READLANE(x, 3) ^ HASH_PRIVATE_KECCAK_READLANE(x, 4);
             for (x = 0; x < 5; x++) {
                 /* Compute the θ effect for a given column */
-                D = C[(x + 4) % 5] ^ hash_private_keccak_ROL64(C[(x + 1) % 5], 1);
+                D = C[(x + 4) % 5] ^ HASH_PRIVATE_KECCAK_ROL64(C[(x + 1) % 5], 1);
                 /* Add the θ effect to the whole column */
                 for (y = 0; y < 5; y++)
-                    hash_private_keccak_XORLane(x, y, D);
+                    hash_private_keccak_XORLANE(x, y, D);
             }
         }
 
@@ -3026,7 +3034,7 @@ HASH_INLINE void hash_private_keccak_KeccakF1600_StatePermute(void* state)
             uint64_t current, temp;
             /* Start at coordinates (1 0) */
             x = 1; y = 0;
-            current = hash_private_keccak_readLane(x, y);
+            current = HASH_PRIVATE_KECCAK_READLANE(x, y);
             /* Iterate over ((0 1)(2 3))^t * (1 0) for 0 ≤ t ≤ 23 */
             for (t = 0; t < 24; t++) {
                 /* Compute the rotation constant r = (t+1)(t+2)/2 */
@@ -3034,8 +3042,8 @@ HASH_INLINE void hash_private_keccak_KeccakF1600_StatePermute(void* state)
                 /* Compute ((0 1)(2 3)) * (x y) */
                 unsigned int Y = (2 * x + 3 * y) % 5; x = y; y = Y;
                 /* Swap current and state(x,y), and rotate */
-                temp = hash_private_keccak_readLane(x, y);
-                hash_private_keccak_writeLane(x, y, hash_private_keccak_ROL64(current, r));
+                temp = HASH_PRIVATE_KECCAK_READLANE(x, y);
+                hash_private_keccak_WRITELANE(x, y, HASH_PRIVATE_KECCAK_ROL64(current, r));
                 current = temp;
             }
         }
@@ -3045,10 +3053,10 @@ HASH_INLINE void hash_private_keccak_KeccakF1600_StatePermute(void* state)
             for (y = 0; y < 5; y++) {
                 /* Take a copy of the plane */
                 for (x = 0; x < 5; x++)
-                    temp[x] = hash_private_keccak_readLane(x, y);
+                    temp[x] = HASH_PRIVATE_KECCAK_READLANE(x, y);
                 /* Compute χ on the plane */
                 for (x = 0; x < 5; x++)
-                    hash_private_keccak_writeLane(x, y, temp[x] ^ ((~temp[(x + 1) % 5]) & temp[(x + 2) % 5]));
+                    hash_private_keccak_WRITELANE(x, y, temp[x] ^ ((~temp[(x + 1) % 5]) & temp[(x + 2) % 5]));
             }
         }
 
@@ -3056,7 +3064,7 @@ HASH_INLINE void hash_private_keccak_KeccakF1600_StatePermute(void* state)
             for (j = 0; j < 7; j++) {
                 unsigned int bitPosition = (1 << j) - 1; /* 2^j-1 */
                 if (hash_private_keccak_LFSR86540(&LFSRstate))
-                    hash_private_keccak_XORLane(0, 0, (uint64_t)1 << bitPosition);
+                    hash_private_keccak_XORLANE(0, 0, (uint64_t)1 << bitPosition);
             }
         }
     }
@@ -3069,7 +3077,7 @@ that use the Keccak-f[1600] permutation.
 ================================================================
 */
 
-#define hash_private_keccak_MIN(a, b) ((a) < (b) ? (a) : (b))
+#define HASH_PRIVATE_KECCAK_MIN(a, b) ((a) < (b) ? (a) : (b))
 HASH_INLINE void hash_private_keccak_Keccak(unsigned int rate, unsigned int capacity, const unsigned char* input, unsigned long long int inputByteLen, unsigned char delimitedSuffix, unsigned char* output, unsigned long long int outputByteLen)
 {
     uint8_t state[200];
@@ -3085,7 +3093,7 @@ HASH_INLINE void hash_private_keccak_Keccak(unsigned int rate, unsigned int capa
 
     /* === Absorb all the input blocks === */
     while (inputByteLen > 0) {
-        blockSize = (unsigned int)hash_private_keccak_MIN(inputByteLen, rateInBytes);
+        blockSize = (unsigned int)HASH_PRIVATE_KECCAK_MIN(inputByteLen, rateInBytes);
         for (i = 0; i < blockSize; i++)
             state[i] ^= input[i];
         input += blockSize;
@@ -3110,7 +3118,7 @@ HASH_INLINE void hash_private_keccak_Keccak(unsigned int rate, unsigned int capa
 
     /* === Squeeze out all the output blocks === */
     while (outputByteLen > 0) {
-        blockSize = (unsigned int)hash_private_keccak_MIN(outputByteLen, rateInBytes);
+        blockSize = (unsigned int)HASH_PRIVATE_KECCAK_MIN(outputByteLen, rateInBytes);
         memcpy(output, state, blockSize);
         output += blockSize;
         outputByteLen -= blockSize;
@@ -3119,9 +3127,26 @@ HASH_INLINE void hash_private_keccak_Keccak(unsigned int rate, unsigned int capa
             hash_private_keccak_KeccakF1600_StatePermute(state);
     }
 }
+#undef HASH_PRIVATE_KECCAK_I
+#undef HASH_PRIVATE_KECCAK_MIN
+#undef HASH_PRIVATE_KECCAK_ROL64
+#undef hash_private_keccak_XORLANE
+#undef HASH_PRIVATE_KECCAK_READLANE
+#undef hash_private_keccak_WRITELANE
 //=============================================================================
 #endif // HASH_ENABLE_KECCAK
 #endif // HASH_H
+
+#undef HASH_ENABLE_MD5
+#undef HASH_ENABLE_SHA1
+#undef HASH_ENABLE_SHA2
+#undef HASH_ENABLE_KECCAK
+#undef HASH_ENABLE_C_FUNCTIONS
+#undef HASH_KECCAK_LITTLE_ENDIAN
+#undef HASH_SHAKE_128_MALLOC_LIMIT
+#undef HASH_SHAKE_256_MALLOC_LIMIT
+#undef HASH_INLINE
+#undef HASH_DEFINE_UTIL_SWAP_ENDIAN
 
 #ifdef _MSC_VER
 #pragma warning( pop ) // 4996
