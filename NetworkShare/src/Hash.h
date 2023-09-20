@@ -43,7 +43,8 @@
 #define HASH_ENABLE_SHA1   1 // sha1
 #define HASH_ENABLE_SHA2   1 // sha224, sha256, sha384, sha512, sha512/t
 #define HASH_ENABLE_KECCAK 1 // sha3-224, sha3-256, sha3-384, sha3-512, shake128 and shake256
-#define HASH_ENABLE_C_FUNCTIONS 1
+#define HASH_ENABLE_C_INTERFACE   1
+#define HASH_ENABLE_CPP_INTERFACE 1
 #define HASH_KECCAK_LITTLE_ENDIAN 1 // true for most systems (windows, linux, macos)
 #define HASH_SHAKE_128_MALLOC_LIMIT 64 // if outsizeBytes is greater and no buffer is provided we will heap allocate
 #define HASH_SHAKE_256_MALLOC_LIMIT 64 // if outsizeBytes is greater and no buffer is provided we will heap allocate
@@ -53,7 +54,8 @@
 #pragma warning( disable : 4996) // sprintf is deprecated
 #endif
 
-#ifdef __cplusplus
+
+#if defined(__cplusplus) && HASH_ENABLE_CPP_INTERFACE == 1
 #include <string>
 #include <locale>
 #include <cstdio>
@@ -79,9 +81,9 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #define HASH_INLINE static
-#endif // __cplusplus
+#endif // __cplusplus && HASH_ENABLE_CPP_INTERFACE
 
-#if HASH_ENABLE_C_FUNCTIONS == 1
+#if HASH_ENABLE_C_INTERFACE == 1
 // ================================Util====================================
 HASH_INLINE void hash_util_char_array_to_hex_string(unsigned char* data, size_t size, char* out)
 {
@@ -1335,10 +1337,10 @@ HASH_INLINE const char* hash_md5_file_easy(const char* path, const char* mode)
 #undef HASH_PRIVATE_MD5_BLOCKSIZE
 // =================================Hash_MD5====================================
 #endif // HASH_ENABLE_MD5
-#endif // HASH_ENABLE_C_FUNCTIONS
+#endif // HASH_ENABLE_C_INTERFACE
 
 
-#ifdef __cplusplus
+#if defined(__cplusplus) && HASH_ENABLE_CPP_INTERFACE == 1
 namespace Hash
 {
     namespace Encode
@@ -2777,9 +2779,9 @@ namespace Hash
     }
 }
 #endif // HASH_ENABLE_KECCAK
-#endif // __cplusplus
+#endif // defined(__cplusplus) && HASH_ENABLE_CPP_INTERFACE
 #if HASH_ENABLE_KECCAK == 1
-#if HASH_ENABLE_C_FUNCTIONS == 1
+#if HASH_ENABLE_C_INTERFACE == 1
 HASH_INLINE void hash_private_keccak_Keccak(unsigned int rate, unsigned int capacity, const unsigned char* input, unsigned long long int inputByteLen, unsigned char delimitedSuffix, unsigned char* output, unsigned long long int outputByteLen);
 
 // heap allocated if outsizeBytes > HASH_SHAKE_128_MALLOC_LIMIT
@@ -2925,7 +2927,7 @@ HASH_INLINE const char* hash_sha3_224_file_easy(const char* path, const char* mo
 HASH_INLINE const char* hash_sha3_256_file_easy(const char* path, const char* mode) { return hash_util_hash_file(path, mode, hash_sha3_256_binary, NULL); }
 HASH_INLINE const char* hash_sha3_384_file_easy(const char* path, const char* mode) { return hash_util_hash_file(path, mode, hash_sha3_384_binary, NULL); }
 HASH_INLINE const char* hash_sha3_512_file_easy(const char* path, const char* mode) { return hash_util_hash_file(path, mode, hash_sha3_512_binary, NULL); }
-#endif // HASH_ENABLE_C_FUNCTIONS
+#endif // HASH_ENABLE_C_INTERFACE
 
 /*
 ================================================================
@@ -3141,7 +3143,8 @@ HASH_INLINE void hash_private_keccak_Keccak(unsigned int rate, unsigned int capa
 #undef HASH_ENABLE_SHA1
 #undef HASH_ENABLE_SHA2
 #undef HASH_ENABLE_KECCAK
-#undef HASH_ENABLE_C_FUNCTIONS
+#undef HASH_ENABLE_C_INTERFACE
+#undef HASH_ENABLE_CPP_INTERFACE
 #undef HASH_KECCAK_LITTLE_ENDIAN
 #undef HASH_SHAKE_128_MALLOC_LIMIT
 #undef HASH_SHAKE_256_MALLOC_LIMIT
