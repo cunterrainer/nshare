@@ -1,16 +1,4 @@
-.git/
-.vs/
-.vscode/
-
-BIN/
-
-Makefile
-*.make
-*.DS_STORE
-
-*.sln
-
-*.user
-*.vcxproj
-*.vcxproj.user
-*.vcxproj.filters
+# https://dart.dev/guides/libraries/private-files
+# Created by `dart pub`
+.dart_tool/
+.idea/
