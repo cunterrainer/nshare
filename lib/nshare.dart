@@ -1,5 +1,1 @@
-import "hash.dart";
-
-int calculate() {
-  return 6 * 7;
-}
+import "src/hash.dart";

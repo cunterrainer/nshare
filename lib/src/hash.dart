@@ -137,6 +137,8 @@ class Sha256
     }
   }
 
+  void UpdateString(String str) => Update(Uint8List.fromList(str.codeUnits));
+
   void Finalize()
   {
     int start = _BufferSize;
@@ -172,7 +174,7 @@ class Sha256
 String sha256(String str)
 {
   Sha256 s = Sha256();
-  s.Update(Uint8List.fromList(str.codeUnits));
+  s.UpdateString(str);
   s.Finalize();
   return s.Hexdigest();
 }
