@@ -29,7 +29,7 @@ uint64_t get_file_size(const char* path)
 #else
     struct stat st;
     stat(path, &st);
-    size = st.st_size;
+    return st.st_size;
 #endif
 }
 
