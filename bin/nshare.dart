@@ -1,3 +1,5 @@
+import "dart:io";
+
 import 'package:nshare/nshare.dart';
 
 void main(List<String> args) async
@@ -8,6 +10,13 @@ void main(List<String> args) async
   if (args.isEmpty)
     await Receive(ip, port);
   else
-    await Send(args[0], ip, port);
-  Ver("Done");
+  {
+    Socket? socket = await SetupSocket(args[0], ip, port);
+    if (socket != null)
+    {
+      await SendFile(socket, args[0]);
+      socket.destroy();
+    }
+  }
+  Ver("==========================Done===========================");
 }

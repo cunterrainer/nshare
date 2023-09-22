@@ -6,49 +6,56 @@ import "dart:typed_data";
 import "Log.dart";
 import "Hash.dart";
 
-void readFileSyncInChunks(String filePath, int chunkSize)
+
+Future<void> SendFile(Socket socket, String path) async
 {
-  print(Directory.current);
-  final file = File(filePath);
-  if (!file.existsSync())
-    Err("File doesn't exist: [$filePath]");
+  final File file = File(path);
+  if (!file.existsSync()) { Err("File doesn't exist: \"$path\""); return; }
 
-  final randomAccessFile = file.openSync(mode: FileMode.read);
-  Uint8List buffer = Uint8List(chunkSize);
-  int bytesRead;
+  try
+  {
+    final RandomAccessFile fp = file.openSync(mode: FileMode.read);
+    int bytes = fp.lengthSync();
+    Sha256 s = Sha256();
 
-  Sha256 s = Sha256();
-  try {
-    do {
-      bytesRead = randomAccessFile.readIntoSync(buffer);
-      s.UpdateBinary(buffer, bytesRead);
-    } while (bytesRead > 0);
-  } finally {
-    randomAccessFile.closeSync();
+    socket.add(ascii.encode("$bytes|"));
+
+    while (bytes > 0)
+    {
+      Uint8List buffer = fp.readSync(1024);
+      s.Update(buffer);
+      socket.add(buffer);
+      bytes -= buffer.length;
+    }
+
+    fp.closeSync();
+    s.Finalize();
+    print(s.Hexdigest());
+    socket.add(ascii.encode(s.Hexdigest()));
+    await socket.flush();
+    socket.destroy();
   }
-  s.Finalize();
-  print(s.Hexdigest());
+  on FileSystemException catch(e)
+  {
+    Err("${e.message} \"${e.path}\"");
+    if (e.osError != null) VerErr("${e.osError}");
+  }
 }
 
 
-Future<void> Send(String path, String ip, int port) async
+Future<Socket?> SetupSocket(String path, String ip, int port) async
 {
   Ver("Sender");
   try
   {
     Socket socket = await Socket.connect(ip, port);
     Ver("Connected");
-
-    String s = "Hello";
-
-    print(sha256(s));
-    socket.add(ascii.encode("${s.length}a|Hello"));
-    await socket.flush();
-    socket.destroy();
+    return socket;
   }
   on SocketException catch(e)
   {
-    Err("Failed to connect to $ip on port $port reason: ${e.message} ${e.osError ?? ""}");
+    Err("Failed to connect to $ip on port $port reason: ${e.message}");
+    if (e.osError != null) VerErr("${e.osError}");
   }
   on ArgumentError catch(e)
   {
@@ -58,4 +65,5 @@ Future<void> Send(String path, String ip, int port) async
   {
     Err("Unhandled exception: $e");
   }
+  return null;
 }

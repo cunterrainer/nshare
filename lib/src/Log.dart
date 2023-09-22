@@ -7,7 +7,11 @@ void Log(String msg)
 
 void Err(String msg)
 {
-  print("\x1B[31m[ERROR] $msg\x1B[0m");
+  int lastNewlineIndex = msg.lastIndexOf('\n');
+  if (lastNewlineIndex == -1)
+    print("\x1B[31m[ERROR] $msg\x1B[0m");
+  else
+    print("\x1B[31m[ERROR] ${msg.substring(0, lastNewlineIndex)}\x1B[0m");
 }
 
 void Hint(String msg)
