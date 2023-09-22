@@ -43,7 +43,7 @@ Future<void> SendFile(Socket socket, String path) async
 }
 
 
-Future<Socket?> SetupSocket(String path, String ip, int port) async
+Future<Socket?> SetupSocket(String ip, int port) async
 {
   Ver("Sender");
   try

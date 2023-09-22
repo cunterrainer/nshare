@@ -1,6 +1,6 @@
 import "dart:io";
 
-bool g_LoggerVerbose = true;
+bool g_LoggerVerbose = false;
 
 void Log(String msg)
 {
