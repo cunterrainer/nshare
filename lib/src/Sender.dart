@@ -1,3 +1,4 @@
+import "dart:async";
 import "dart:io";
 import "dart:convert";
 import "dart:typed_data";
@@ -30,21 +31,31 @@ void readFileSyncInChunks(String filePath, int chunkSize)
 }
 
 
-Future<void> Send(String path) async
+Future<void> Send(String path, String ip, int port) async
 {
   Ver("Sender");
-  try {
-    Socket socket = await Socket.connect("127.0.0.1", 5300);
+  try
+  {
+    Socket socket = await Socket.connect(ip, port);
     Ver("Connected");
 
     String s = "Hello";
 
     print(sha256(s));
-    socket.add(ascii.encode("${s.length}|Hello"));
+    socket.add(ascii.encode("${s.length}a|Hello"));
     await socket.flush();
     socket.destroy();
-  } catch(e)
+  }
+  on SocketException catch(e)
   {
-    Err("Failed to connect");
+    Err("Failed to connect to $ip on port $port reason: ${e.message} ${e.osError ?? ""}");
+  }
+  on ArgumentError catch(e)
+  {
+    Err(e.toString());
+  }
+  catch(e)
+  {
+    Err("Unhandled exception: $e");
   }
 }

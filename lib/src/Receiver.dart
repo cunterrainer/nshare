@@ -9,18 +9,19 @@ import "Hash.dart";
 
 void OnReceiverError(Object error, StackTrace st)
 {
-  Err('$error');
-  Err('Stack Trace:\n$st');
+  Err('Error receiving bytes: $error');
+  VerErr('Stack Trace:\n$st');
 }
 
-Future<void> Receive() async
+Future<void> Receive(String ip, int port) async
 {
   Ver("Receiver");
   bool finished = false;
+  ServerSocket? server;
 
   try
   {
-    ServerSocket server = await ServerSocket.bind("127.0.0.1", 5300);
+    server = await ServerSocket.bind(ip, port);
 
     int bytes = 0;
     int remaining = 1;
@@ -36,7 +37,8 @@ Future<void> Receive() async
           if (!str.contains ('|')) return;
 
           data = data.sublist(data.indexOf(124) + 1); // '|'
-          bytes = int.parse(str.substring(0, str.indexOf("|")));
+          try { bytes = int.parse(str.substring(0, str.indexOf("|"))); }
+          on FormatException catch(e) { Err("Failed to parse size header of message \"${e.source}\" reason: ${e.message} (at character ${e.offset})"); }
           remaining = bytes;
           str = "";
         }
@@ -54,11 +56,24 @@ Future<void> Receive() async
         }
       }, onError: OnReceiverError);
     }, onError: OnReceiverError);
-    Ver("Server socket is set up and listening");
 
+    Ver("Server socket is set up and listening");
     while (!finished) await Future.delayed(Duration(milliseconds: 100));
-    await server.close();
-  } catch (e) {
-    Err("$e");
+  }
+  on SocketException catch(e)
+  {
+    Err("Failed to bind socket to $ip on port $port reason: ${e.message} ${e.osError ?? ""}");
+  }
+  on ArgumentError catch(e)
+  {
+    Err(e.toString());
+  }
+  catch (e)
+  {
+    Err("Unhandled exception: $e");
+  }
+  finally
+  {
+    await server?.close();
   }
 }

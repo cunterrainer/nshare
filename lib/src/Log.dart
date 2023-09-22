@@ -23,5 +23,11 @@ void Suc(String msg)
 void Ver(String msg)
 {
   if (g_LoggerVerbose)
-    print("[INFO] $msg");
+    Log(msg);
+}
+
+void VerErr(String msg)
+{
+  if (g_LoggerVerbose)
+    Err(msg);
 }
