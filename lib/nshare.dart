@@ -1,1 +1,2 @@
-import "src/hash.dart";
+library nsharelib;
+export "src/hash.dart";

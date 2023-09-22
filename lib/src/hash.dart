@@ -1,3 +1,4 @@
+// ignore_for_file: type=lint
 library Hash;
 import "dart:core";
 import "dart:typed_data";
