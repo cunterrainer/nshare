@@ -124,9 +124,9 @@ class Sha256
     _Compress(w);
   }
 
-  void Update(Uint8List data)
+  void UpdateBinary(Uint8List data, int size)
   {
-    for (int i = 0; i < data.length; ++i)
+    for (int i = 0; i < size; ++i)
     {
       _Buffer[_BufferSize++] = data[i];
       if (_BufferSize == 64)
@@ -138,6 +138,7 @@ class Sha256
     }
   }
 
+  void Update(Uint8List data) => UpdateBinary(data, data.length);
   void UpdateString(String str) => Update(Uint8List.fromList(str.codeUnits));
 
   void Finalize()

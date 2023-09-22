@@ -1,6 +1,9 @@
 import 'package:nshare/nshare.dart';
 
-void main(List<String> args)
+void main(List<String> args) async
 {
-  print("Sha256: ${sha256("Hello")}");
+  if (args.isEmpty)
+    await Receive();
+  else
+    await Send(args[0]);
 }
