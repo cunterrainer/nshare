@@ -79,7 +79,7 @@ class Argv
           if (mode == ProgammMode.Sender) throw "Can not be sender and receiver simultaneously '${l[0]}=${l[1]}'";
           mode = ProgammMode.Receiver;
           break;
-        case "-a":
+        case "-ip":
         case "--ip":
           ipAddress = ExtractArg(l, "an ip address", "address");
           break;
@@ -123,12 +123,12 @@ class Argv
   {
     print("Usage: ${Platform.executable} [options]");
     print("Options:");
-    print("  -h | --help              Display this information");
-    print("  -v | --verbose           Print verbose output for additional information");
-    print("  -i | --input=<file>      Set the input file/folder name");
-    print("  -o | --output=<file>     Set the output file/folder name (default: 'a')");
-    print("  -a | --ip=<address>      Set the ip address (default: $defaultIp [localhost])");
-    print("  -p | --port=<port>       Set the port to listen/send to (default: $defaultPort [needs to be identical for sender / receiver])");
+    print("  -h  | --help              Display this information");
+    print("  -v  | --verbose           Print verbose output for additional information");
+    print("  -i  | --input=<file>      Set the input file/folder name");
+    print("  -o  | --output=<file>     Set the output file/folder name (default: 'a')");
+    print("  -ip | --ip=<address>      Set the ip address (default: $defaultIp [localhost])");
+    print("  -p  | --port=<port>       Set the port to listen/send to (default: $defaultPort [needs to be identical for sender / receiver])");
     print("\nIf neither an input nor an output file is specified, the default one 'a' will be used and the operating mode is receiver");
   }
 }
