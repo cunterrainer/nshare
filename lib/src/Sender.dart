@@ -5,41 +5,28 @@ import "dart:typed_data";
 
 import "Log.dart";
 import "Hash.dart";
+import "FileIO.dart";
 
 
-Future<void> SendFile(Socket socket, String path) async
+Future<void> SendFile(Socket socket, String path, FileIO file) async
 {
-  final File file = File(path);
-  if (!file.existsSync()) { Err("File doesn't exist: \"$path\""); return; }
-
-  try
-  {
-    final RandomAccessFile fp = file.openSync(mode: FileMode.read);
-    int bytes = fp.lengthSync();
     Sha256 s = Sha256();
-
+    int bytes = file.Size();
     socket.add(ascii.encode("$bytes|"));
 
     while (bytes > 0)
     {
-      Uint8List buffer = fp.readSync(1024);
+      Uint8List buffer = file.ReadChunk(1024);
       s.Update(buffer);
       socket.add(buffer);
       bytes -= buffer.length;
     }
 
-    fp.closeSync();
     s.Finalize();
     print(s.Hexdigest());
     socket.add(ascii.encode(s.Hexdigest()));
     await socket.flush();
     socket.destroy();
-  }
-  on FileSystemException catch(e)
-  {
-    Err("${e.message} \"${e.path}\"");
-    if (e.osError != null) VerErr("${e.osError}");
-  }
 }
 
 

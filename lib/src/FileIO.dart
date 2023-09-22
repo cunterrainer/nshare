@@ -7,6 +7,7 @@ import "Log.dart";
 class FileIO
 {
   late File _File;
+  late FileMode _Mode;
   late RandomAccessFile _Fp;
   bool _Initialized = false;
 
@@ -14,6 +15,7 @@ class FileIO
   {
     try
     {
+      _Mode = m;
       _File = File(path);
       if (m == FileMode.read && !_File.existsSync()) throw "File doesn't exist \"$path\"";
       _Fp = _File.openSync(mode: m);
@@ -32,9 +34,19 @@ class FileIO
     return false;
   }
 
-  void ReadChunk()
+  Uint8List ReadChunk(int size)
   {
     assert(_Initialized, "FileIO isn't initialized call Open() beforehand");
+    try
+    {
+      return _Fp.readSync(size);
+    }
+    on FileSystemException catch(e)
+    {
+      Err("Failed to read bytes from file \"${e.path}\" reason: ${e.message}");
+      if (e.osError != null) VerErr("${e.osError}");
+    }
+    return Uint8List(0);
   }
 
   void WriteChunk(Uint8List chunk, int size)
@@ -46,7 +58,7 @@ class FileIO
     }
     on FileSystemException catch(e)
     {
-      Err("${e.message} \"${e.path}\"");
+      Err("Failed to write bytes into file \"${e.path}\" reason: ${e.message}");
       if (e.osError != null) VerErr("${e.osError}");
     }
   }
@@ -55,7 +67,7 @@ class FileIO
   {
     if (_Initialized)
     {
-      _Fp.flushSync();
+      if (_Mode == FileMode.write) _Fp.flushSync();
       _Fp.closeSync();
       _Initialized = false;
     }
@@ -66,4 +78,6 @@ class FileIO
     Close();
     _File.deleteSync();
   }
+
+  int Size() => _Fp.lengthSync();
 }

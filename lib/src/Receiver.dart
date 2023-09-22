@@ -36,6 +36,11 @@ void OnReceiverError(Object error, StackTrace st)
   VerErr('Stack Trace:\n$st');
 }
 
+void ReceiveFile()
+{
+  
+}
+
 Future<void> Receive(String ip, int port, void Function(Uint8List, int) fileWriteChunkCallback, void Function() fileDeleteCallback) async
 {
   Ver("Receiver");

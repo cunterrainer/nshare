@@ -2,30 +2,29 @@ import "dart:io";
 
 import 'package:nshare/nshare.dart';
 
+
 void main(List<String> args) async
 {
   if (!Argv.Parse(args)) return;
   FileIO file = FileIO();
 
-  if (Argv.mode == ProgammMode.Receiver)
+  if (Argv.mode == ProgramMode.Receiver && file.Open(Argv.fileName, FileMode.write))
   {
-    if (file.Open(Argv.fileName, FileMode.write))
       await Receive(Argv.ipAddress, Argv.port, file.WriteChunk, file.Delete);
   }
   else
   {
     Socket? socket = await SetupSocket(Argv.ipAddress, Argv.port);
-    if (socket != null)
+    if (socket != null && file.Open(Argv.fileName, FileMode.read))
     {
-      await SendFile(socket, Argv.fileName);
-      socket.destroy();
+      await SendFile(socket, Argv.fileName, file);
     }
   }
   file.Close();
   Ver("==========================Done===========================");
 }
 
-enum ProgammMode { None, Sender, Receiver }
+enum ProgramMode { None, Sender, Receiver }
 
 class Argv
 {
@@ -33,7 +32,7 @@ class Argv
   static const String defaultIp = "127.0.0.1";
 
   static int port = -1;
-  static ProgammMode mode = ProgammMode.None;
+  static ProgramMode mode = ProgramMode.None;
   static String fileName = "a";
   static String ipAddress = "";
 
@@ -69,16 +68,16 @@ class Argv
         case "-i":
         case "--input":
           fileName = ExtractArg(n, "a file name", "file");
-          if (mode == ProgammMode.Sender) throw "You can't provide multiple input files, use a folder instead '${n[0]}=${n[1]}'";
-          if (mode == ProgammMode.Receiver) throw "Can not be sender and receiver simultaneously '${n[0]}=${n[1]}'";
-          mode = ProgammMode.Sender;
+          if (mode == ProgramMode.Sender) throw "You can't provide multiple input files, use a folder instead '${n[0]}=${n[1]}'";
+          if (mode == ProgramMode.Receiver) throw "Can not be sender and receiver simultaneously '${n[0]}=${n[1]}'";
+          mode = ProgramMode.Sender;
           break;
         case "-o":
         case "--output":
           fileName = ExtractArg(n, "a file name", "file");
-          if (mode == ProgammMode.Receiver) throw "You can't provide multiple input files, use a folder instead '${n[0]}=${n[1]}'";
-          if (mode == ProgammMode.Sender) throw "Can not be sender and receiver simultaneously '${n[0]}=${n[1]}'";
-          mode = ProgammMode.Receiver;
+          if (mode == ProgramMode.Receiver) throw "You can't provide multiple input files, use a folder instead '${n[0]}=${n[1]}'";
+          if (mode == ProgramMode.Sender) throw "Can not be sender and receiver simultaneously '${n[0]}=${n[1]}'";
+          mode = ProgramMode.Receiver;
           break;
         case "-ip":
         case "--ip":
@@ -94,9 +93,9 @@ class Argv
       }
     }
 
-    if (mode == ProgammMode.None)
+    if (mode == ProgramMode.None)
     {
-      mode = ProgammMode.Receiver;
+      mode = ProgramMode.Receiver;
       Hint("No file specified, using default config (mode: receiver, output file: '$fileName') ('--help' for more information)");
     }
 
