@@ -64,6 +64,6 @@ class FileIO
   void Delete()
   {
     Close();
-    _File.delete();
+    _File.deleteSync();
   }
 }
