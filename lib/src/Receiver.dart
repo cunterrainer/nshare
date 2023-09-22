@@ -7,6 +7,29 @@ import "dart:io";
 import "Log.dart";
 import "Hash.dart";
 
+bool CheckIntegrity(String receivedHash, String hash)
+{
+  Ver("Checking file integrity...");
+  if (receivedHash != hash)
+  {
+    Hint("Sha256 hash doesn't match, integrity compromised\nExpected hash:   $receivedHash\nCalculated hash: $hash");
+    return false;
+  }
+  Suc("Passed integrity check Sha256: $hash");
+  return true;
+}
+
+bool Promt(String msg)
+{
+  do {
+    stdout.write(msg);
+    String input = stdin.readLineSync()?.toLowerCase().trim() ?? "";
+
+    if (input == "y" || input == "yes") return true;
+    else if (input == "n" || input == "no") return false;
+  } while(true);
+}
+
 void OnReceiverError(Object error, StackTrace st)
 {
   Err('Error receiving bytes: $error');
@@ -48,18 +71,17 @@ Future<void> Receive(String ip, int port) async
         if (remaining - toReceive < 64) // receiving hash in total or at least partially
         {
           sha.UpdateBinary(data, toReceive > 64 ? toReceive - 64 : remaining - 64);
-          receivedHash += String.fromCharCodes(data);
+          receivedHash += String.fromCharCodes(data, toReceive > 64 ? toReceive - 64 : remaining - 64); // might cause errors
         }
         else
           sha.UpdateBinary(data, toReceive);
 
         remaining -= toReceive;
 
-        if (remaining <= 0) // less than should never be the case
+        if (remaining <= 0) // less than should never be the case but just in case
         {
           receivedHash = receivedHash.substring(receivedHash.length - 64);
           sha.Finalize();
-          print(sha.Hexdigest());
           finished = true;
           socket.destroy();
         }
@@ -68,6 +90,11 @@ Future<void> Receive(String ip, int port) async
 
     Ver("Server socket is set up and listening");
     while (!finished) await Future.delayed(Duration(milliseconds: 100));
+    if (!CheckIntegrity(receivedHash, sha.Hexdigest()))
+    {
+      Promt("Checksums don't match do you want to delete the file? [Y|N]: ");
+      // TODO: remove file if Promt == true;
+    }
   }
   on SocketException catch(e)
   {

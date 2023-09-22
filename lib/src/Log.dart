@@ -1,3 +1,5 @@
+import "dart:io";
+
 bool g_LoggerVerbose = true;
 
 void Log(String msg)
@@ -8,10 +10,10 @@ void Log(String msg)
 void Err(String msg)
 {
   int lastNewlineIndex = msg.lastIndexOf('\n');
-  if (lastNewlineIndex == -1)
-    print("\x1B[31m[ERROR] $msg\x1B[0m");
+  if (lastNewlineIndex == msg.length-1)
+    stdout.write("\x1B[31m[ERROR] $msg\x1B[0m");
   else
-    print("\x1B[31m[ERROR] ${msg.substring(0, lastNewlineIndex)}\x1B[0m");
+    print("\x1B[31m[ERROR] $msg\x1B[0m");
 }
 
 void Hint(String msg)
