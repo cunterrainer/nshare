@@ -36,7 +36,7 @@ void OnReceiverError(Object error, StackTrace st)
   VerErr('Stack Trace:\n$st');
 }
 
-Future<void> Receive(String ip, int port, void Function(Uint8List, int) fileWriteChunkCallback) async
+Future<void> Receive(String ip, int port, void Function(Uint8List, int) fileWriteChunkCallback, void Function() fileDeleteCallback) async
 {
   Ver("Receiver");
   bool finished = false;
@@ -80,7 +80,6 @@ Future<void> Receive(String ip, int port, void Function(Uint8List, int) fileWrit
           sha.UpdateBinary(data, toReceive);
           fileWriteChunkCallback(data, toReceive);
         }
-
         remaining -= toReceive;
 
         if (remaining <= 0) // less than should never be the case but just in case
@@ -95,11 +94,9 @@ Future<void> Receive(String ip, int port, void Function(Uint8List, int) fileWrit
 
     Ver("Server socket is set up and listening");
     while (!finished) await Future.delayed(Duration(milliseconds: 100));
-    if (!CheckIntegrity(receivedHash, sha.Hexdigest()))
-    {
-      Promt("Checksums don't match do you want to delete the file? [Y|N]: ");
-      // TODO: remove file if Promt == true;
-    }
+
+    if (!CheckIntegrity(receivedHash, sha.Hexdigest()) && Promt("Checksums don't match do you want to delete the file? [Y|N]: "))
+      fileDeleteCallback();
   }
   on SocketException catch(e)
   {

@@ -10,7 +10,7 @@ void main(List<String> args) async
   if (Argv.mode == ProgammMode.Receiver)
   {
     if (file.Open(Argv.fileName, FileMode.write))
-      await Receive(Argv.ipAddress, Argv.port, file.WriteChunk);
+      await Receive(Argv.ipAddress, Argv.port, file.WriteChunk, file.Delete);
   }
   else
   {
@@ -55,6 +55,7 @@ class Argv
     for (String s in args)
     {
       List<String> l = s.toLowerCase().split("=");
+      List<String> n = s.split("=");
       switch(l[0])
       {
         case "-h":
@@ -67,16 +68,16 @@ class Argv
           break;
         case "-i":
         case "--input":
-          fileName = ExtractArg(l, "a file name", "file");
-          if (mode == ProgammMode.Sender) throw "You can't provide multiple input files, use a folder instead '${l[0]}=${l[1]}'";
-          if (mode == ProgammMode.Receiver) throw "Can not be sender and receiver simultaneously '${l[0]}=${l[1]}'";
+          fileName = ExtractArg(n, "a file name", "file");
+          if (mode == ProgammMode.Sender) throw "You can't provide multiple input files, use a folder instead '${n[0]}=${n[1]}'";
+          if (mode == ProgammMode.Receiver) throw "Can not be sender and receiver simultaneously '${n[0]}=${n[1]}'";
           mode = ProgammMode.Sender;
           break;
         case "-o":
         case "--output":
-          fileName = ExtractArg(l, "a file name", "file");
-          if (mode == ProgammMode.Receiver) throw "You can't provide multiple input files, use a folder instead '${l[0]}=${l[1]}'";
-          if (mode == ProgammMode.Sender) throw "Can not be sender and receiver simultaneously '${l[0]}=${l[1]}'";
+          fileName = ExtractArg(n, "a file name", "file");
+          if (mode == ProgammMode.Receiver) throw "You can't provide multiple input files, use a folder instead '${n[0]}=${n[1]}'";
+          if (mode == ProgammMode.Sender) throw "Can not be sender and receiver simultaneously '${n[0]}=${n[1]}'";
           mode = ProgammMode.Receiver;
           break;
         case "-ip":
@@ -86,10 +87,10 @@ class Argv
         case "-p":
         case "--port":
           String p = ExtractArg(l, "a port", "port");
-          try { port = int.parse(p); } catch(e) { throw "Port has to be a number '${l[0]}=${l[1]}'"; }
+          try { port = int.parse(p); } catch(e) { throw "Port has to be a number '${n[0]}=${n[1]}'"; }
           break;
         default:
-          throw "Unknown command-line option '${l[0]}'\n[ERROR] '${Platform.executable} --help' for more information";
+          throw "Unknown command-line option '${n[0]}'\n[ERROR] '${Platform.executable} --help' for more information";
       }
     }
 

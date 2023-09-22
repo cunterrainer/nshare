@@ -60,4 +60,10 @@ class FileIO
       _Initialized = false;
     }
   }
+
+  void Delete()
+  {
+    Close();
+    _File.delete();
+  }
 }
