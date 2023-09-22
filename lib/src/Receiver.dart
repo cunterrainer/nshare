@@ -36,7 +36,7 @@ void OnReceiverError(Object error, StackTrace st)
   VerErr('Stack Trace:\n$st');
 }
 
-Future<void> Receive(String ip, int port) async
+Future<void> Receive(String ip, int port, void Function(Uint8List, int) fileWriteChunkCallback) async
 {
   Ver("Receiver");
   bool finished = false;
@@ -70,11 +70,16 @@ Future<void> Receive(String ip, int port) async
         int toReceive = remaining - data.length < 0 ? remaining : data.length;
         if (remaining - toReceive < 64) // receiving hash in total or at least partially
         {
-          sha.UpdateBinary(data, toReceive > 64 ? toReceive - 64 : remaining - 64);
-          receivedHash += String.fromCharCodes(data, toReceive > 64 ? toReceive - 64 : remaining - 64); // might cause errors
+          int dataSize = toReceive > 64 ? toReceive - 64 : remaining - 64;
+          sha.UpdateBinary(data, dataSize);
+          fileWriteChunkCallback(data, dataSize);
+          receivedHash += String.fromCharCodes(data, dataSize); // might cause errors
         }
         else
+        {
           sha.UpdateBinary(data, toReceive);
+          fileWriteChunkCallback(data, toReceive);
+        }
 
         remaining -= toReceive;
 
