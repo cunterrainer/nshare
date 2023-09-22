@@ -1,25 +1,47 @@
 import "dart:io";
-import "dart:convert";
 import "dart:typed_data";
 
 import "Log.dart";
 
 class FileIO
 {
-  File? _File;
-  RandomAccessFile? _Fp;
+  late File _File;
+  late RandomAccessFile _Fp;
+  bool _Initialized = false;
 
-  FileIO(String path)
+  bool Open(String path, FileMode m)
   {
-    _File = File(path);
-    _Fp = _File?.openSync(mode: FileMode.write);
+    try
+    {
+      _File = File(path);
+      if (m == FileMode.read && !_File.existsSync()) throw "File doesn't exist \"$path\"";
+      _Fp = _File.openSync(mode: m);
+      _Initialized = true;
+      return true;
+    }
+    on FileSystemException catch(e)
+    {
+      Err("${e.message} \"${e.path}\"");
+      if (e.osError != null) VerErr("${e.osError}");
+    }
+    catch (e)
+    {
+      Err(e.toString());
+    }
+    return false;
+  }
+
+  void ReadChunk()
+  {
+    assert(_Initialized, "FileIO isn't initialized call Open() beforehand");
   }
 
   void WriteChunk(Uint8List chunk, int size)
   {
+    assert(_Initialized, "FileIO isn't initialized call Open() beforehand");
     try
     {
-      _Fp?.writeFromSync(chunk, 0, size);
+      _Fp.writeFromSync(chunk, 0, size);
     }
     on FileSystemException catch(e)
     {
@@ -30,7 +52,11 @@ class FileIO
 
   void Close()
   {
-    _Fp?.flushSync();
-    _Fp?.closeSync();
+    if (_Initialized)
+    {
+      _Fp.flushSync();
+      _Fp.closeSync();
+      _Initialized = false;
+    }
   }
 }

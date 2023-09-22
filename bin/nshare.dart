@@ -4,24 +4,14 @@ import 'package:nshare/nshare.dart';
 
 void main(List<String> args) async
 {
-  String ip = "127.0.0.1";
+  FileIO file = FileIO();
   int port = 5300;
+  String ip = "127.0.0.1";
 
   if (args.isEmpty)
   {
-    FileIO? file;
-    try
-    {
-      file = FileIO("a.txt");
-    }
-    on FileSystemException catch(e)
-    {
-      Err("${e.message} \"${e.path}\"");
-      if (e.osError != null) VerErr("${e.osError}");
-      return;
-    }
-    await Receive(ip, port, file.WriteChunk);
-    file.Close();
+    if (file.Open("a.txt", FileMode.write))
+      await Receive(ip, port, file.WriteChunk);
   }
   else
   {
@@ -32,5 +22,6 @@ void main(List<String> args) async
       socket.destroy();
     }
   }
+  file.Close();
   Ver("==========================Done===========================");
 }
