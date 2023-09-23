@@ -1,6 +1,10 @@
 A command line application to send files and folders over the internet
 
-Information:
+Use:
+```
+dart pub get
+```
+
 ```
 dart run bin/nshare.dart --help
 ```
