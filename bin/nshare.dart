@@ -5,7 +5,6 @@ import 'package:nshare/nshare.dart';
 void main(List<String> args) async
 {
   if (!Argv.Parse(args)) return;
-  FileIO file = FileIO();
 
   if (Argv.mode == ProgramMode.Receiver)
   {
@@ -15,7 +14,6 @@ void main(List<String> args) async
   {
     await Send(Argv.ipAddress, Argv.port, Argv.fileName);
   }
-  file.Close();
   Ver("==========================Done===========================");
 }
 
@@ -91,7 +89,7 @@ class Argv
     if (mode == ProgramMode.None)
     {
       mode = ProgramMode.Receiver;
-      Hint("No file specified, using default config (mode: receiver, output file: '$fileName') ('--help' for more information)");
+      Hint("No file specified, using default config (mode: receiver, output file: file name) ('--help' for more information)");
     }
 
     if (ipAddress.isEmpty)
@@ -121,7 +119,7 @@ class Argv
     print("  -h  | --help              Display this information");
     print("  -v  | --verbose           Print verbose output for additional information");
     print("  -i  | --input=<file>      Set the input file/folder name");
-    print("  -o  | --output=<file>     Set the output file/folder name (default: 'a')");
+    print("  -o  | --output=<file>     Set the output file/folder name (default: file name of sender)");
     print("  -ip | --ip=<address>      Set the ip address (default: $defaultIp [localhost])");
     print("  -p  | --port=<port>       Set the port to listen/send to (default: $defaultPort [needs to be identical for sender / receiver])");
     print("\nIf neither an input nor an output file is specified, the default one 'a' will be used and the operating mode is receiver");
