@@ -20,6 +20,7 @@ class FileIO
       if (m == FileMode.read && !_File.existsSync()) throw "File doesn't exist \"$path\"";
       _Fp = _File.openSync(mode: m);
       _Initialized = true;
+      Ver("Created file: $path");
       return true;
     }
     on FileSystemException catch(e)
@@ -51,6 +52,7 @@ class FileIO
 
   void WriteChunk(Uint8List chunk, int size)
   {
+    if (size <= 0) return;
     assert(_Initialized, "FileIO isn't initialized call Open() beforehand");
     try
     {
@@ -79,5 +81,80 @@ class FileIO
     _File.deleteSync();
   }
 
+  static List<List<dynamic>> GetDirectoryContent(String path)
+  {
+    final List<List<dynamic>> list = []; // first is string second bool (true if dir false if file)
+    final List<Directory> stack = <Directory>[];
+    final Set<Directory> visited = <Directory>{};
+
+    final Directory rootDirectory = Directory(path);
+    stack.add(rootDirectory);
+
+    while (stack.isNotEmpty)
+    {
+      final currentDirectory = stack.removeLast();
+      visited.add(currentDirectory);
+
+      final contents = currentDirectory.listSync();
+      if (contents.isEmpty)
+        list.add([currentDirectory.path, true]);
+
+      for (final entity in contents)
+      {
+        if (entity is File)
+        {
+          list.add([entity.path, false]);
+        }
+        else if (entity is Directory && !visited.contains(entity))
+        {
+          stack.add(entity);
+        }
+      }
+    }
+    return list;
+  }
+
+  static String ReplaceRootDir(String path, String root, bool cond)
+  {
+    if (!cond) return path;
+    int idx = path.indexOf("/") == -1 ? path.indexOf("\\") : path.indexOf("/");
+    return path.replaceRange(0, idx, root);
+  }
+
+  static void CreateDirs(String path)
+  {
+    try
+    {
+      final parentDirectory = Directory(path);
+      if (!parentDirectory.existsSync())
+      {
+        parentDirectory.createSync(recursive: true);
+        Ver("Created directory: $parentDirectory");
+      }
+    }
+    catch (e)
+    {
+      Err("Failed to create directory $path");
+    }
+  }
+
+  static void CreateParentDirs(String path)
+  {
+    try
+    {
+      final parentDirectory = Directory(path).parent;
+      if (!parentDirectory.existsSync())
+      {
+        parentDirectory.createSync(recursive: true);
+        Ver("Created directory: $parentDirectory");
+      }
+    }
+    catch (e)
+    {
+      Err("Failed to create directory $path");
+    }
+  }
+
   int Size() => _Fp.lengthSync();
+  static bool IsDirectory(String path) => File(path).statSync().type == FileSystemEntityType.directory;
 }

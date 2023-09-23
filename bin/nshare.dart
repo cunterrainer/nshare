@@ -1,8 +1,6 @@
 import "dart:io";
-import 'dart:convert';
 
 import 'package:nshare/nshare.dart';
-
 
 void main(List<String> args) async
 {
@@ -11,28 +9,11 @@ void main(List<String> args) async
 
   if (Argv.mode == ProgramMode.Receiver)
   {
-      await Receive(Argv.ipAddress, Argv.port);
+      await Receive(Argv.ipAddress, Argv.port, Argv.fileName);
   }
   else
   {
-    Socket? socket = await SetupSocketSender(Argv.ipAddress, Argv.port);
-    if (socket != null && file.Open(Argv.fileName, FileMode.read))
-    {
-      // structure: 13|filename|10|oooooooooodccc4ea2435223f6cf2a7d84f223e79db6f5b730ff78df0f72e6fcefilename|5892107279
-      //            ^ 1 = folder, 0 = single file                                                            ^ bytes in next file
-      //             ^ number of files (will be 1 if not a folder)
-      //                        ^ bytes in next file
-      //                           ^ start of bytes
-      //                                         ^ start of hash (64 bytes)
-      // if it's a folder filename is relative to the folder
-      socket.add(ascii.encode("02|albert.txt|1|16b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"));
-      await socket.flush();
-      bool finished = false;
-      socket.listen((event) { print(event); finished = true; });
-      while (!finished) await Future.delayed(Duration(milliseconds: 200));
-      print("got");
-      await SendFile(socket, Argv.fileName, file);
-    }
+    await Send(Argv.ipAddress, Argv.port, Argv.fileName);
   }
   file.Close();
   Ver("==========================Done===========================");
@@ -47,7 +28,7 @@ class Argv
 
   static int port = -1;
   static ProgramMode mode = ProgramMode.None;
-  static String fileName = "a";
+  static String fileName = "";
   static String ipAddress = "";
 
   static bool Parse(List<String> args)

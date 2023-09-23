@@ -37,8 +37,16 @@ void OnReceiverError(Object error, StackTrace st)
   VerErr('Stack Trace:\n$st');
 }
 
-Future<void> ReceiveFile(ServerSocket server, FileIO file) async
+String GetFileName(String received, String outpath, bool isFolder)
 {
+  if (isFolder) return FileIO.ReplaceRootDir(received.substring(0, received.indexOf("|")), outpath, outpath.isNotEmpty);
+  if (outpath.isEmpty) return received.substring(0, received.indexOf("|"));
+  return outpath;
+}
+
+Future<void> ReceiveFile(ServerSocket server, String path) async
+{
+  FileIO file = FileIO();
   bool finished = false;
   bool isFolder = false;
   int bytes = 0;
@@ -69,8 +77,10 @@ Future<void> ReceiveFile(ServerSocket server, FileIO file) async
       {
         receivedHash += ascii.decode(data);
         if (!receivedHash.contains ('|')) return;
+
         data = data.sublist(data.indexOf(124) + 1); // '|'
-        fileName = receivedHash.substring(0, receivedHash.indexOf("|"));
+        fileName = GetFileName(receivedHash, path, isFolder);
+        FileIO.CreateParentDirs(fileName);
         receivedHash = "";
         Ver("File name: $fileName");
       }
@@ -81,20 +91,34 @@ Future<void> ReceiveFile(ServerSocket server, FileIO file) async
         if (!receivedHash.contains ('|')) return;
 
         data = data.sublist(data.indexOf(124) + 1); // '|'
-        try { bytes = int.parse(receivedHash.substring(0, receivedHash.indexOf("|"))) + 64; }
+        try { bytes = int.parse(receivedHash.substring(0, receivedHash.indexOf("|"))) + 64; } // -1 = empty folder
         on FormatException catch(e) { Err("Failed to parse size header of message \"${e.source}\" at character ${e.offset} reason: ${e.message}"); }
         remaining = bytes;
         receivedHash = "";
-        Ver("Bytes to receive: $bytes");
+        if (bytes == 63)
+        {
+          FileIO.CreateDirs(fileName);
+          remaining++;
+        }
+        else file.Open(fileName, FileMode.write);
+        Ver("Bytes to receive: $remaining");
       }
+
 
       int toReceive = remaining - data.length < 0 ? remaining : data.length;
       if (remaining - toReceive < 64) // receiving hash in total or at least partially
       {
-        int dataSize = toReceive > 64 ? toReceive - 64 : remaining - 64;
-        sha.UpdateBinary(data, dataSize);
-        file.WriteChunk(data, dataSize);
-        receivedHash += String.fromCharCodes(data, dataSize); // might cause errors
+        if (toReceive > 64)
+        {
+          int dataSize = toReceive - 64;
+          sha.UpdateBinary(data, dataSize);
+          file.WriteChunk(data, dataSize);
+          receivedHash += String.fromCharCodes(data, dataSize); // might cause errors
+        }
+        else
+        {
+          receivedHash += String.fromCharCodes(data); // might cause errors
+        }
       }
       else
       {
@@ -103,8 +127,10 @@ Future<void> ReceiveFile(ServerSocket server, FileIO file) async
       }
       remaining -= toReceive;
 
+
       if (remaining <= 0) // less than should never happen but just in case
       {
+        file.Close();
         receivedHash = receivedHash.substring(receivedHash.length - 64);
         sha.Finalize();
         if (!CheckIntegrity(receivedHash, sha.Hexdigest()) && Promt("Checksums don't match do you want to delete the file? [Y|N]: ")) file.Delete();
@@ -112,6 +138,8 @@ Future<void> ReceiveFile(ServerSocket server, FileIO file) async
         if (numOfFiles == 0)
         {
           finished = true;
+          socket.add([1]);
+          await socket.flush();
           socket.destroy();
         }
         else
@@ -129,10 +157,6 @@ Future<void> ReceiveFile(ServerSocket server, FileIO file) async
   }, onError: OnReceiverError);
 
   while (!finished) await Future.delayed(Duration(milliseconds: 200));
-
-  //if (!CheckIntegrity(receivedHash, sha.Hexdigest()) && Promt("Checksums don't match do you want to delete the file? [Y|N]: "))
-  //{}
-  //file.Delete();
 }
 
 Future<ServerSocket?> SetupSocketReceiver(String ip, int port) async
@@ -160,16 +184,11 @@ Future<ServerSocket?> SetupSocketReceiver(String ip, int port) async
   return null;
 }
 
-Future<void> Receive(String ip, int port) async
+Future<void> Receive(String ip, int port, String path) async
 {
-  final FileIO file = FileIO();
   final ServerSocket? server = await SetupSocketReceiver(ip, port);
-  if (server == null || !file.Open("a.txt", FileMode.write)) return;
+  if (server == null) return;
 
-  await ReceiveFile(server, file);
-  //file.Close();
-  //file.Open("b.txt", FileMode.write);
-  //await ReceiveFile(server, file);
-  file.Close();
+  await ReceiveFile(server, path);
   server.close();
 }
