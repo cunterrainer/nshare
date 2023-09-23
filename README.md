@@ -1,2 +1,6 @@
-A sample command-line application with an entrypoint in `bin/`, library code
-in `lib/`, and example unit test in `test/`.
+A command line application to send files and folders over the internet
+
+Information:
+```
+dart run bin/nshare.dart --help
+```
