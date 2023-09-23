@@ -58,6 +58,11 @@ Future<void> Send(String ip, int port, String path) async
   //                           ^ start of bytes
   //                                         ^ start of hash (64 bytes)
   // if it's a folder then filename is relative to the folder
+  if (FileIO.IsEmptyDir(path))
+  {
+    Err("Can't send an empty directory");
+    return;
+  }
 
   Socket? socket = await SetupSocketSender(ip, port);
   if (socket == null) return;
@@ -98,7 +103,7 @@ Future<Socket?> SetupSocketSender(String ip, int port) async
   }
   catch(e)
   {
-    Err("Unhandled exception: $e");
+    Err("Unknown exception: $e");
   }
   return null;
 }

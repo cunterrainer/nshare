@@ -157,4 +157,5 @@ class FileIO
 
   int Size() => _Fp.lengthSync();
   static bool IsDirectory(String path) => File(path).statSync().type == FileSystemEntityType.directory;
+  static bool IsEmptyDir(String path) => IsDirectory(path) && Directory(path).listSync().isEmpty;
 }

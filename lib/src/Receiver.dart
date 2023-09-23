@@ -179,7 +179,7 @@ Future<ServerSocket?> SetupSocketReceiver(String ip, int port) async
   }
   catch (e)
   {
-    Err("Unhandled exception: $e");
+    Err("Unknown exception: $e");
   }
   return null;
 }

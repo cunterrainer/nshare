@@ -11,9 +11,9 @@ void Err(String msg)
 {
   int lastNewlineIndex = msg.lastIndexOf('\n');
   if (lastNewlineIndex == msg.length-1)
-    stdout.write("\x1B[31m[ERROR] $msg\x1B[0m");
+    stdout.write("\x1B[1;31m[ERROR] $msg\x1B[0m");
   else
-    print("\x1B[31m[ERROR] $msg\x1B[0m");
+    print("\x1B[1;31m[ERROR] $msg\x1B[0m");
 }
 
 void Hint(String msg)
