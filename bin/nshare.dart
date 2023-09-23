@@ -1,4 +1,5 @@
 import "dart:io";
+import 'dart:convert';
 
 import 'package:nshare/nshare.dart';
 
@@ -8,15 +9,22 @@ void main(List<String> args) async
   if (!Argv.Parse(args)) return;
   FileIO file = FileIO();
 
-  if (Argv.mode == ProgramMode.Receiver && file.Open(Argv.fileName, FileMode.write))
+  if (Argv.mode == ProgramMode.Receiver)
   {
-      await Receive(Argv.ipAddress, Argv.port, file.WriteChunk, file.Delete);
+      await Receive(Argv.ipAddress, Argv.port);
   }
   else
   {
-    Socket? socket = await SetupSocket(Argv.ipAddress, Argv.port);
+    Socket? socket = await SetupSocketSender(Argv.ipAddress, Argv.port);
     if (socket != null && file.Open(Argv.fileName, FileMode.read))
     {
+      // structure: 13|10|oooooooooodccc4ea2435223f6cf2a7d84f223e79db6f5b730ff78df0f72e6fce5892107279
+      //            ^ 1 = folder, 0 = single file                                                   ^ bytes in next file
+      //             ^ number of files
+      //               ^ bytes in next file
+      //                  ^ start of bytes
+      //                                ^ start of hash (64 bytes)
+      socket.add(ascii.encode("03|"));
       await SendFile(socket, Argv.fileName, file);
     }
   }

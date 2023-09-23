@@ -30,7 +30,7 @@ Future<void> SendFile(Socket socket, String path, FileIO file) async
 }
 
 
-Future<Socket?> SetupSocket(String ip, int port) async
+Future<Socket?> SetupSocketSender(String ip, int port) async
 {
   Ver("Sender");
   try
