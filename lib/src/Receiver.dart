@@ -44,11 +44,12 @@ Future<void> ReceiveFile(ServerSocket server, FileIO file) async
   int bytes = 0;
   int remaining = 1;
   int numOfFiles = 0;
-  String receivedHash = ""; // will be used to store some other stuff aswell
+  String receivedHash = ""; // will be used to store some other stuff as well
+  String fileName = "";
   final Sha256 sha = Sha256();
   server.listen((Socket socket)
   {
-    socket.listen((Uint8List data)
+    socket.listen((Uint8List data) async
     {
       if (numOfFiles == 0)
       {
@@ -62,6 +63,16 @@ Future<void> ReceiveFile(ServerSocket server, FileIO file) async
         receivedHash = "";
         Ver("Is folder: $isFolder");
         Ver("Number of files: $numOfFiles");
+      }
+
+      if (fileName.isEmpty)
+      {
+        receivedHash += ascii.decode(data);
+        if (!receivedHash.contains ('|')) return;
+        data = data.sublist(data.indexOf(124) + 1); // '|'
+        fileName = receivedHash.substring(0, receivedHash.indexOf("|"));
+        receivedHash = "";
+        Ver("File name: $fileName");
       }
 
       if (bytes == 0)
@@ -92,21 +103,36 @@ Future<void> ReceiveFile(ServerSocket server, FileIO file) async
       }
       remaining -= toReceive;
 
-      if (remaining <= 0) // less than should never be the case but just in case
+      if (remaining <= 0) // less than should never happen but just in case
       {
         receivedHash = receivedHash.substring(receivedHash.length - 64);
         sha.Finalize();
-        finished = true;
-        socket.destroy();
+        if (!CheckIntegrity(receivedHash, sha.Hexdigest()) && Promt("Checksums don't match do you want to delete the file? [Y|N]: ")) file.Delete();
+        --numOfFiles;
+        if (numOfFiles == 0)
+        {
+          finished = true;
+          socket.destroy();
+        }
+        else
+        {
+          bytes = 0;
+          remaining = 1;
+          receivedHash = "";
+          fileName = "";
+          sha.Reset();
+          socket.add([1]);
+          await socket.flush();
+        }
       }
     }, onError: OnReceiverError);
   }, onError: OnReceiverError);
 
   while (!finished) await Future.delayed(Duration(milliseconds: 200));
 
-  if (!CheckIntegrity(receivedHash, sha.Hexdigest()) && Promt("Checksums don't match do you want to delete the file? [Y|N]: "))
-  {}
-  file.Delete();
+  //if (!CheckIntegrity(receivedHash, sha.Hexdigest()) && Promt("Checksums don't match do you want to delete the file? [Y|N]: "))
+  //{}
+  //file.Delete();
 }
 
 Future<ServerSocket?> SetupSocketReceiver(String ip, int port) async

@@ -25,7 +25,12 @@ void main(List<String> args) async
       //                           ^ start of bytes
       //                                         ^ start of hash (64 bytes)
       // if it's a folder filename is relative to the folder
-      socket.add(ascii.encode("03|"));
+      socket.add(ascii.encode("02|albert.txt|1|16b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"));
+      await socket.flush();
+      bool finished = false;
+      socket.listen((event) { print(event); finished = true; });
+      while (!finished) await Future.delayed(Duration(milliseconds: 200));
+      print("got");
       await SendFile(socket, Argv.fileName, file);
     }
   }

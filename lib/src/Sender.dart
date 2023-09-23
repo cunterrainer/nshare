@@ -12,7 +12,7 @@ Future<void> SendFile(Socket socket, String path, FileIO file) async
 {
     Sha256 s = Sha256();
     int bytes = file.Size();
-    socket.add(ascii.encode("$bytes|"));
+    socket.add(ascii.encode("$path|$bytes|"));
 
     while (bytes > 0)
     {
