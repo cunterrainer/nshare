@@ -12,7 +12,7 @@ Future<void> SendFile(Socket socket, String path, int pathStart) async
 {
   ProgressBar.Init();
   final FileIO file = FileIO();
-  file.Open(path, FileMode.read);
+  if (!file.Open(path, FileMode.read)) return;
   final Sha256 s = Sha256();
   final int totalSize = file.Size();
   int bytes = totalSize;
@@ -38,18 +38,26 @@ Future<void> SendFile(Socket socket, String path, int pathStart) async
 Future<void> SendDirectory(Socket socket, List<List<dynamic>> files, int pathStart) async
 {
   bool finished = false;
-  socket.listen((event) { finished = true; }); // receiver write one byte to indicate it's ready for the next send
+  socket.listen((event) { finished = true; }, onError: (error){} ); // receiver writes one byte to indicate it's ready for the next send
 
-  for (List<dynamic> path in files)
+  try
   {
-    if (path[1] == false) await SendFile(socket, path[0], pathStart);
-    else // is an empty folder
+    for (List<dynamic> path in files)
     {
-      socket.add(ascii.encode("${path[0].substring(pathStart)}|-1|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"));
+      if (path[1] == false) await SendFile(socket, path[0], pathStart);
+      else // is an empty folder
+      {
+        socket.add(ascii.encode("${path[0].substring(pathStart)}|-1|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"));
+      }
+      await socket.flush();
+      while (!finished) await Future.delayed(Duration(milliseconds: 200));
+      finished = false;
     }
-    await socket.flush();
-    while (!finished) await Future.delayed(Duration(milliseconds: 200));
-    finished = false;
+  }
+  on SocketException catch(e)
+  {
+    Err("Failed to send data (${e.message})");
+    if (e.osError != null) VerErr("${e.osError}");
   }
 }
 

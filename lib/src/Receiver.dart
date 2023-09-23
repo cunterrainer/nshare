@@ -102,7 +102,7 @@ Future<void> ReceiveFile(ServerSocket server, String path) async
           FileIO.CreateDirs(fileName);
           remaining++;
         }
-        else file.Open(fileName, FileMode.write);
+        else if (!file.Open(fileName, FileMode.write)) remaining = 0;
         Ver("Bytes to receive: $remaining");
       }
 
@@ -157,7 +157,7 @@ Future<void> ReceiveFile(ServerSocket server, String path) async
           await socket.flush();
         }
       }
-    }, onError: OnReceiverError);
+    }, onError: OnReceiverError, onDone: (){ socket.destroy(); finished = true; });
   }, onError: OnReceiverError);
 
   while (!finished) await Future.delayed(Duration(milliseconds: 200));
