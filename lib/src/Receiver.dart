@@ -8,15 +8,15 @@ import "Log.dart";
 import "Hash.dart";
 import "FileIO.dart";
 
-bool CheckIntegrity(String receivedHash, String hash)
+bool CheckIntegrity(String receivedHash, String hash, String fileName)
 {
   Ver("Checking file integrity...");
   if (receivedHash != hash)
   {
-    Hint("Sha256 hash doesn't match, integrity compromised\nExpected hash:   $receivedHash\nCalculated hash: $hash");
+    Hint("'$fileName' Sha256 hash doesn't match, integrity compromised\nExpected hash:   $receivedHash\nCalculated hash: $hash");
     return false;
   }
-  Suc("Passed integrity check Sha256: $hash");
+  Suc("Passed integrity check Sha256: $hash '$fileName'");
   return true;
 }
 
@@ -133,7 +133,7 @@ Future<void> ReceiveFile(ServerSocket server, String path) async
         file.Close();
         receivedHash = receivedHash.substring(receivedHash.length - 64);
         sha.Finalize();
-        if (!CheckIntegrity(receivedHash, sha.Hexdigest()) && Promt("Checksums don't match do you want to delete the file? [Y|N]: ")) file.Delete();
+        if (!CheckIntegrity(receivedHash, sha.Hexdigest(), fileName) && Promt("Checksums don't match do you want to delete the file? [Y|N]: ")) file.Delete();
         --numOfFiles;
         if (numOfFiles == 0)
         {
