@@ -20,7 +20,7 @@ class FileIO
       if (m == FileMode.read && !_File.existsSync()) throw "File doesn't exist \"$path\"";
       _Fp = _File.openSync(mode: m);
       _Initialized = true;
-      Ver("Created file: $path");
+      Ver("${m == FileMode.write ? "Created" : "Opened"} file: $path");
       return true;
     }
     on FileSystemException catch(e)

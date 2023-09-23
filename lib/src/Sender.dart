@@ -7,13 +7,13 @@ import "Log.dart";
 import "Hash.dart";
 import "FileIO.dart";
 
-void SendFile(Socket socket, String path)
+void SendFile(Socket socket, String path, int pathStart)
 {
   FileIO file = FileIO();
   file.Open(path, FileMode.read);
   Sha256 s = Sha256();
   int bytes = file.Size();
-  socket.add(ascii.encode("$path|$bytes|"));
+  socket.add(ascii.encode("${path.substring(pathStart)}|$bytes|"));
 
   while (bytes > 0)
   {
@@ -25,22 +25,22 @@ void SendFile(Socket socket, String path)
 
   file.Close();
   s.Finalize();
-  Ver("$path: ${s.Hexdigest()}");
+  Log("${path.substring(pathStart)}: ${s.Hexdigest()}");
   socket.add(ascii.encode(s.Hexdigest()));
 }
 
 
-Future<void> SendDirectory(Socket socket, List<List<dynamic>> files) async
+Future<void> SendDirectory(Socket socket, List<List<dynamic>> files, int pathStart) async
 {
   bool finished = false;
   socket.listen((event) { finished = true; }); // receiver write one byte to indicate it's ready for the next send
 
   for (List<dynamic> path in files)
   {
-    if (path[1] == false) SendFile(socket, path[0]);
+    if (path[1] == false) SendFile(socket, path[0], pathStart);
     else // is an empty folder
     {
-      socket.add(ascii.encode("${path[0]}|-1|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"));
+      socket.add(ascii.encode("${path[0].substring(pathStart)}|-1|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"));
     }
     await socket.flush();
     while (!finished) await Future.delayed(Duration(milliseconds: 200));
@@ -64,6 +64,10 @@ Future<void> Send(String ip, int port, String path) async
     return;
   }
 
+  String seperator = path.contains("/") ? "/" : "\\";
+  final parts = path.split(seperator);
+  String tmp = parts[parts.length - 1];
+
   Socket? socket = await SetupSocketSender(ip, port);
   if (socket == null) return;
 
@@ -71,13 +75,13 @@ Future<void> Send(String ip, int port, String path) async
   {
     final list = FileIO.GetDirectoryContent(path);
     socket.add(ascii.encode("1${list.length}|"));
-    await SendDirectory(socket, list);
+    await SendDirectory(socket, list, path.length-tmp.length);
   }
   else
   {
     socket.add(ascii.encode("01|"));
     final List<List<dynamic>> list = [[path, false]]; // create dummy directory list
-    await SendDirectory(socket, list);
+    await SendDirectory(socket, list, path.length-tmp.length);
   }
   socket.destroy();
 }
