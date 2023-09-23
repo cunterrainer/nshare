@@ -44,7 +44,7 @@ Future<void> ReceiveFile(ServerSocket server, FileIO file) async
   int bytes = 0;
   int remaining = 1;
   int numOfFiles = 0;
-  String receivedHash = ""; // will be used to store the initial bytes value as well but then cleared
+  String receivedHash = ""; // will be used to store some other stuff aswell
   final Sha256 sha = Sha256();
   server.listen((Socket socket)
   {

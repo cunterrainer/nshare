@@ -18,12 +18,13 @@ void main(List<String> args) async
     Socket? socket = await SetupSocketSender(Argv.ipAddress, Argv.port);
     if (socket != null && file.Open(Argv.fileName, FileMode.read))
     {
-      // structure: 13|10|oooooooooodccc4ea2435223f6cf2a7d84f223e79db6f5b730ff78df0f72e6fce5892107279
-      //            ^ 1 = folder, 0 = single file                                                   ^ bytes in next file
-      //             ^ number of files
-      //               ^ bytes in next file
-      //                  ^ start of bytes
-      //                                ^ start of hash (64 bytes)
+      // structure: 13|filename|10|oooooooooodccc4ea2435223f6cf2a7d84f223e79db6f5b730ff78df0f72e6fcefilename|5892107279
+      //            ^ 1 = folder, 0 = single file                                                            ^ bytes in next file
+      //             ^ number of files (will be 1 if not a folder)
+      //                        ^ bytes in next file
+      //                           ^ start of bytes
+      //                                         ^ start of hash (64 bytes)
+      // if it's a folder filename is relative to the folder
       socket.add(ascii.encode("03|"));
       await SendFile(socket, Argv.fileName, file);
     }
