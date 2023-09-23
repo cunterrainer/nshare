@@ -20,7 +20,7 @@ Future<void> SendFile(Socket socket, String path, int pathStart) async
 
   while (bytes > 0)
   {
-    Uint8List buffer = file.ReadChunk(1024);
+    Uint8List buffer = file.ReadChunk(FileIO.Threshold);
     ProgressBar.Show(totalSize - bytes, totalSize);
     s.Update(buffer);
     socket.add(buffer);

@@ -10,6 +10,23 @@ class FileIO
   late FileMode _Mode;
   late RandomAccessFile _Fp;
   bool _Initialized = false;
+  static const int Threshold = 100 * 1024 * 1024; // 100 MB
+  List<int> _Buffer = [];
+
+  void _Flush()
+  {
+    if (_Buffer.isEmpty) return;
+    try
+    {
+      _Fp.writeFromSync(_Buffer);
+      _Buffer.clear();
+    }
+    on FileSystemException catch(e)
+    {
+      Err("Failed to write bytes into file \"${e.path}\" reason: ${e.message}");
+      if (e.osError != null) VerErr("${e.osError}");
+    }
+  }
 
   bool Open(String path, FileMode m)
   {
@@ -54,22 +71,22 @@ class FileIO
   {
     if (size <= 0) return;
     assert(_Initialized, "FileIO isn't initialized call Open() beforehand");
-    try
-    {
-      _Fp.writeFromSync(chunk, 0, size);
-    }
-    on FileSystemException catch(e)
-    {
-      Err("Failed to write bytes into file \"${e.path}\" reason: ${e.message}");
-      if (e.osError != null) VerErr("${e.osError}");
-    }
+
+    _Buffer.addAll(chunk.sublist(0, size));
+
+    if (_Buffer.length >= Threshold)
+      _Flush();
   }
 
   void Close()
   {
     if (_Initialized)
     {
-      if (_Mode == FileMode.write) _Fp.flushSync();
+      if (_Mode == FileMode.write)
+      {
+        _Flush();
+        _Fp.flushSync();
+      }
       _Fp.closeSync();
       _Initialized = false;
     }
