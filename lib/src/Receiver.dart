@@ -4,11 +4,10 @@ import "dart:async";
 import "dart:core";
 import "dart:io";
 
-import "package:nshare/src/ProgressBar.dart";
-
 import "Log.dart";
 import "Hash.dart";
 import "FileIO.dart";
+import "ProgressBar.dart";
 
 bool CheckIntegrity(String receivedHash, String hash, String fileName)
 {

@@ -23,8 +23,6 @@ void Hint(String msg)
 
 void Suc(String msg)
 {
-  //stdout.write("\x1B[32m[INFO] $msg\x1B[0m \r");
-  //stdout.flush();
   print("\x1B[32m[INFO] $msg\x1B[0m");
 }
 
