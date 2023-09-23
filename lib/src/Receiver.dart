@@ -4,6 +4,8 @@ import "dart:async";
 import "dart:core";
 import "dart:io";
 
+import "package:nshare/src/ProgressBar.dart";
+
 import "Log.dart";
 import "Hash.dart";
 import "FileIO.dart";
@@ -46,6 +48,7 @@ String GetFileName(String received, String outpath, bool isFolder)
 
 Future<void> ReceiveFile(ServerSocket server, String path) async
 {
+  ProgressBar.Init();
   FileIO file = FileIO();
   bool finished = false;
   bool isFolder = false;
@@ -61,7 +64,7 @@ Future<void> ReceiveFile(ServerSocket server, String path) async
     {
       if (numOfFiles == 0)
       {
-        receivedHash += ascii.decode(data);
+        receivedHash += ascii.decode(data, allowInvalid: true);
         if (!receivedHash.contains ('|')) return;
 
         data = data.sublist(data.indexOf(124) + 1); // '|'
@@ -75,7 +78,7 @@ Future<void> ReceiveFile(ServerSocket server, String path) async
 
       if (fileName.isEmpty)
       {
-        receivedHash += ascii.decode(data);
+        receivedHash += ascii.decode(data, allowInvalid: true);
         if (!receivedHash.contains ('|')) return;
 
         data = data.sublist(data.indexOf(124) + 1); // '|'
@@ -87,7 +90,7 @@ Future<void> ReceiveFile(ServerSocket server, String path) async
 
       if (bytes == 0)
       {
-        receivedHash += ascii.decode(data);
+        receivedHash += ascii.decode(data, allowInvalid: true);
         if (!receivedHash.contains ('|')) return;
 
         data = data.sublist(data.indexOf(124) + 1); // '|'
@@ -126,10 +129,12 @@ Future<void> ReceiveFile(ServerSocket server, String path) async
         file.WriteChunk(data, toReceive);
       }
       remaining -= toReceive;
+      ProgressBar.Show(bytes - remaining, bytes);
 
 
       if (remaining <= 0) // less than should never happen but just in case
       {
+        ProgressBar.Init();
         file.Close();
         receivedHash = receivedHash.substring(receivedHash.length - 64);
         sha.Finalize();

@@ -6,20 +6,25 @@ import "dart:typed_data";
 import "Log.dart";
 import "Hash.dart";
 import "FileIO.dart";
+import "ProgressBar.dart";
 
-void SendFile(Socket socket, String path, int pathStart)
+Future<void> SendFile(Socket socket, String path, int pathStart) async
 {
-  FileIO file = FileIO();
+  ProgressBar.Init();
+  final FileIO file = FileIO();
   file.Open(path, FileMode.read);
-  Sha256 s = Sha256();
-  int bytes = file.Size();
+  final Sha256 s = Sha256();
+  final int totalSize = file.Size();
+  int bytes = totalSize;
   socket.add(ascii.encode("${path.substring(pathStart)}|$bytes|"));
 
   while (bytes > 0)
   {
     Uint8List buffer = file.ReadChunk(1024);
+    ProgressBar.Show(totalSize - bytes, totalSize);
     s.Update(buffer);
     socket.add(buffer);
+    await socket.flush();
     bytes -= buffer.length;
   }
 
@@ -37,7 +42,7 @@ Future<void> SendDirectory(Socket socket, List<List<dynamic>> files, int pathSta
 
   for (List<dynamic> path in files)
   {
-    if (path[1] == false) SendFile(socket, path[0], pathStart);
+    if (path[1] == false) await SendFile(socket, path[0], pathStart);
     else // is an empty folder
     {
       socket.add(ascii.encode("${path[0].substring(pathStart)}|-1|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"));
