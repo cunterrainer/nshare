@@ -15,6 +15,7 @@ void main(List<String> args) async
     await Send(Argv.ipAddress, Argv.port, Argv.fileName);
   }
   Ver("==========================Done===========================");
+  Argv.PrintElapsedTime();
 }
 
 enum ProgramMode { None, Sender, Receiver }
@@ -28,6 +29,7 @@ class Argv
   static ProgramMode mode = ProgramMode.None;
   static String fileName = "";
   static String ipAddress = "";
+  static Stopwatch clock = Stopwatch();
 
   static bool Parse(List<String> args)
   {
@@ -57,6 +59,10 @@ class Argv
         case "-v":
         case "--verbose":
           g_LoggerVerbose = true;
+          break;
+        case "-t":
+        case "--timer":
+          clock.start();
           break;
         case "-i":
         case "--input":
@@ -113,6 +119,12 @@ class Argv
     return l[1];
   }
 
+  static void PrintElapsedTime()
+  {
+    if (!clock.isRunning) return;
+    Log("Elapsed time: ${(clock.elapsed.inMilliseconds / 1000.0).toStringAsFixed(3)} sec(s)");
+  }
+
   static void PrintConfig()
   {
     Ver("=============Config=============");
@@ -133,6 +145,10 @@ class Argv
     print("  -o  | --output=<file>     Set the output file/folder name (default: file name of sender)");
     print("  -ip | --ip=<address>      Set the ip address (default: $defaultIp [localhost])");
     print("  -p  | --port=<port>       Set the port to listen/send to (default: $defaultPort [needs to be identical for sender / receiver])");
-    print("\nIf neither an input nor an output file is specified, the default one 'a' will be used and the operating mode is receiver");
+    print("  -t  | --timer             Measure execution time");
+    print("  -ka | --keep-all          Keep files if the checksum doesn't match");
+    print("  -kn | --keep-none         Delete files if the checksum doesn't match");
+    print("  -c  | --check             After receiving and writing the files check them again for integrity corruption");
+    print("\nIf neither an input nor an output file is specified, the default one will be used and the operating mode is receiver");
   }
 }
