@@ -3,8 +3,10 @@ import "dart:io";
 import "dart:convert";
 import "dart:typed_data";
 
+import 'package:crypto/crypto.dart';
+import 'package:convert/convert.dart';
+
 import "Log.dart";
-import "Hash.dart";
 import "FileIO.dart";
 import "ProgressBar.dart";
 
@@ -13,25 +15,27 @@ Future<void> SendFile(Socket socket, String path, int pathStart) async
   ProgressBar.Init();
   final FileIO file = FileIO();
   if (!file.Open(path, FileMode.read)) return;
-  final Sha256 s = Sha256();
   final int totalSize = file.Size();
   int bytes = totalSize;
   socket.add(ascii.encode("${path.substring(pathStart)}|$bytes|"));
 
+  AccumulatorSink<Digest> hashOut = AccumulatorSink<Digest>();
+  final ByteConversionSink hashIn = md5.startChunkedConversion(hashOut);
   while (bytes > 0)
   {
     Uint8List buffer = file.ReadChunk(FileIO.Threshold);
     ProgressBar.Show(totalSize - bytes, totalSize);
-    s.Update(buffer);
+    hashIn.add(buffer);
     socket.add(buffer);
     await socket.flush();
     bytes -= buffer.length;
   }
 
   file.Close();
-  s.Finalize();
-  Log("${s.Hexdigest()} '${path.substring(pathStart)}'");
-  socket.add(ascii.encode(s.Hexdigest()));
+  hashIn.close();
+  final hashString = hashOut.events.single.toString();
+  Log("$hashString '${path.substring(pathStart)}'");
+  socket.add(ascii.encode(hashString));
 }
 
 
@@ -47,7 +51,7 @@ Future<void> SendDirectory(Socket socket, List<List<dynamic>> files, int pathSta
       if (path[1] == false) await SendFile(socket, path[0], pathStart);
       else // is an empty folder
       {
-        socket.add(ascii.encode("${path[0].substring(pathStart)}|-1|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"));
+        socket.add(ascii.encode("${path[0].substring(pathStart)}|-1|d41d8cd98f00b204e9800998ecf8427e")); // empty MD5 hash
       }
       await socket.flush();
       while (!finished) await Future.delayed(Duration(milliseconds: 200));

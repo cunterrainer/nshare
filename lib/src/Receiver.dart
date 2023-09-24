@@ -4,8 +4,10 @@ import "dart:async";
 import "dart:core";
 import "dart:io";
 
+import 'package:crypto/crypto.dart';
+import 'package:convert/convert.dart';
+
 import "Log.dart";
-import "Hash.dart";
 import "FileIO.dart";
 import "ProgressBar.dart";
 
@@ -14,10 +16,10 @@ bool CheckIntegrity(String receivedHash, String hash, String fileName)
   Ver("Checking file integrity...");
   if (receivedHash != hash)
   {
-    Hint("'$fileName' Sha256 hash doesn't match, integrity compromised\nExpected hash:   $receivedHash\nCalculated hash: $hash");
+    Hint("'$fileName' MD5 hash doesn't match, integrity compromised\nExpected hash:   $receivedHash\nCalculated hash: $hash");
     return false;
   }
-  Suc("Passed integrity check Sha256: $hash '$fileName'");
+  Suc("Passed integrity check MD5: $hash '$fileName'");
   return true;
 }
 
@@ -54,9 +56,12 @@ Future<void> ReceiveFile(ServerSocket server, String path) async
   int bytes = 0;
   int remaining = 1;
   int numOfFiles = 0;
+  const int hashSize = 32;
   String receivedHash = ""; // will be used to store some other stuff as well
   String fileName = "";
-  final Sha256 sha = Sha256();
+  AccumulatorSink<Digest> hashOut = AccumulatorSink<Digest>();
+  ByteConversionSink hashIn = md5.startChunkedConversion(hashOut);
+
   server.listen((Socket socket)
   {
     socket.listen((Uint8List data) async
@@ -93,11 +98,11 @@ Future<void> ReceiveFile(ServerSocket server, String path) async
         if (!receivedHash.contains ('|')) return;
 
         data = data.sublist(data.indexOf(124) + 1); // '|'
-        try { bytes = int.parse(receivedHash.substring(0, receivedHash.indexOf("|"))) + 64; } // -1 = empty folder
+        try { bytes = int.parse(receivedHash.substring(0, receivedHash.indexOf("|"))) + hashSize; } // -1 = empty folder
         on FormatException catch(e) { Err("Failed to parse size header of message \"${e.source}\" at character ${e.offset} reason: ${e.message}"); }
         remaining = bytes;
         receivedHash = "";
-        if (bytes == 63)
+        if (bytes == hashSize-1)
         {
           FileIO.CreateDirs(fileName);
           remaining++;
@@ -108,12 +113,12 @@ Future<void> ReceiveFile(ServerSocket server, String path) async
 
 
       int toReceive = remaining - data.length < 0 ? remaining : data.length;
-      if (remaining - toReceive < 64) // receiving hash in total or at least partially
+      if (remaining - toReceive < hashSize) // receiving hash in total or at least partially
       {
-        if (toReceive > 64)
+        if (toReceive > hashSize)
         {
-          int dataSize = toReceive - 64;
-          sha.UpdateBinary(data, dataSize);
+          int dataSize = toReceive - hashSize;
+          hashIn.addSlice(data, 0, dataSize, false);
           file.WriteChunk(data, dataSize);
           receivedHash += String.fromCharCodes(data, dataSize); // might cause errors
         }
@@ -124,7 +129,7 @@ Future<void> ReceiveFile(ServerSocket server, String path) async
       }
       else
       {
-        sha.UpdateBinary(data, toReceive);
+        hashIn.addSlice(data, 0, toReceive, false);
         file.WriteChunk(data, toReceive);
       }
       remaining -= toReceive;
@@ -135,9 +140,9 @@ Future<void> ReceiveFile(ServerSocket server, String path) async
       {
         ProgressBar.Init();
         file.Close();
-        receivedHash = receivedHash.substring(receivedHash.length - 64);
-        sha.Finalize();
-        if (!CheckIntegrity(receivedHash, sha.Hexdigest(), fileName) && Promt("Checksums don't match do you want to delete the file? [Y|N]: ")) file.Delete();
+        receivedHash = receivedHash.substring(receivedHash.length - hashSize);
+        hashIn.close();
+        if (!CheckIntegrity(receivedHash, hashOut.events.single.toString(), fileName) && Promt("Checksums don't match do you want to delete the file? [Y|N]: ")) file.Delete();
         --numOfFiles;
         if (numOfFiles == 0)
         {
@@ -152,7 +157,8 @@ Future<void> ReceiveFile(ServerSocket server, String path) async
           remaining = 1;
           receivedHash = "";
           fileName = "";
-          sha.Reset();
+          hashOut = AccumulatorSink<Digest>();
+          hashIn = md5.startChunkedConversion(hashOut);
           socket.add([1]);
           await socket.flush();
         }
