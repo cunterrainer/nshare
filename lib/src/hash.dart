@@ -41,8 +41,19 @@ class Sha256
   int _BufferSize = 0;
   Uint8List _Buffer = Uint8List(64);
 
+  Uint32List _a = Uint32List(1);
+  Uint32List _b = Uint32List(1);
+  Uint32List _c = Uint32List(1);
+  Uint32List _d = Uint32List(1);
+  Uint32List _e = Uint32List(1);
+  Uint32List _f = Uint32List(1);
+  Uint32List _g = Uint32List(1);
+  Uint32List _h = Uint32List(1);
+
+  Uint32List w = Uint32List(64);
+
   // FracPartsSquareRoots
-  Uint32List _H = Uint32List.fromList([
+  final Uint32List _H = Uint32List.fromList([
     0x6a09e667,
     0xbb67ae85,
     0x3c6ef372,
@@ -63,65 +74,97 @@ class Sha256
     0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
     0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2]);
 
-  void _Compress(Uint32List w)
+
+  void _Compress()
   {
-    Uint32List a = Uint32List.fromList([_H[0]]);
-    Uint32List b = Uint32List.fromList([_H[1]]);
-    Uint32List c = Uint32List.fromList([_H[2]]);
-    Uint32List d = Uint32List.fromList([_H[3]]);
-    Uint32List e = Uint32List.fromList([_H[4]]);
-    Uint32List f = Uint32List.fromList([_H[5]]);
-    Uint32List g = Uint32List.fromList([_H[6]]);
-    Uint32List h = Uint32List.fromList([_H[7]]);
+    _a[0] = _H[0];
+    _b[0] = _H[1];
+    _c[0] = _H[2];
+    _d[0] = _H[3];
+    _e[0] = _H[4];
+    _f[0] = _H[5];
+    _g[0] = _H[6];
+    _h[0] = _H[7];
 
     for (int i = 0; i < 64; ++i)
     {
-      final int s1 = _Util.RightRotate32(e[0], 6) ^ _Util.RightRotate32(e[0], 11) ^ _Util.RightRotate32(e[0], 25);
-      final int ch = (e[0] & f[0]) ^ (~e[0] & g[0]);
-      final int temp1 = h[0] + s1 + ch + _sK[i] + w[i];
-      final int s0 = _Util.RightRotate32(a[0], 2) ^ _Util.RightRotate32(a[0], 13) ^ _Util.RightRotate32(a[0], 22);
-      final int maj = (a[0] & b[0]) ^ (a[0] & c[0]) ^ (b[0] & c[0]);
+      final int s1 = _Util.RightRotate32(_e[0], 6) ^ _Util.RightRotate32(_e[0], 11) ^ _Util.RightRotate32(_e[0], 25);
+      final int ch = (_e[0] & _f[0]) ^ (~_e[0] & _g[0]);
+      final int temp1 = _h[0] + s1 + ch + _sK[i] + w[i];
+      final int s0 = _Util.RightRotate32(_a[0], 2) ^ _Util.RightRotate32(_a[0], 13) ^ _Util.RightRotate32(_a[0], 22);
+      final int maj = (_a[0] & _b[0]) ^ (_a[0] & _c[0]) ^ (_b[0] & _c[0]);
       final int temp2 = s0 + maj;
-      h[0] = g[0];
-      g[0] = f[0];
-      f[0] = e[0];
-      e[0] = d[0] + temp1;
-      d[0] = c[0];
-      c[0] = b[0];
-      b[0] = a[0];
-      a[0] = temp1 + temp2;
+      _h[0] = _g[0];
+      _g[0] = _f[0];
+      _f[0] = _e[0];
+      _e[0] = _d[0] + temp1;
+      _d[0] = _c[0];
+      _c[0] = _b[0];
+      _b[0] = _a[0];
+      _a[0] = temp1 + temp2;
     }
 
-    _H[0] += a[0];
-    _H[1] += b[0];
-    _H[2] += c[0];
-    _H[3] += d[0];
-    _H[4] += e[0];
-    _H[5] += f[0];
-    _H[6] += g[0];
-    _H[7] += h[0];
+    _H[0] += _a[0];
+    _H[1] += _b[0];
+    _H[2] += _c[0];
+    _H[3] += _d[0];
+    _H[4] += _e[0];
+    _H[5] += _f[0];
+    _H[6] += _g[0];
+    _H[7] += _h[0];
   }
 
   void _Transform()
   {
-    Uint32List w = Uint32List(64);
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < 16; i += 4)
     {
-      Uint8List c = Uint8List.view(w.buffer, i * 4, 4);
+      Uint8List c = Uint8List.view(w.buffer, i * 4, 16);
       c[0] = _Buffer[4 * i];
       c[1] = _Buffer[4 * i + 1];
       c[2] = _Buffer[4 * i + 2];
       c[3] = _Buffer[4 * i + 3];
       w[i] = _Util.IsLittleEndian() ? _Util.SwapEndian(w[i]) : w[i];
+
+      c[4] = _Buffer[4 * (i+1)];
+      c[5] = _Buffer[4 * (i+1) + 1];
+      c[6] = _Buffer[4 * (i+1) + 2];
+      c[7] = _Buffer[4 * (i+1) + 3];
+      w[i+1] = _Util.IsLittleEndian() ? _Util.SwapEndian(w[i+1]) : w[i+1];
+
+      c[8] = _Buffer[4 * (i+2)];
+      c[9] = _Buffer[4 * (i+2) + 1];
+      c[10] = _Buffer[4 * (i+2) + 2];
+      c[11] = _Buffer[4 * (i+2) + 3];
+      w[i+2] = _Util.IsLittleEndian() ? _Util.SwapEndian(w[i+2]) : w[i+2];
+
+      c[12] = _Buffer[4 * (i+3)];
+      c[13] = _Buffer[4 * (i+3) + 1];
+      c[14] = _Buffer[4 * (i+3) + 2];
+      c[15] = _Buffer[4 * (i+3) + 3];
+      w[i+3] = _Util.IsLittleEndian() ? _Util.SwapEndian(w[i+3]) : w[i+3];
     }
 
-    for (int i = 16; i < 64; ++i)
+
+    for (int i = 16; i < 64; i += 4)
     {
-      final int s0 = _Util.RightRotate32(w[i - 15], 7) ^ _Util.RightRotate32(w[i - 15], 18) ^ (w[i - 15] >> 3);
-      final int s1 = _Util.RightRotate32(w[i - 2], 17) ^ _Util.RightRotate32(w[i - 2], 19) ^ (w[i - 2] >> 10);
+      int s0 = _Util.RightRotate32(w[i - 15], 7) ^ _Util.RightRotate32(w[i - 15], 18) ^ (w[i - 15] >> 3);
+      int s1 = _Util.RightRotate32(w[i - 2], 17) ^ _Util.RightRotate32(w[i - 2], 19) ^ (w[i - 2] >> 10);
       w[i] = w[i - 16] + s0 + w[i - 7] + s1;
+
+      s0 = _Util.RightRotate32(w[i+1 - 15], 7) ^ _Util.RightRotate32(w[i+1 - 15], 18) ^ (w[i+1 - 15] >> 3);
+      s1 = _Util.RightRotate32(w[i+1 - 2], 17) ^ _Util.RightRotate32(w[i+1 - 2], 19) ^ (w[i+1 - 2] >> 10);
+      w[i+1] = w[i+1 - 16] + s0 + w[i+1 - 7] + s1;
+
+      s0 = _Util.RightRotate32(w[i+2 - 15], 7) ^ _Util.RightRotate32(w[i+2 - 15], 18) ^ (w[i+2 - 15] >> 3);
+      s1 = _Util.RightRotate32(w[i+2 - 2], 17) ^ _Util.RightRotate32(w[i+2 - 2], 19) ^ (w[i+2 - 2] >> 10);
+      w[i+2] = w[i+2 - 16] + s0 + w[i+2 - 7] + s1;
+
+      s0 = _Util.RightRotate32(w[i+3 - 15], 7) ^ _Util.RightRotate32(w[i+3 - 15], 18) ^ (w[i+3 - 15] >> 3);
+      s1 = _Util.RightRotate32(w[i+3 - 2], 17) ^ _Util.RightRotate32(w[i+3 - 2], 19) ^ (w[i+3 - 2] >> 10);
+      w[i+3] = w[i+3 - 16] + s0 + w[i+3 - 7] + s1;
     }
-    _Compress(w);
+
+    _Compress();
   }
 
   void UpdateBinary(Uint8List data, int size)
@@ -176,15 +219,14 @@ class Sha256
   {
     _Bitlen = 0;
     _BufferSize = 0;
-    _H = Uint32List.fromList([
-      0x6a09e667,
-      0xbb67ae85,
-      0x3c6ef372,
-      0xa54ff53a,
-      0x510e527f,
-      0x9b05688c,
-      0x1f83d9ab,
-      0x5be0cd19]);
+    _H[0] = 0x6a09e667;
+    _H[1] = 0xbb67ae85;
+    _H[2] = 0x3c6ef372;
+    _H[3] = 0xa54ff53a;
+    _H[4] = 0x510e527f;
+    _H[5] = 0x9b05688c;
+    _H[6] = 0x1f83d9ab;
+    _H[7] = 0x5be0cd19;
   }
 }
 
