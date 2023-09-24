@@ -62,7 +62,7 @@ Future<void> ReceiveFile(ServerSocket server, String path) async
   AccumulatorSink<Digest> hashOut = AccumulatorSink<Digest>();
   ByteConversionSink hashIn = md5.startChunkedConversion(hashOut);
 
-  server.listen((Socket socket)
+  server.listen((Socket socket) async
   {
     socket.listen((Uint8List data) async
     {
@@ -139,10 +139,11 @@ Future<void> ReceiveFile(ServerSocket server, String path) async
       if (remaining <= 0) // less than should never happen but just in case
       {
         ProgressBar.Init();
-        file.Close();
         receivedHash = receivedHash.substring(receivedHash.length - hashSize);
         hashIn.close();
         if (!CheckIntegrity(receivedHash, hashOut.events.single.toString(), fileName) && Promt("Checksums don't match do you want to delete the file? [Y|N]: ")) file.Delete();
+        else file.Close();
+
         --numOfFiles;
         if (numOfFiles == 0)
         {

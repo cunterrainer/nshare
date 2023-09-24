@@ -106,9 +106,23 @@ class FileIO
     }
   }
 
+  void CloseSync()
+  {
+    if (_Initialized)
+    {
+      if (_Mode == FileMode.write)
+      {
+        _Flush();
+        _Fp.flushSync();
+      }
+      _Fp.closeSync();
+      _Initialized = false;
+    }
+  }
+
   void Delete()
   {
-    Close();
+    CloseSync();
     _File.deleteSync();
   }
 
