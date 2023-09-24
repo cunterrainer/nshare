@@ -18,6 +18,7 @@ Future<void> SendFile(Socket socket, String path, int pathStart) async
   final int totalSize = file.Size();
   int bytes = totalSize;
   socket.add(ascii.encode("${path.substring(pathStart)}|$bytes|"));
+  Ver("Bytes to send: $totalSize");
 
   AccumulatorSink<Digest> hashOut = AccumulatorSink<Digest>();
   final ByteConversionSink hashIn = md5.startChunkedConversion(hashOut);
@@ -51,6 +52,7 @@ Future<void> SendDirectory(Socket socket, List<List<dynamic>> files, int pathSta
       if (path[1] == false) await SendFile(socket, path[0], pathStart);
       else // is an empty folder
       {
+        Ver("Sending empty folder: ${path[0]}");
         socket.add(ascii.encode("${path[0].substring(pathStart)}|-1|d41d8cd98f00b204e9800998ecf8427e")); // empty MD5 hash
       }
       await socket.flush();
