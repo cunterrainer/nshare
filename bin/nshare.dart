@@ -1,9 +1,12 @@
 import "dart:io";
+import "dart:developer";
 
 import 'package:nshare/nshare.dart';
 
 void main(List<String> args) async
 {
+  print("start");
+  stdin.readLineSync();
   if (!Argv.Parse(args)) return;
 
   if (Argv.mode == ProgramMode.Receiver)

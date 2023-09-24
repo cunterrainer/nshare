@@ -11,15 +11,16 @@ class FileIO
   late RandomAccessFile _Fp;
   bool _Initialized = false;
   static const int Threshold = 100 * 1024 * 1024; // 100 MB
-  List<int> _Buffer = [];
+  final Uint8List _Buffer = Uint8List(Threshold);
+  int _BufferIdx = 0;
 
   void _Flush()
   {
-    if (_Buffer.isEmpty) return;
+    if (_BufferIdx == 0) return;
     try
     {
-      _Fp.writeFromSync(_Buffer);
-      _Buffer.clear();
+      _Fp.writeFromSync(_Buffer, 0, _BufferIdx);
+      _BufferIdx = 0;
     }
     on FileSystemException catch(e)
     {
@@ -72,10 +73,22 @@ class FileIO
     if (size <= 0) return;
     assert(_Initialized, "FileIO isn't initialized call Open() beforehand");
 
-    _Buffer.addAll(chunk.sublist(0, size));
+    int remaining = size;
+    int sourceIdx = 0;
 
-    if (_Buffer.length >= Threshold)
-      _Flush();
+    while (remaining > 0)
+    {
+      int toCopy = Threshold - _BufferIdx;
+      toCopy = toCopy > remaining ? remaining : toCopy;
+
+      _Buffer.setAll(_BufferIdx, chunk.sublist(sourceIdx, sourceIdx + toCopy));
+      _BufferIdx += toCopy;
+      sourceIdx += toCopy;
+      remaining -= toCopy;
+
+      if (_Buffer.length >= Threshold)
+        _Flush();
+    }
   }
 
   void Close()
@@ -85,9 +98,10 @@ class FileIO
       if (_Mode == FileMode.write)
       {
         _Flush();
-        _Fp.flushSync();
+        final Future<RandomAccessFile> f = _Fp.flush();
+        f.then((value) => value.close());
       }
-      _Fp.closeSync();
+      else _Fp.close();
       _Initialized = false;
     }
   }
