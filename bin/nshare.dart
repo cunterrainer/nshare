@@ -103,13 +103,24 @@ class Argv
       port = defaultPort;
       Hint("No port specified, using default port: $port ('--help' for more information)");
     }
+    PrintConfig();
     return true;
   }
 
   static String ExtractArg(List<String> l, String msg, String option)
   {
-    if (l.length == 1 || l[1].isEmpty) throw "Incorrect format please provide $msg: ${l[0]}=<$option>";
+    if (l.length == 1 || l[1].isEmpty) throw "Incorrect format, please provide $msg: ${l[0]}=<$option>";
     return l[1];
+  }
+
+  static void PrintConfig()
+  {
+    Ver("=============Config=============");
+    Ver("Mode: ${mode == ProgramMode.Receiver ? "Receiver" : "Sender"}");
+    Ver("Port: $port");
+    Ver("File name: ${fileName.isEmpty ? "Default" : fileName}");
+    Ver("Ip address: $ipAddress");
+    Ver("================================\n");
   }
 
   static void PrintHelp()
