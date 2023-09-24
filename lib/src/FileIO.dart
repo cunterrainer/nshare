@@ -10,7 +10,7 @@ class FileIO
   late FileMode _Mode;
   late RandomAccessFile _Fp;
   bool _Initialized = false;
-  static const int Threshold = 100 * 1024 * 1024; // 100 MB
+  static const int Threshold = 4096; // 4kb
   final Uint8List _Buffer = Uint8List(Threshold);
   int _BufferIdx = 0;
 
@@ -86,8 +86,10 @@ class FileIO
       sourceIdx += toCopy;
       remaining -= toCopy;
 
-      if (_Buffer.length >= Threshold) // for some reason this is faster despite being a bug (_BufferIdx should be correct)
+      if (_BufferIdx >= Threshold)
+      {
         _Flush();
+      }
     }
   }
 
