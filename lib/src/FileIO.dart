@@ -86,7 +86,7 @@ class FileIO
       sourceIdx += toCopy;
       remaining -= toCopy;
 
-      if (_Buffer.length >= Threshold)
+      if (_Buffer.length >= Threshold) // for some reason this is faster despite being a bug (_BufferIdx should be correct)
         _Flush();
     }
   }

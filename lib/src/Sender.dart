@@ -30,7 +30,7 @@ Future<void> SendFile(Socket socket, String path, int pathStart) async
 
   file.Close();
   s.Finalize();
-  Log("${path.substring(pathStart)}: ${s.Hexdigest()}");
+  Log("${s.Hexdigest()} '${path.substring(pathStart)}'");
   socket.add(ascii.encode(s.Hexdigest()));
 }
 
