@@ -187,6 +187,7 @@ Future<void> VerifyWrittenFiles(List<List<String>> fileHashValues) async
   Log("\n=======================Verifying=======================");
   for (var pair in fileHashValues)
   {
+    ProgressBar.Init();
     idx++;
     FileIO file = FileIO();
     if(FileIO.IsDirectory(pair[0]) || !file.Open(pair[0], FileMode.read)) continue;
@@ -199,6 +200,7 @@ Future<void> VerifyWrittenFiles(List<List<String>> fileHashValues) async
     while (bytes > 0)
     {
       Uint8List buffer = file.ReadChunk(FileIO.Threshold);
+      ProgressBar.Show(totalSize - bytes, totalSize);
       hashIn.add(buffer);
       bytes -= buffer.length;
     }
