@@ -22,11 +22,7 @@ enum ProgramMode { None, Sender, Receiver }
 
 class Argv
 {
-  static const int defaultPort = 80;
-  static const int defaultDiscovery = 1970;
-  static const int defaultBind = 1971;
-
-  static int port = -1;
+  static int port = 1971;
   static int portDiscovery = 1970;
   static int portBind = 1971;
   static ProgramMode mode = ProgramMode.None;
@@ -128,23 +124,6 @@ class Argv
       }
     }
 
-    if (mode == ProgramMode.None)
-    {
-      mode = ProgramMode.Receiver;
-      Hint("No file specified, using default config (mode: receiver, output file: file name) ('--help' for more information)");
-    }
-
-    if (ipAddress.isEmpty && mode == ProgramMode.Sender)
-    {
-      //ipAddress = defaultIp;
-      Hint("No ip address specified, using default address: $ipAddress (localhost) ('--help' for more information)");
-    }
-
-    if (port == -1)
-    {
-      port = defaultPort;
-      Hint("No port specified, using default port: $port ('--help' for more information)");
-    }
     PrintConfig();
     return true;
   }
@@ -188,9 +167,9 @@ class Argv
     print("  -i  | --input=<file>      Set the input file/folder name");
     print("  -o  | --output=<file>     Set the output file/folder name (default: file name of sender)");
     print("  -ip | --ip=<address>      Set the ip address of the receiver (default: search in local network)");
-    print("  -p  | --port=<port>       Set the port to listen/send to (default: $defaultPort [needs to be identical for sender / receiver])");
-    print("  -d  | --discovery=<port>  Set the port auto detection, needs to be the same for sender/receiver (default: $defaultDiscovery)");
-    print("  -b  | --bind=<port>       Set the port auto detection, needs to be the same for sender/receiver (default: $defaultBind)");
+    print("  -p  | --port=<port>       Set the port to listen/send to (default: $port [needs to be identical for sender / receiver])");
+    print("  -d  | --discovery=<port>  Set the port auto detection, needs to be the same for sender/receiver (default: $portDiscovery)");
+    print("  -b  | --bind=<port>       Set the port auto detection, needs to be the same for sender/receiver (default: $portBind)");
     print("  -t  | --timer             Measure execution time");
     print("  -ka | --keep-all          Keep files if the checksum doesn't match (default: ask every time)");
     print("  -kn | --keep-none         Delete files if the checksum doesn't match (default: ask every time)");
