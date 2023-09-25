@@ -146,10 +146,11 @@ class Argv
 
   static void PrintConfig()
   {
-    // clock, written files, keepfiles
     Ver("=============Config=============");
     Ver("Mode: ${mode == ProgramMode.Receiver ? "Receiver" : "Sender"}");
     Ver("Port: $port");
+    Ver("Bind port: $portBind");
+    Ver("Discovery port: $portDiscovery");
     Ver("Timer: ${clock.isRunning}");
     Ver("File name: ${fileName.isEmpty ? "Default" : fileName}");
     Ver("Skip search: $skipLookup");
