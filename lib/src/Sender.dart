@@ -43,7 +43,7 @@ Future<void> SendFile(Socket socket, String path, int pathStart, int fileNum, in
 Future<void> SendDirectory(Socket socket, List<List<dynamic>> files, int pathStart) async
 {
   bool finished = false;
-  socket.listen((event) { finished = true; }, onError: (error){} ); // receiver writes one byte to indicate it's ready for the next send
+  socket.listen((event) { finished = true; }, onError: (error){}, onDone: (){finished = true;} ); // receiver writes one byte to indicate it's ready for the next send
 
   try
   {
