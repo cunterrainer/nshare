@@ -10,7 +10,7 @@ import "Log.dart";
 import "FileIO.dart";
 import "ProgressBar.dart";
 
-Future<void> SendFile(Socket socket, String path, int pathStart) async
+Future<void> SendFile(Socket socket, String path, int pathStart, int fileNum, int numOfFiles) async
 {
   ProgressBar.Init();
   final FileIO file = FileIO();
@@ -35,7 +35,7 @@ Future<void> SendFile(Socket socket, String path, int pathStart) async
   file.Close();
   hashIn.close();
   final hashString = hashOut.events.single.toString();
-  Log("$hashString '${path.substring(pathStart)}'");
+  Log("($fileNum|$numOfFiles) $hashString '${path.substring(pathStart)}'");
   socket.add(ascii.encode(hashString));
 }
 
@@ -47,9 +47,11 @@ Future<void> SendDirectory(Socket socket, List<List<dynamic>> files, int pathSta
 
   try
   {
+    int idx = 0;
     for (List<dynamic> path in files)
     {
-      if (path[1] == false) await SendFile(socket, path[0], pathStart);
+      ++idx;
+      if (path[1] == false) await SendFile(socket, path[0], pathStart, idx, files.length);
       else // is an empty folder
       {
         Ver("Sending empty folder: ${path[0]}");

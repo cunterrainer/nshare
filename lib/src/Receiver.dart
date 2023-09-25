@@ -11,15 +11,15 @@ import "Log.dart";
 import "FileIO.dart";
 import "ProgressBar.dart";
 
-bool CheckIntegrity(String receivedHash, String hash, String fileName)
+bool CheckIntegrity(String receivedHash, String hash, String fileName, int fileNum, int numOfFiles)
 {
   Ver("Checking file integrity...");
   if (receivedHash != hash)
   {
-    Hint("'$fileName' MD5 hash doesn't match, integrity compromised\nExpected hash:   $receivedHash\nCalculated hash: $hash");
+    Hint("($fileNum|$numOfFiles) '$fileName' MD5 hash doesn't match, integrity compromised\nExpected hash:   $receivedHash\nCalculated hash: $hash");
     return false;
   }
-  Suc("Passed integrity check MD5: $hash '$fileName'");
+  Suc("($fileNum|$numOfFiles) Passed integrity check MD5: $hash '$fileName'");
   return true;
 }
 
@@ -56,6 +56,7 @@ Future<List<List<String>>> ReceiveFile(ServerSocket server, String path, int kee
   int bytes = 0;
   int remaining = 1;
   int numOfFiles = 0;
+  int numOfFilesTotal = 0;
   const int hashSize = 32;
   String receivedHash = ""; // will be used to store some other stuff as well
   String fileName = "";
@@ -77,7 +78,7 @@ Future<List<List<String>>> ReceiveFile(ServerSocket server, String path, int kee
         try { numOfFiles = int.parse(receivedHash.substring(1, receivedHash.indexOf("|"))); }
         on FormatException catch(e) { Err("Failed to parse files header of message \"${e.source}\" at character ${e.offset} reason: ${e.message}"); }
         receivedHash = "";
-        //fileHashValues = List<List<String>>.filled(numOfFiles, ["", ""], growable: false);
+        numOfFilesTotal = numOfFiles;
         Ver("Is folder: $isFolder");
         Ver("Number of files: $numOfFiles");
       }
@@ -143,7 +144,7 @@ Future<List<List<String>>> ReceiveFile(ServerSocket server, String path, int kee
         ProgressBar.Init();
         receivedHash = receivedHash.substring(receivedHash.length - hashSize);
         hashIn.close();
-        if (!CheckIntegrity(receivedHash, hashOut.events.single.toString(), fileName))
+        if (!CheckIntegrity(receivedHash, hashOut.events.single.toString(), fileName, fileHashValues.length, numOfFilesTotal))
         {
           // 0 ask, 1 keep, 2 delete
           if ((keepFiles == 0 && Promt("Checksums don't match do you want to delete the file? [Y|N]: "))) file.Delete();
@@ -181,10 +182,12 @@ Future<List<List<String>>> ReceiveFile(ServerSocket server, String path, int kee
 
 Future<void> VerifyWrittenFiles(List<List<String>> fileHashValues) async
 {
+  int idx = 0;
   int correctFiles = fileHashValues.length;
   Log("\n=======================Verifying=======================");
   for (var pair in fileHashValues)
   {
+    idx++;
     FileIO file = FileIO();
     if(FileIO.IsDirectory(pair[0]) || !file.Open(pair[0], FileMode.read)) continue;
 
@@ -203,7 +206,7 @@ Future<void> VerifyWrittenFiles(List<List<String>> fileHashValues) async
     file.Close();
     hashIn.close();
     final hashString = hashOut.events.single.toString();
-    if(!CheckIntegrity(pair[1], hashString, pair[0])) correctFiles--;
+    if(!CheckIntegrity(pair[1], hashString, pair[0], idx, fileHashValues.length)) correctFiles--;
   }
   Log("Correct files: $correctFiles, corrupted files ${fileHashValues.length - correctFiles}");
 }
