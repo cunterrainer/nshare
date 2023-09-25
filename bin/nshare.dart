@@ -145,11 +145,18 @@ class Argv
 
   static void PrintConfig()
   {
+    // clock, written files, keepfiles
     Ver("=============Config=============");
     Ver("Mode: ${mode == ProgramMode.Receiver ? "Receiver" : "Sender"}");
     Ver("Port: $port");
+    Ver("Timer: ${clock.isRunning}");
     Ver("File name: ${fileName.isEmpty ? "Default" : fileName}");
-    Ver("Ip address: $ipAddress");
+    if (mode == ProgramMode.Sender) Ver("Ip address: $ipAddress");
+    if (mode == ProgramMode.Receiver)
+    {
+      Ver("Keep files: ${keepFiles == 0 ? "ask" : keepFiles == 1}");
+      Ver("Verify files: $verifyWrittenFiles");
+    }
     Ver("================================\n");
   }
 
