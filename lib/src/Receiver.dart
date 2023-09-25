@@ -47,7 +47,7 @@ String GetFileName(String received, String outpath, bool isFolder)
   return outpath;
 }
 
-Future<void> ReceiveFile(ServerSocket server, String path, int keepFiles) async
+Future<List<List<String>>> ReceiveFile(ServerSocket server, String path, int keepFiles) async
 {
   ProgressBar.Init();
   FileIO file = FileIO();
@@ -61,6 +61,7 @@ Future<void> ReceiveFile(ServerSocket server, String path, int keepFiles) async
   String fileName = "";
   AccumulatorSink<Digest> hashOut = AccumulatorSink<Digest>();
   ByteConversionSink hashIn = md5.startChunkedConversion(hashOut);
+  List<List<String>> fileHashValues = [];
 
   server.listen((Socket socket) async
   {
@@ -76,6 +77,7 @@ Future<void> ReceiveFile(ServerSocket server, String path, int keepFiles) async
         try { numOfFiles = int.parse(receivedHash.substring(1, receivedHash.indexOf("|"))); }
         on FormatException catch(e) { Err("Failed to parse files header of message \"${e.source}\" at character ${e.offset} reason: ${e.message}"); }
         receivedHash = "";
+        //fileHashValues = List<List<String>>.filled(numOfFiles, ["", ""], growable: false);
         Ver("Is folder: $isFolder");
         Ver("Number of files: $numOfFiles");
       }
@@ -105,7 +107,7 @@ Future<void> ReceiveFile(ServerSocket server, String path, int keepFiles) async
         if (bytes == hashSize-1)
         {
           FileIO.CreateDirs(fileName);
-          remaining++;
+          remaining = hashSize;
         }
         else if (!file.Open(fileName, FileMode.write)) remaining = 0;
         Ver("Bytes to receive: $remaining");
@@ -148,6 +150,7 @@ Future<void> ReceiveFile(ServerSocket server, String path, int keepFiles) async
           else if (keepFiles == 2) file.Delete();
         }
         else file.Close();
+        if (file.Exists()) fileHashValues.add([fileName, receivedHash]);
 
         --numOfFiles;
         if (numOfFiles == 0)
@@ -173,6 +176,36 @@ Future<void> ReceiveFile(ServerSocket server, String path, int keepFiles) async
   }, onError: OnReceiverError);
 
   while (!finished) await Future.delayed(Duration(milliseconds: 200));
+  return fileHashValues;
+}
+
+Future<void> VerifyWrittenFiles(List<List<String>> fileHashValues) async
+{
+  int correctFiles = fileHashValues.length;
+  Log("\n=======================Verifying=======================");
+  for (var pair in fileHashValues)
+  {
+    FileIO file = FileIO();
+    if(FileIO.IsDirectory(pair[0]) || !file.Open(pair[0], FileMode.read)) continue;
+
+    final int totalSize = file.Size();
+    int bytes = totalSize;
+
+    AccumulatorSink<Digest> hashOut = AccumulatorSink<Digest>();
+    final ByteConversionSink hashIn = md5.startChunkedConversion(hashOut);
+    while (bytes > 0)
+    {
+      Uint8List buffer = file.ReadChunk(FileIO.Threshold);
+      hashIn.add(buffer);
+      bytes -= buffer.length;
+    }
+
+    file.Close();
+    hashIn.close();
+    final hashString = hashOut.events.single.toString();
+    if(!CheckIntegrity(pair[1], hashString, pair[0])) correctFiles--;
+  }
+  Log("Correct files: $correctFiles, corrupted files ${fileHashValues.length - correctFiles}");
 }
 
 Future<ServerSocket?> SetupSocketReceiver(String ip, int port) async
@@ -200,11 +233,12 @@ Future<ServerSocket?> SetupSocketReceiver(String ip, int port) async
   return null;
 }
 
-Future<void> Receive(String ip, int port, String path, int keepFiles) async
+Future<void> Receive(String ip, int port, String path, int keepFiles, bool verifyWrittenFiles) async
 {
   final ServerSocket? server = await SetupSocketReceiver(ip, port);
   if (server == null) return;
 
-  await ReceiveFile(server, path, keepFiles);
+  List<List<String>> fileHashValues = await ReceiveFile(server, path, keepFiles);
   server.close();
+  if (verifyWrittenFiles) await VerifyWrittenFiles(fileHashValues);
 }

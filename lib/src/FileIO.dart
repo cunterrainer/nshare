@@ -10,6 +10,7 @@ class FileIO
   late FileMode _Mode;
   late RandomAccessFile _Fp;
   bool _Initialized = false;
+  bool _Exists = false;
   static const int Threshold = 4096; // 4kb
   final Uint8List _Buffer = Uint8List(Threshold);
   int _BufferIdx = 0;
@@ -38,6 +39,7 @@ class FileIO
       if (m == FileMode.read && !_File.existsSync()) throw "File doesn't exist \"$path\"";
       _Fp = _File.openSync(mode: m);
       _Initialized = true;
+      _Exists = true;
       Ver("${m == FileMode.write ? "Created" : "Opened"} file: $path");
       return true;
     }
@@ -129,6 +131,7 @@ class FileIO
     {
       CloseSync();
       _File.deleteSync();
+      _Exists = false;
       Ver("Deleted file: $path");
     }
     on FileSystemException catch(e)
@@ -213,6 +216,7 @@ class FileIO
   }
 
   int Size() => _Fp.lengthSync();
+  bool Exists() => _Exists;
   static bool IsDirectory(String path) => File(path).statSync().type == FileSystemEntityType.directory;
   static bool IsEmptyDir(String path) => IsDirectory(path) && Directory(path).listSync().isEmpty;
 }

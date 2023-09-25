@@ -8,7 +8,7 @@ void main(List<String> args) async
 
   if (Argv.mode == ProgramMode.Receiver)
   {
-      await Receive(Argv.ipAddress, Argv.port, Argv.fileName, Argv.keepFiles);
+      await Receive(Argv.ipAddress, Argv.port, Argv.fileName, Argv.keepFiles, Argv.verifyWrittenFiles);
   }
   else
   {
@@ -30,7 +30,7 @@ class Argv
   static String fileName = "";
   static String ipAddress = "";
   static Stopwatch clock = Stopwatch();
-  static bool verifyWritenFiles = false;
+  static bool verifyWrittenFiles = false;
   static int keepFiles = 0; // 0 ask, 1 keep, 2 delete
 
   static bool Parse(List<String> args)
@@ -79,7 +79,7 @@ class Argv
         case "-c":
         case "--check":
           if (mode == ProgramMode.Sender) Hint("Option '${n[0]}' is only for receiver, ignored");
-          verifyWritenFiles = true;
+          verifyWrittenFiles = true;
           break;
         case "-i":
         case "--input":
