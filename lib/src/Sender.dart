@@ -70,7 +70,7 @@ Future<void> SendDirectory(Socket socket, List<List<dynamic>> files, int pathSta
 }
 
 
-Future<void> Send(String ip, int port, String path) async
+Future<void> Send(String ip, int port, String path, bool skipLookup) async
 {
   // structure: 13|filename|10|ooooooooood41d8cd98f00b204e9800998ecf8427e
   //            ^ 1 = folder, 0 = single file
@@ -90,6 +90,11 @@ Future<void> Send(String ip, int port, String path) async
   final parts = path.split(seperator);
   String tmp = parts.lastWhere((element) => element.isNotEmpty);
 
+  if (!skipLookup)
+  {
+    ip = await FindReceiver(ip);
+    if (ip == "") return;
+  }
   Socket? socket = await SetupSocketSender(ip, port);
   if (socket == null) return;
 
@@ -106,6 +111,54 @@ Future<void> Send(String ip, int port, String path) async
     await SendDirectory(socket, list, path.length-tmp.length);
   }
   socket.destroy();
+}
+
+
+Future<String> FindReceiver(String ipOut) async
+{
+  try
+  {
+    final broadcastAddress = InternetAddress(ipOut.isEmpty ? '255.255.255.255' : ipOut);
+    final discoveryPort = 30000; // Discovery port
+    final udpSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 31000);
+
+    String ip = "";
+    bool finished = false;
+    udpSocket.listen((event)
+    {
+      if (event != RawSocketEvent.read) return;
+      final datagram = udpSocket.receive();
+      if (datagram == null) return;
+
+      final response = String.fromCharCodes(datagram.data).split(":");
+      final ipAddress = datagram.address;
+
+      if (response[0] == "NSHARE_ACCEPT")
+      {
+        Ver('Discovered device at $ipAddress offering: ${response[0]}');
+        ip = ipAddress.address == response[1] ? "127.0.0.1" : ipAddress.address;
+        finished = true;
+      }
+    }, onDone: () => finished = true);
+
+    // Broadcast a discovery message
+    udpSocket.broadcastEnabled = ipOut.isEmpty;
+    udpSocket.send(ascii.encode("NSHARE_DISCOVER"), broadcastAddress, discoveryPort);
+
+    while (!finished) await Future.delayed(Duration(milliseconds: 200));
+    udpSocket.close();
+    return ip;
+  }
+  on SocketException catch(e)
+  {
+    Err("Failed to bind socket, reason: ${e.message}");
+    if (e.osError != null) VerErr("${e.osError}");
+  }
+  on ArgumentError catch(e)
+  {
+    Err(e.toString());
+  }
+  return "";
 }
 
 

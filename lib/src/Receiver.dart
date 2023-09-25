@@ -238,8 +238,47 @@ Future<ServerSocket?> SetupSocketReceiver(int port) async
   return null;
 }
 
-Future<void> Receive(int port, String path, int keepFiles, bool verifyWrittenFiles) async
+Future<void> FindSender() async
 {
+  try
+  {
+    final udpSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 30000);
+
+    bool finished = false;
+    udpSocket.listen((event)
+    {
+      if (event != RawSocketEvent.read) return;
+      final datagram = udpSocket.receive();
+      if (datagram == null) return;
+
+      final response = String.fromCharCodes(datagram.data);
+      final ipAddress = datagram.address;
+
+      if (response == "NSHARE_DISCOVER")
+      {
+        Ver('Discovered device at $ipAddress offering: $response');
+        udpSocket.send(ascii.encode("NSHARE_ACCEPT:${ipAddress.address}"), ipAddress, 31000);
+        finished = true;
+      }
+    }, onDone: () => finished = true);
+
+    while (!finished) await Future.delayed(Duration(milliseconds: 200));
+    udpSocket.close();
+  }
+  on SocketException catch(e)
+  {
+    Err("Failed to bind socket, reason: ${e.message}");
+    if (e.osError != null) VerErr("${e.osError}");
+  }
+  on ArgumentError catch(e)
+  {
+    Err(e.toString());
+  }
+}
+
+Future<void> Receive(int port, String path, int keepFiles, bool verifyWrittenFiles, bool skipLookup) async
+{
+  if (!skipLookup) await FindSender();
   final ServerSocket? server = await SetupSocketReceiver(port);
   if (server == null) return;
 

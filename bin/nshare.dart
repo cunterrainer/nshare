@@ -8,11 +8,11 @@ void main(List<String> args) async
 
   if (Argv.mode == ProgramMode.Receiver)
   {
-      await Receive(Argv.port, Argv.fileName, Argv.keepFiles, Argv.verifyWrittenFiles);
+      await Receive(Argv.port, Argv.fileName, Argv.keepFiles, Argv.verifyWrittenFiles, Argv.skipLookup);
   }
   else
   {
-    await Send(Argv.ipAddress, Argv.port, Argv.fileName);
+    await Send(Argv.ipAddress, Argv.port, Argv.fileName, Argv.skipLookup);
   }
   Ver("==========================Done===========================");
   Argv.PrintElapsedTime();
@@ -23,7 +23,6 @@ enum ProgramMode { None, Sender, Receiver }
 class Argv
 {
   static const int defaultPort = 80;
-  static const String defaultIp = "127.0.0.1";
 
   static int port = -1;
   static ProgramMode mode = ProgramMode.None;
@@ -32,6 +31,7 @@ class Argv
   static Stopwatch clock = Stopwatch();
   static bool verifyWrittenFiles = false;
   static int keepFiles = 0; // 0 ask, 1 keep, 2 delete
+  static bool skipLookup = false;
 
   static bool Parse(List<String> args)
   {
@@ -118,7 +118,7 @@ class Argv
 
     if (ipAddress.isEmpty && mode == ProgramMode.Sender)
     {
-      ipAddress = defaultIp;
+      //ipAddress = defaultIp;
       Hint("No ip address specified, using default address: $ipAddress (localhost) ('--help' for more information)");
     }
 
@@ -151,6 +151,7 @@ class Argv
     Ver("Port: $port");
     Ver("Timer: ${clock.isRunning}");
     Ver("File name: ${fileName.isEmpty ? "Default" : fileName}");
+    Ver("Skip search: $skipLookup");
     if (mode == ProgramMode.Sender) Ver("Ip address: $ipAddress");
     if (mode == ProgramMode.Receiver)
     {
@@ -168,12 +169,13 @@ class Argv
     print("  -v  | --verbose           Print verbose output for additional information");
     print("  -i  | --input=<file>      Set the input file/folder name");
     print("  -o  | --output=<file>     Set the output file/folder name (default: file name of sender)");
-    print("  -ip | --ip=<address>      Set the ip address of the receiver (default: $defaultIp [localhost])");
+    print("  -ip | --ip=<address>      Set the ip address of the receiver (default: search in local network)");
     print("  -p  | --port=<port>       Set the port to listen/send to (default: $defaultPort [needs to be identical for sender / receiver])");
     print("  -t  | --timer             Measure execution time");
     print("  -ka | --keep-all          Keep files if the checksum doesn't match (default: ask every time)");
     print("  -kn | --keep-none         Delete files if the checksum doesn't match (default: ask every time)");
     print("  -c  | --check             After receiving and writing the files check them again for integrity corruption");
+    print("  -s  | --skip              Skip search for devices in local network (needs to be set for sender and receiver)");
     print("\nIf neither an input nor an output file is specified, the default one will be used and the operating mode is receiver");
   }
 }
