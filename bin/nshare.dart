@@ -116,7 +116,7 @@ class Argv
       Hint("No file specified, using default config (mode: receiver, output file: file name) ('--help' for more information)");
     }
 
-    if (ipAddress.isEmpty)
+    if (ipAddress.isEmpty && mode == ProgramMode.Sender)
     {
       ipAddress = defaultIp;
       Hint("No ip address specified, using default address: $ipAddress (localhost) ('--help' for more information)");

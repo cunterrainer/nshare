@@ -101,8 +101,7 @@ Future<void> Send(String ip, int port, String path) async
   else
   {
     socket.add(ascii.encode("01|"));
-    if (Platform.isWindows) path = path.replaceAll("\\", "/");
-    final List<List<dynamic>> list = [[path, false]]; // create dummy directory list
+    final List<List<dynamic>> list = [[path.replaceAll("\\", "/"), false]]; // create dummy directory list
     await SendDirectory(socket, list, path.length-tmp.length);
   }
   socket.destroy();

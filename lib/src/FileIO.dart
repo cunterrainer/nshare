@@ -157,14 +157,13 @@ class FileIO
 
       final contents = currentDirectory.listSync();
       if (contents.isEmpty)
-        list.add([currentDirectory.path, true]);
+        list.add([currentDirectory.path.replaceAll("\\", "/"), true]);
 
       for (final entity in contents)
       {
         if (entity is File)
         {
-          if (Platform.isWindows) list.add([entity.path.replaceAll("\\", "/"), false]);
-          else list.add([entity.path, false]);
+          list.add([entity.path.replaceAll("\\", "/"), false]);
         }
         else if (entity is Directory && !visited.contains(entity))
         {
