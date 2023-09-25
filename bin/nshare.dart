@@ -62,6 +62,10 @@ class Argv
         case "--verbose":
           g_LoggerVerbose = true;
           break;
+        case "-s":
+        case "--skip":
+          skipLookup = true;
+          break;
         case "-t":
         case "--timer":
           clock.start();
