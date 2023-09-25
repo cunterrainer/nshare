@@ -22,7 +22,7 @@ enum ProgramMode { None, Sender, Receiver }
 
 class Argv
 {
-  static int port = 1971;
+  static int port = 80;
   static int portDiscovery = 1970;
   static int portBind = 1971;
   static ProgramMode mode = ProgramMode.None;
@@ -124,6 +124,10 @@ class Argv
       }
     }
 
+    if (mode == ProgramMode.None)
+    {
+      mode = ProgramMode.Receiver;
+    }
     PrintConfig();
     return true;
   }
