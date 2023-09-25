@@ -8,11 +8,11 @@ void main(List<String> args) async
 
   if (Argv.mode == ProgramMode.Receiver)
   {
-      await Receive(Argv.port, Argv.fileName, Argv.keepFiles, Argv.verifyWrittenFiles, Argv.skipLookup);
+      await Receive(Argv.port, Argv.fileName, Argv.keepFiles, Argv.verifyWrittenFiles, Argv.skipLookup, Argv.portBind, Argv.portDiscovery);
   }
   else
   {
-    await Send(Argv.ipAddress, Argv.port, Argv.fileName, Argv.skipLookup);
+    await Send(Argv.ipAddress, Argv.port, Argv.fileName, Argv.skipLookup, Argv.portDiscovery, Argv.portBind);
   }
   Ver("==========================Done===========================");
   Argv.PrintElapsedTime();
@@ -23,8 +23,12 @@ enum ProgramMode { None, Sender, Receiver }
 class Argv
 {
   static const int defaultPort = 80;
+  static const int defaultDiscovery = 1970;
+  static const int defaultBind = 1971;
 
   static int port = -1;
+  static int portDiscovery = 1970;
+  static int portBind = 1971;
   static ProgramMode mode = ProgramMode.None;
   static String fileName = "";
   static String ipAddress = "";
@@ -109,6 +113,16 @@ class Argv
           String p = ExtractArg(l, "a port", "port");
           try { port = int.parse(p); } catch(e) { throw "Port has to be a number '${n[0]}=${n[1]}'"; }
           break;
+        case "-d":
+        case "--discovery":
+          String p = ExtractArg(l, "a port", "port");
+          try { portDiscovery = int.parse(p); } catch(e) { throw "Port has to be a number '${n[0]}=${n[1]}'"; }
+          break;
+        case "-b":
+        case "--bind":
+          String p = ExtractArg(l, "a port", "port");
+          try { portBind = int.parse(p); } catch(e) { throw "Port has to be a number '${n[0]}=${n[1]}'"; }
+          break;
         default:
           throw "Unknown command-line option '${n[0]}'\n[ERROR] '${Platform.executable} --help' for more information";
       }
@@ -175,11 +189,15 @@ class Argv
     print("  -o  | --output=<file>     Set the output file/folder name (default: file name of sender)");
     print("  -ip | --ip=<address>      Set the ip address of the receiver (default: search in local network)");
     print("  -p  | --port=<port>       Set the port to listen/send to (default: $defaultPort [needs to be identical for sender / receiver])");
+    print("  -d  | --discovery=<port>  Set the port auto detection, needs to be the same for sender/receiver (default: $defaultDiscovery)");
+    print("  -b  | --bind=<port>       Set the port auto detection, needs to be the same for sender/receiver (default: $defaultBind)");
     print("  -t  | --timer             Measure execution time");
     print("  -ka | --keep-all          Keep files if the checksum doesn't match (default: ask every time)");
     print("  -kn | --keep-none         Delete files if the checksum doesn't match (default: ask every time)");
     print("  -c  | --check             After receiving and writing the files check them again for integrity corruption");
     print("  -s  | --skip              Skip search for devices in local network (needs to be set for sender and receiver)");
     print("\nIf neither an input nor an output file is specified, the default one will be used and the operating mode is receiver");
+    print("In case you encounter problems related to the ports while looking for the receiver in you local network");
+    print("try to set the discovery (--discovery) and the bind (--bind) port manually");
   }
 }

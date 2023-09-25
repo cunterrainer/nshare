@@ -70,7 +70,7 @@ Future<void> SendDirectory(Socket socket, List<List<dynamic>> files, int pathSta
 }
 
 
-Future<void> Send(String ip, int port, String path, bool skipLookup) async
+Future<void> Send(String ip, int port, String path, bool skipLookup, int discoveryPort, int bindPort) async
 {
   // structure: 13|filename|10|ooooooooood41d8cd98f00b204e9800998ecf8427e
   //            ^ 1 = folder, 0 = single file
@@ -92,7 +92,7 @@ Future<void> Send(String ip, int port, String path, bool skipLookup) async
 
   if (!skipLookup)
   {
-    ip = await FindReceiver(ip);
+    ip = await FindReceiver(ip, discoveryPort, bindPort);
     if (ip == "") return;
   }
   Socket? socket = await SetupSocketSender(ip, port);
@@ -114,13 +114,13 @@ Future<void> Send(String ip, int port, String path, bool skipLookup) async
 }
 
 
-Future<String> FindReceiver(String ipOut) async
+Future<String> FindReceiver(String ipOut, int discoveryPort, int bindPort) async
 {
+  Ver("Find receiver, discovery port: $discoveryPort, bind port: $bindPort");
   try
   {
     final broadcastAddress = InternetAddress(ipOut.isEmpty ? '255.255.255.255' : ipOut);
-    final discoveryPort = 30000; // Discovery port
-    final udpSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 31000);
+    final udpSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, bindPort);
 
     String ip = "";
     bool finished = false;
