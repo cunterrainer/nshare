@@ -86,8 +86,9 @@ Future<void> Send(String ip, int port, String path) async
   }
 
   String seperator = path.contains("/") ? "/" : "\\";
+  path = path.endsWith(seperator) ? path.substring(0, path.length-1) : path;
   final parts = path.split(seperator);
-  String tmp = parts[parts.length - 1];
+  String tmp = parts.lastWhere((element) => element.isNotEmpty);
 
   Socket? socket = await SetupSocketSender(ip, port);
   if (socket == null) return;
