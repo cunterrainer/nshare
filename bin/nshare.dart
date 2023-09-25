@@ -8,7 +8,7 @@ void main(List<String> args) async
 
   if (Argv.mode == ProgramMode.Receiver)
   {
-      await Receive(Argv.ipAddress, Argv.port, Argv.fileName, Argv.keepFiles, Argv.verifyWrittenFiles);
+      await Receive(Argv.port, Argv.fileName, Argv.keepFiles, Argv.verifyWrittenFiles);
   }
   else
   {
@@ -73,7 +73,7 @@ class Argv
           break;
         case "-kn":
         case "--keep-none":
-        if (mode == ProgramMode.Sender) Hint("Option '${n[0]}' is only for receiver, ignored");
+          if (mode == ProgramMode.Sender) Hint("Option '${n[0]}' is only for receiver, ignored");
           keepFiles = 2;
           break;
         case "-c":
@@ -97,7 +97,8 @@ class Argv
           break;
         case "-ip":
         case "--ip":
-          ipAddress = ExtractArg(l, "an ip address", "address");
+          if (mode == ProgramMode.Receiver) Hint("Option '$s' is only for sender, ignored");
+          else ipAddress = ExtractArg(l, "an ip address", "address");
           break;
         case "-p":
         case "--port":
@@ -160,7 +161,7 @@ class Argv
     print("  -v  | --verbose           Print verbose output for additional information");
     print("  -i  | --input=<file>      Set the input file/folder name");
     print("  -o  | --output=<file>     Set the output file/folder name (default: file name of sender)");
-    print("  -ip | --ip=<address>      Set the ip address (default: $defaultIp [localhost])");
+    print("  -ip | --ip=<address>      Set the ip address of the receiver (default: $defaultIp [localhost])");
     print("  -p  | --port=<port>       Set the port to listen/send to (default: $defaultPort [needs to be identical for sender / receiver])");
     print("  -t  | --timer             Measure execution time");
     print("  -ka | --keep-all          Keep files if the checksum doesn't match (default: ask every time)");

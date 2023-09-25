@@ -213,18 +213,18 @@ Future<void> VerifyWrittenFiles(List<List<String>> fileHashValues) async
   Log("Correct files: $correctFiles, corrupted files ${fileHashValues.length - correctFiles}");
 }
 
-Future<ServerSocket?> SetupSocketReceiver(String ip, int port) async
+Future<ServerSocket?> SetupSocketReceiver(int port) async
 {
   Ver("Receiver");
   try
   {
-    ServerSocket server = await ServerSocket.bind(ip, port);
+    ServerSocket server = await ServerSocket.bind(InternetAddress.anyIPv6, port);
     Ver("Connected");
     return server;
   }
   on SocketException catch(e)
   {
-    Err("Failed to bind socket to $ip on port $port reason: ${e.message}");
+    Err("Failed to bind socket to port $port reason: ${e.message}");
     if (e.osError != null) VerErr("${e.osError}");
   }
   on ArgumentError catch(e)
@@ -238,9 +238,9 @@ Future<ServerSocket?> SetupSocketReceiver(String ip, int port) async
   return null;
 }
 
-Future<void> Receive(String ip, int port, String path, int keepFiles, bool verifyWrittenFiles) async
+Future<void> Receive(int port, String path, int keepFiles, bool verifyWrittenFiles) async
 {
-  final ServerSocket? server = await SetupSocketReceiver(ip, port);
+  final ServerSocket? server = await SetupSocketReceiver(port);
   if (server == null) return;
 
   List<List<String>> fileHashValues = await ReceiveFile(server, path, keepFiles);
