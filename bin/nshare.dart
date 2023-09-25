@@ -8,7 +8,7 @@ void main(List<String> args) async
 
   if (Argv.mode == ProgramMode.Receiver)
   {
-      await Receive(Argv.ipAddress, Argv.port, Argv.fileName);
+      await Receive(Argv.ipAddress, Argv.port, Argv.fileName, Argv.keepFiles);
   }
   else
   {
@@ -30,6 +30,8 @@ class Argv
   static String fileName = "";
   static String ipAddress = "";
   static Stopwatch clock = Stopwatch();
+  static bool verifyWritenFiles = false;
+  static int keepFiles = 0; // 0 ask, 1 keep, 2 delete
 
   static bool Parse(List<String> args)
   {
@@ -63,6 +65,21 @@ class Argv
         case "-t":
         case "--timer":
           clock.start();
+          break;
+        case "-ka":
+        case "--keep-all":
+          if (mode == ProgramMode.Sender) Hint("Option '${n[0]}' is only for receiver, ignored");
+          keepFiles = 1;
+          break;
+        case "-kn":
+        case "--keep-none":
+        if (mode == ProgramMode.Sender) Hint("Option '${n[0]}' is only for receiver, ignored");
+          keepFiles = 2;
+          break;
+        case "-c":
+        case "--check":
+          if (mode == ProgramMode.Sender) Hint("Option '${n[0]}' is only for receiver, ignored");
+          verifyWritenFiles = true;
           break;
         case "-i":
         case "--input":
@@ -146,8 +163,8 @@ class Argv
     print("  -ip | --ip=<address>      Set the ip address (default: $defaultIp [localhost])");
     print("  -p  | --port=<port>       Set the port to listen/send to (default: $defaultPort [needs to be identical for sender / receiver])");
     print("  -t  | --timer             Measure execution time");
-    print("  -ka | --keep-all          Keep files if the checksum doesn't match");
-    print("  -kn | --keep-none         Delete files if the checksum doesn't match");
+    print("  -ka | --keep-all          Keep files if the checksum doesn't match (default: ask every time)");
+    print("  -kn | --keep-none         Delete files if the checksum doesn't match (default: ask every time)");
     print("  -c  | --check             After receiving and writing the files check them again for integrity corruption");
     print("\nIf neither an input nor an output file is specified, the default one will be used and the operating mode is receiver");
   }

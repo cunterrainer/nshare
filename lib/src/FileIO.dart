@@ -24,7 +24,7 @@ class FileIO
     }
     on FileSystemException catch(e)
     {
-      Err("Failed to write bytes into file \"${e.path}\" reason: ${e.message}");
+      Err("Failed to write bytes into file \"${e.path}\", reason: ${e.message}");
       if (e.osError != null) VerErr("${e.osError}");
     }
   }
@@ -62,7 +62,7 @@ class FileIO
     }
     on FileSystemException catch(e)
     {
-      Err("Failed to read bytes from file \"${e.path}\" reason: ${e.message}");
+      Err("Failed to read bytes from file \"${e.path}\", reason: ${e.message}");
       if (e.osError != null) VerErr("${e.osError}");
     }
     return Uint8List(0);
@@ -124,8 +124,18 @@ class FileIO
 
   void Delete()
   {
-    CloseSync();
-    _File.deleteSync();
+    String path = _File.path;
+    try
+    {
+      CloseSync();
+      _File.deleteSync();
+      Ver("Deleted file: $path");
+    }
+    on FileSystemException catch(e)
+    {
+      Err("Failed to delete file '$path', reason: ${e.message}");
+      if (e.osError != null) VerErr(e.osError.toString());
+    }
   }
 
   static List<List<dynamic>> GetDirectoryContent(String path)

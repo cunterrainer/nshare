@@ -47,7 +47,7 @@ String GetFileName(String received, String outpath, bool isFolder)
   return outpath;
 }
 
-Future<void> ReceiveFile(ServerSocket server, String path) async
+Future<void> ReceiveFile(ServerSocket server, String path, int keepFiles) async
 {
   ProgressBar.Init();
   FileIO file = FileIO();
@@ -141,7 +141,12 @@ Future<void> ReceiveFile(ServerSocket server, String path) async
         ProgressBar.Init();
         receivedHash = receivedHash.substring(receivedHash.length - hashSize);
         hashIn.close();
-        if (!CheckIntegrity(receivedHash, hashOut.events.single.toString(), fileName) && Promt("Checksums don't match do you want to delete the file? [Y|N]: ")) file.Delete();
+        if (!CheckIntegrity(receivedHash, hashOut.events.single.toString(), fileName))
+        {
+          // 0 ask, 1 keep, 2 delete
+          if ((keepFiles == 0 && Promt("Checksums don't match do you want to delete the file? [Y|N]: "))) file.Delete();
+          else if (keepFiles == 2) file.Delete();
+        }
         else file.Close();
 
         --numOfFiles;
@@ -195,11 +200,11 @@ Future<ServerSocket?> SetupSocketReceiver(String ip, int port) async
   return null;
 }
 
-Future<void> Receive(String ip, int port, String path) async
+Future<void> Receive(String ip, int port, String path, int keepFiles) async
 {
   final ServerSocket? server = await SetupSocketReceiver(ip, port);
   if (server == null) return;
 
-  await ReceiveFile(server, path);
+  await ReceiveFile(server, path, keepFiles);
   server.close();
 }
