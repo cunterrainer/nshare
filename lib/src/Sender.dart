@@ -141,11 +141,12 @@ Future<String> FindReceiver(String ipOut, int discoveryPort, int bindPort) async
       }
     }, onDone: () => finished = true);
 
-    // Broadcast a discovery message
     udpSocket.broadcastEnabled = ipOut.isEmpty;
-    udpSocket.send(ascii.encode("NSHARE_DISCOVER"), broadcastAddress, discoveryPort);
-
-    while (!finished) await Future.delayed(Duration(milliseconds: 200));
+    while (!finished)
+    {
+      udpSocket.send(ascii.encode("NSHARE_DISCOVER"), broadcastAddress, discoveryPort);
+      await Future.delayed(Duration(milliseconds: 200));
+    }
     udpSocket.close();
     return ip;
   }
