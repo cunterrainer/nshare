@@ -163,7 +163,8 @@ class FileIO
       {
         if (entity is File)
         {
-          list.add([entity.path, false]);
+          if (Platform.isWindows) list.add([entity.path.replaceAll("\\", "/"), false]);
+          else list.add([entity.path, false]);
         }
         else if (entity is Directory && !visited.contains(entity))
         {
