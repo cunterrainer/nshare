@@ -144,7 +144,7 @@ Future<List<List<String>>> ReceiveFile(ServerSocket server, String path, int kee
         ProgressBar.Init();
         receivedHash = receivedHash.substring(receivedHash.length - hashSize);
         hashIn.close();
-        if (!CheckIntegrity(receivedHash, hashOut.events.single.toString(), fileName, fileHashValues.length+1, numOfFilesTotal))
+        if (!CheckIntegrity(receivedHash, hashOut.events.single.toString(), fileName, numOfFilesTotal-numOfFiles+1, numOfFilesTotal))
         {
           // 0 ask, 1 keep, 2 delete
           if ((keepFiles == 0 && Promt("Checksums don't match do you want to delete the file? [Y|N]: "))) file.Delete();
