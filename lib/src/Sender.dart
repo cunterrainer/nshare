@@ -72,12 +72,12 @@ Future<void> SendDirectory(Socket socket, List<List<dynamic>> files, int pathSta
 
 Future<void> Send(String ip, int port, String path) async
 {
-  // structure: 13|filename|10|oooooooooodccc4ea2435223f6cf2a7d84f223e79db6f5b730ff78df0f72e6fce
+  // structure: 13|filename|10|ooooooooood41d8cd98f00b204e9800998ecf8427e
   //            ^ 1 = folder, 0 = single file
   //             ^ number of files (will be 1 if not a folder) (These two are only on the first send)
-  //                        ^ bytes in next file (if 0 it's an empty directory)
+  //                        ^ bytes in next file (if -1 it's an empty directory)
   //                           ^ start of bytes
-  //                                         ^ start of hash (64 bytes)
+  //                                         ^ start of hash (32 bytes)
   // if it's a folder then filename is relative to the folder
   if (FileIO.IsEmptyDir(path))
   {
