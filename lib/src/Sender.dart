@@ -116,7 +116,7 @@ Future<void> Send(String ip, int port, String path, bool skipLookup, int discove
 
 Future<String> FindReceiver(String ipOut, int discoveryPort, int bindPort) async
 {
-  Ver("Find receiver, discovery port: $discoveryPort, bind port: $bindPort");
+  Log("Find receiver, discovery port: $discoveryPort, bind port: $bindPort");
   try
   {
     final broadcastAddress = InternetAddress(ipOut.isEmpty ? '255.255.255.255' : ipOut);
@@ -135,7 +135,7 @@ Future<String> FindReceiver(String ipOut, int discoveryPort, int bindPort) async
 
       if (response[0] == "NSHARE_ACCEPT")
       {
-        Ver('Discovered device at $ipAddress offering: ${response[0]}');
+        Log('Discovered device at $ipAddress offering: ${response[0]}');
         ip = ipAddress.address == response[1] ? "127.0.0.1" : ipAddress.address;
         finished = true;
       }

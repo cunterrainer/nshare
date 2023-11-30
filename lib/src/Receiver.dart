@@ -240,7 +240,7 @@ Future<ServerSocket?> SetupSocketReceiver(int port) async
 
 Future<void> FindSender(int discoveryPort, int bindPort) async
 {
-  Ver("Find sender, discovery port: $discoveryPort, bind port: $bindPort");
+  Log("Find sender, discovery port: $discoveryPort, bind port: $bindPort");
   try
   {
     final udpSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, bindPort);
@@ -257,7 +257,7 @@ Future<void> FindSender(int discoveryPort, int bindPort) async
 
       if (response == "NSHARE_DISCOVER")
       {
-        Ver('Discovered device at $ipAddress offering: $response');
+        Log('Discovered device at $ipAddress offering: $response');
         udpSocket.send(ascii.encode("NSHARE_ACCEPT:${ipAddress.address}"), ipAddress, discoveryPort);
         finished = true;
       }
