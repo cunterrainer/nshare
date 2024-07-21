@@ -24,7 +24,7 @@ class _HomePageState extends State<HomePage>
 {
   TextEditingController ipController = TextEditingController();
   TextEditingController portController = TextEditingController();
-  bool autodetectLocalIp = false;
+  bool _AutoDetect = false;
   bool isSender = true;
   ReceiverServer _Receiver = ReceiverServer();
   SenderSocket _Sender = SenderSocket();
@@ -61,6 +61,7 @@ class _HomePageState extends State<HomePage>
                           SizedBox(width: 8),
                           Expanded(
                             child: TextField(
+                              enabled: isSender && !_AutoDetect,
                               controller: ipController,
                               decoration: InputDecoration(
                                 border: OutlineInputBorder(),
@@ -76,6 +77,7 @@ class _HomePageState extends State<HomePage>
                           SizedBox(width: 8),
                           Expanded(
                               child: TextField(
+                                enabled: !_AutoDetect,
                                 controller: portController,
                                 decoration: InputDecoration(
                                   border: OutlineInputBorder(),
@@ -89,15 +91,16 @@ class _HomePageState extends State<HomePage>
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: <Widget>[
                           Row(
-                            children: <Widget>[Checkbox(
-                              value: autodetectLocalIp,
-                              onChanged: (bool? value) {
-                                setState(() {
-                                  autodetectLocalIp = value!;
-                                });
-                              },
-                            ),
-                            Text('Autodetect'),
+                            children: <Widget>[
+                              Checkbox(
+                                value: _AutoDetect,
+                                onChanged: (bool? value) {
+                                  setState(() {
+                                    _AutoDetect = value!;
+                                  });
+                                },
+                              ),
+                              Text('Autodetect'),
                             ]
                           ),
                           ElevatedButton(
