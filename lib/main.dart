@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import "Socket.dart";
 
 void main() => runApp(MyApp());
 
@@ -25,6 +26,7 @@ class _HomePageState extends State<HomePage>
   TextEditingController portController = TextEditingController();
   bool autodetectLocalIp = false;
   bool isSender = true;
+  Socket m_Socket = new Socket();
 
   final List<String> items = [
     "Item 1",
@@ -57,11 +59,11 @@ class _HomePageState extends State<HomePage>
                           SizedBox(width: 8),
                           Expanded(
                             child: TextField(
-                            controller: ipController,
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(),
-                              hintText: 'Enter IP address',
-                            ),
+                              controller: ipController,
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(),
+                                hintText: 'Enter IP address',
+                              ),
                           )),
                         ],
                       ),
@@ -116,7 +118,27 @@ class _HomePageState extends State<HomePage>
                     children: [
                       ElevatedButton(
                           onPressed: () {
-                            // Add functionality here
+                            String? error = m_Socket.Connect(ipController.text, portController.text);
+                            if (error != null)
+                            {
+                              showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    title: Text("Error"),
+                                    content: Text(error),
+                                    actions: [
+                                      TextButton(
+                                        child: Text("Ok"),
+                                        onPressed: () {
+                                          Navigator.of(context).pop();
+                                        },
+                                      )
+                                    ],
+                                  );
+                                }
+                              );
+                            }
                           },
                           child: Text('Connect'),
                           style: ElevatedButton.styleFrom(
