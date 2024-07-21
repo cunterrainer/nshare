@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import "Socket.dart";
+import 'package:nshare/Server.dart';
 
 void main() => runApp(MyApp());
 
@@ -26,7 +26,9 @@ class _HomePageState extends State<HomePage>
   TextEditingController portController = TextEditingController();
   bool autodetectLocalIp = false;
   bool isSender = true;
-  Socket m_Socket = new Socket();
+  ReceiverServer _Receiver = ReceiverServer();
+  SenderSocket _Sender = SenderSocket();
+  Widget _ConnectButtonChild = Text("Connect");
 
   final List<String> items = [
     "Item 1",
@@ -117,34 +119,41 @@ class _HomePageState extends State<HomePage>
                   child: Column(
                     children: [
                       ElevatedButton(
-                          onPressed: () {
-                            String? error = m_Socket.Connect(ipController.text, portController.text);
-                            if (error != null)
-                            {
-                              showDialog(
-                                context: context,
-                                builder: (BuildContext context) {
-                                  return AlertDialog(
-                                    title: Text("Error"),
-                                    content: Text(error),
-                                    actions: [
-                                      TextButton(
-                                        child: Text("Ok"),
-                                        onPressed: () {
-                                          Navigator.of(context).pop();
-                                        },
-                                      )
-                                    ],
-                                  );
-                                }
-                              );
-                            }
-                          },
-                          child: Text('Connect'),
-                          style: ElevatedButton.styleFrom(
-                              shape: CircleBorder(),
-                              padding: EdgeInsets.all(70)
-                          )
+                        onPressed: () async {
+                          setState(() {
+                            _ConnectButtonChild = CircularProgressIndicator();
+                          });
+                          String? error = isSender ? await _Sender.Connect(ipController.text, portController.text) : await _Receiver.Connect(portController.text);
+
+                          if (error != null)
+                          {
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: Text("Error"),
+                                  content: Text(error),
+                                  actions: [
+                                    TextButton(
+                                      child: Text("Ok"),
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                    )
+                                  ],
+                                );
+                              }
+                            );
+                          }
+                          setState(() {
+                            _ConnectButtonChild = _Sender.IsConnected() || _Receiver.IsConnected() ? Text("Disconnect") : Text("Connect");
+                          });
+                        },
+                        style: ElevatedButton.styleFrom(
+                            shape: CircleBorder(),
+                            padding: EdgeInsets.all(70)
+                        ),
+                        child: _ConnectButtonChild,
                       ),
                       Visibility(
                         visible: true,
