@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:nshare/Server.dart';
+import "dart:io";
 
 void main() => runApp(MyApp());
 
@@ -29,15 +31,7 @@ class _HomePageState extends State<HomePage>
   ReceiverServer _Receiver = ReceiverServer();
   SenderSocket _Sender = SenderSocket();
   Widget _ConnectButtonChild = Text("Connect");
-
-  final List<String> items = [
-    "Item 1",
-    "Item 2",
-    "Item 3",
-    "Item 4",
-    "Item 5",
-    // Add more items as needed
-  ];
+  List<String> _Paths = [];
 
   @override
   Widget build(BuildContext context)
@@ -182,33 +176,53 @@ class _HomePageState extends State<HomePage>
                       Row(
                         children: [
                           Expanded(
-                            child: TextField(
-                            controller: ipController,
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(),
-                              hintText: "File path",
-                            ),
+                            child: ElevatedButton(
+                            onPressed: () async {
+                              String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+
+                              setState(() {
+                                if (selectedDirectory != null)
+                                {
+                                  _Paths.add(selectedDirectory);
+                                }
+                              });
+                            },
+                            child: Text("Add folder"),
                             )
                           ),
-                          SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: null,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ElevatedButton(
+                            onPressed: () async {
+                              FilePickerResult? result = await FilePicker.platform.pickFiles(allowMultiple: true);
+                              setState(() {
+                                if (result != null)
+                                {
+                                  for (String? s in result.paths)
+                                  {
+                                    if (s != null)
+                                      _Paths.add(s);
+                                  }
+                                }
+                              });
+                            },
                             child: Text("Add files"),
-                          ),
+                            ),
+                          )
                         ],
                       ),
                       SizedBox(height: 16),
                       Visibility(
-                        visible: isSender,
+                        visible: isSender && _Paths.isNotEmpty,
                         child: SingleChildScrollView(
                           child: Container(
                             height: 200, // Set the desired height
                             child: ListView.builder(
                               shrinkWrap: true, // Use shrinkWrap to make the list view take only the necessary height
-                              itemCount: items.length,
+                              itemCount: _Paths.length,
                               itemBuilder: (context, index) {
                                 return ListTile(
-                                  title: Text(items[index]),
+                                  title: Text(_Paths[index]),
                                 );
                               },
                             ),
