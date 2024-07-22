@@ -121,7 +121,7 @@ class _HomePageState extends State<HomePage>
                           });
                           String? error = isSender ? await _Sender.Connect(ipController.text, portController.text) : await _Receiver.Connect(portController.text);
 
-                          if (error != null)
+                          if (error != null && mounted)
                           {
                             showDialog(
                               context: context,
