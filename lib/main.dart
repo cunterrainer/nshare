@@ -25,6 +25,7 @@ class _HomePageState extends State<HomePage>
 {
   TextEditingController ipController = TextEditingController();
   TextEditingController portController = TextEditingController();
+  TextEditingController _OutputPathController = TextEditingController();
   bool _AutoDetect = false;
   bool isSender = true;
   final ReceiverServer _Receiver = ReceiverServer();
@@ -168,7 +169,7 @@ class _HomePageState extends State<HomePage>
                   )
                 ),
                 Expanded(
-                  child: Column(
+                  child: isSender ? Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
@@ -237,6 +238,32 @@ class _HomePageState extends State<HomePage>
                             ),
                           ),
                         ),
+                      )
+                    ],
+                  )
+                  : Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _OutputPathController,
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            hintText: 'Output path',
+                          ),
+                        )
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                       onPressed: () async {
+                         String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+
+                         if (selectedDirectory != null) {
+                           setState(() {
+                             _OutputPathController.text = selectedDirectory;
+                           });
+                         }
+                       },
+                       child: const Text("Select folder"),
                       )
                     ],
                   ),
