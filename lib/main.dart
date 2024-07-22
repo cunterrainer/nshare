@@ -180,12 +180,12 @@ class _HomePageState extends State<HomePage>
                             onPressed: () async {
                               String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
 
-                              setState(() {
-                                if (selectedDirectory != null)
-                                {
+                              if (selectedDirectory != null)
+                              {
+                                setState(() {
                                   _Paths.add(selectedDirectory);
-                                }
-                              });
+                                });
+                              }
                             },
                             child: const Text("Add folder"),
                             )
@@ -195,9 +195,10 @@ class _HomePageState extends State<HomePage>
                             child: ElevatedButton(
                             onPressed: () async {
                               FilePickerResult? result = await FilePicker.platform.pickFiles(allowMultiple: true);
-                              setState(() {
-                                if (result != null)
-                                {
+
+                              if (result != null)
+                              {
+                                setState(() {
                                   for (String? s in result.paths)
                                   {
                                     if (s != null)
@@ -205,8 +206,8 @@ class _HomePageState extends State<HomePage>
                                       _Paths.add(s);
                                     }
                                   }
-                                }
-                              });
+                                });
+                              }
                             },
                             child: const Text("Add files"),
                             ),
@@ -257,7 +258,8 @@ class _HomePageState extends State<HomePage>
                        onPressed: () async {
                          String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
 
-                         if (selectedDirectory != null) {
+                         if (selectedDirectory != null)
+                         {
                            setState(() {
                              _OutputPathController.text = selectedDirectory;
                            });
