@@ -59,9 +59,10 @@ class NshareConfig
     {
       final lower = raw.toLowerCase();
       final parts = raw.split("=");
-      final key = parts[0];
+      final lowerParts = lower.split("=");
+      final key = lowerParts[0];
 
-      switch (lower.split("=")[0])
+      switch (lowerParts[0])
       {
         case "-h":
         case "--help":

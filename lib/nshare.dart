@@ -5,3 +5,5 @@ export "src/Log.dart";
 export "src/Protocol.dart";
 export "src/Sender.dart";
 export "src/Receiver.dart";
+export "src/Hashing.dart";
+export "src/ProgressBar.dart";
