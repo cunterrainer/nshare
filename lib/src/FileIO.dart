@@ -2,221 +2,166 @@ library FileIO;
 import "dart:io";
 import "dart:typed_data";
 
+import "package:path/path.dart" as path;
+
 import "Log.dart";
+
+class FileEntry
+{
+  FileEntry({
+    required this.absolutePath,
+    required this.relativePath,
+    required this.isDirectory,
+    required this.size,
+  });
+
+  final String absolutePath;
+  final String relativePath;
+  final bool isDirectory;
+  final int size;
+}
+
+class FileWriter
+{
+  FileWriter._(this._file, this.path);
+
+  final RandomAccessFile _file;
+  final String path;
+  int bytesWritten = 0;
+
+  static Future<FileWriter> open(String path) async
+  {
+    final file = await File(path).open(mode: FileMode.write);
+    Ver("Created file: $path");
+    return FileWriter._(file, path);
+  }
+
+  Future<void> write(Uint8List data, int length) async
+  {
+    if (length <= 0) return;
+    await _file.writeFrom(data, 0, length);
+    bytesWritten += length;
+  }
+
+  Future<void> close() async
+  {
+    await _file.flush();
+    await _file.close();
+  }
+
+  Future<void> delete() async
+  {
+    await _file.close();
+    await File(path).delete();
+    Ver("Deleted file: $path");
+  }
+}
 
 class FileIO
 {
-  late File _File;
-  late FileMode _Mode;
-  late RandomAccessFile _Fp;
-  bool _Initialized = false;
-  bool _Exists = false;
-  static const int Threshold = 4096; // 4kb
-  final Uint8List _Buffer = Uint8List(Threshold);
-  int _BufferIdx = 0;
+  static const int chunkSize = 4096;
 
-  void _Flush()
+  static Future<List<FileEntry>> collectEntries(String rootPath, {String? basePath}) async
   {
-    if (_BufferIdx == 0) return;
-    try
+    final absoluteRoot = File(rootPath).absolute.path;
+    final rootType = FileSystemEntity.typeSync(absoluteRoot);
+    final effectiveBase = basePath ?? path.dirname(absoluteRoot);
+    final entries = <FileEntry>[];
+
+    if (rootType == FileSystemEntityType.notFound)
     {
-      _Fp.writeFromSync(_Buffer, 0, _BufferIdx);
-      _BufferIdx = 0;
+      throw "Path does not exist: $rootPath";
     }
-    on FileSystemException catch(e)
+
+    if (rootType == FileSystemEntityType.file)
     {
-      Err("Failed to write bytes into file \"${e.path}\", reason: ${e.message}");
-      if (e.osError != null) VerErr("${e.osError}");
+      final file = File(absoluteRoot);
+      final size = await file.length();
+      entries.add(FileEntry(
+        absolutePath: absoluteRoot,
+        relativePath: _relativePath(absoluteRoot, effectiveBase),
+        isDirectory: false,
+        size: size,
+      ));
+      return entries;
     }
+
+    await _collectDir(Directory(absoluteRoot), effectiveBase, entries);
+    return entries;
   }
 
-  bool Open(String path, FileMode m)
+  static Future<void> _collectDir(Directory dir, String basePath, List<FileEntry> entries) async
   {
-    try
+    final items = await dir.list(followLinks: false).toList();
+    if (items.isEmpty)
     {
-      _Mode = m;
-      _File = File(path);
-      if (m == FileMode.read && !_File.existsSync()) throw "File doesn't exist \"$path\"";
-      _Fp = _File.openSync(mode: m);
-      _Initialized = true;
-      _Exists = true;
-      Ver("${m == FileMode.write ? "Created" : "Opened"} file: $path");
-      return true;
+      entries.add(FileEntry(
+        absolutePath: dir.absolute.path,
+        relativePath: _relativePath(dir.absolute.path, basePath),
+        isDirectory: true,
+        size: 0,
+      ));
+      return;
     }
-    on FileSystemException catch(e)
+
+    for (final entity in items)
     {
-      Err("${e.message} \"${e.path}\"");
-      if (e.osError != null) VerErr("${e.osError}");
-    }
-    catch (e)
-    {
-      Err(e.toString());
-    }
-    return false;
-  }
-
-  Uint8List ReadChunk(int size)
-  {
-    assert(_Initialized, "FileIO isn't initialized call Open() beforehand");
-    try
-    {
-      return _Fp.readSync(size);
-    }
-    on FileSystemException catch(e)
-    {
-      Err("Failed to read bytes from file \"${e.path}\", reason: ${e.message}");
-      if (e.osError != null) VerErr("${e.osError}");
-    }
-    return Uint8List(0);
-  }
-
-  void WriteChunk(Uint8List chunk, int size)
-  {
-    if (size <= 0) return;
-    assert(_Initialized, "FileIO isn't initialized call Open() beforehand");
-
-    int remaining = size;
-    int sourceIdx = 0;
-
-    while (remaining > 0)
-    {
-      int toCopy = Threshold - _BufferIdx;
-      toCopy = toCopy > remaining ? remaining : toCopy;
-
-      _Buffer.setAll(_BufferIdx, chunk.sublist(sourceIdx, sourceIdx + toCopy));
-      _BufferIdx += toCopy;
-      sourceIdx += toCopy;
-      remaining -= toCopy;
-
-      if (_BufferIdx >= Threshold)
+      if (entity is File)
       {
-        _Flush();
+        final size = await entity.length();
+        entries.add(FileEntry(
+          absolutePath: entity.absolute.path,
+          relativePath: _relativePath(entity.absolute.path, basePath),
+          isDirectory: false,
+          size: size,
+        ));
+      }
+      else if (entity is Directory)
+      {
+        await _collectDir(entity, basePath, entries);
       }
     }
   }
 
-  void Close()
+  static String _relativePath(String absolutePath, String basePath)
   {
-    if (_Initialized)
+    final rel = path.relative(absolutePath, from: basePath);
+    return toProtocolPath(rel);
+  }
+
+  static String toProtocolPath(String input)
+  {
+    return input.replaceAll("\\", "/");
+  }
+
+  static String sanitizeRelativePath(String input)
+  {
+    final normalized = path.normalize(input.replaceAll("\\", "/"));
+    final trimmed = normalized.startsWith("/") ? normalized.substring(1) : normalized;
+    final segments = trimmed.split("/").where((segment) => segment.isNotEmpty && segment != "..").toList();
+    return path.joinAll(segments);
+  }
+
+  static Future<void> ensureParentDir(String filePath) async
+  {
+    final parent = Directory(filePath).parent;
+    if (!await parent.exists())
     {
-      if (_Mode == FileMode.write)
-      {
-        _Flush();
-        final Future<RandomAccessFile> f = _Fp.flush();
-        f.then((value) => value.close());
-      }
-      else _Fp.close();
-      _Initialized = false;
+      await parent.create(recursive: true);
+      Ver("Created directory: ${parent.path}");
     }
   }
 
-  void CloseSync()
+  static Future<void> ensureDir(String dirPath) async
   {
-    if (_Initialized)
+    final dir = Directory(dirPath);
+    if (!await dir.exists())
     {
-      if (_Mode == FileMode.write)
-      {
-        _Flush();
-        _Fp.flushSync();
-      }
-      _Fp.closeSync();
-      _Initialized = false;
+      await dir.create(recursive: true);
+      Ver("Created directory: ${dir.path}");
     }
   }
 
-  void Delete()
-  {
-    String path = _File.path;
-    try
-    {
-      CloseSync();
-      _File.deleteSync();
-      _Exists = false;
-      Ver("Deleted file: $path");
-    }
-    on FileSystemException catch(e)
-    {
-      Err("Failed to delete file '$path', reason: ${e.message}");
-      if (e.osError != null) VerErr(e.osError.toString());
-    }
-  }
-
-  static List<List<dynamic>> GetDirectoryContent(String path)
-  {
-    final List<List<dynamic>> list = []; // first is string second bool (true if dir false if file)
-    final List<Directory> stack = <Directory>[];
-    final Set<Directory> visited = <Directory>{};
-
-    final Directory rootDirectory = Directory(path);
-    stack.add(rootDirectory);
-
-    while (stack.isNotEmpty)
-    {
-      final currentDirectory = stack.removeLast();
-      visited.add(currentDirectory);
-
-      final contents = currentDirectory.listSync();
-      if (contents.isEmpty)
-        list.add([currentDirectory.path.replaceAll("\\", "/"), true]);
-
-      for (final entity in contents)
-      {
-        if (entity is File)
-        {
-          list.add([entity.path.replaceAll("\\", "/"), false]);
-        }
-        else if (entity is Directory && !visited.contains(entity))
-        {
-          stack.add(entity);
-        }
-      }
-    }
-    return list;
-  }
-
-  static String ReplaceRootDir(String path, String root, bool cond)
-  {
-    if (!cond) return path;
-    int idx = path.indexOf("/") == -1 ? path.indexOf("\\") : path.indexOf("/");
-    return path.replaceRange(0, idx, root);
-  }
-
-  static void CreateDirs(String path)
-  {
-    try
-    {
-      final parentDirectory = Directory(path);
-      if (!parentDirectory.existsSync())
-      {
-        parentDirectory.createSync(recursive: true);
-        Ver("Created directory: $parentDirectory");
-      }
-    }
-    catch (e)
-    {
-      Err("Failed to create directory $path");
-    }
-  }
-
-  static void CreateParentDirs(String path)
-  {
-    try
-    {
-      final parentDirectory = Directory(path).parent;
-      if (!parentDirectory.existsSync())
-      {
-        parentDirectory.createSync(recursive: true);
-        Ver("Created directory: $parentDirectory");
-      }
-    }
-    catch (e)
-    {
-      Err("Failed to create directory $path");
-    }
-  }
-
-  int Size() => _Fp.lengthSync();
-  bool Exists() => _Exists;
-  static bool IsDirectory(String path) => File(path).statSync().type == FileSystemEntityType.directory;
-  static bool IsEmptyDir(String path) => IsDirectory(path) && Directory(path).listSync().isEmpty;
+  static bool isDirectorySync(String path) => FileSystemEntity.isDirectorySync(path);
+  static bool isEmptyDirSync(String path) => isDirectorySync(path) && Directory(path).listSync().isEmpty;
 }

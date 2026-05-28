@@ -31,6 +31,7 @@ class ProgressBar
   static void Init()
   {
     _CurrentSize = 0;
+    _LastPrintedPercent = 0;
     _Bar[0] = '[';
     _Bar[_RealSize - 2] = ']';
     for (int i = 1; i < _RealSize - 2; ++i)

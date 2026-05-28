@@ -1,233 +1,56 @@
-import "dart:typed_data";
-import 'dart:convert';
 import "dart:async";
-import "dart:core";
+import "dart:convert";
 import "dart:io";
+import "dart:typed_data";
 
-import 'package:crypto/crypto.dart';
-import 'package:convert/convert.dart';
+import "package:crypto/crypto.dart";
+import "package:path/path.dart" as path;
 
-import "Log.dart";
+import "Config.dart";
 import "FileIO.dart";
+import "Log.dart";
 import "ProgressBar.dart";
+import "Protocol.dart";
+import "Hashing.dart";
 
-bool CheckIntegrity(String receivedHash, String hash, String fileName, int fileNum, int numOfFiles)
+bool checkIntegrity(String receivedHash, String hash, String fileName)
 {
   Ver("Checking file integrity...");
   if (receivedHash != hash)
   {
-    Hint("($fileNum|$numOfFiles) '$fileName' MD5 hash doesn't match, integrity compromised\nExpected hash:   $receivedHash\nCalculated hash: $hash");
+    Hint("'$fileName' MD5 hash doesn't match, integrity compromised\nExpected hash:   $receivedHash\nCalculated hash: $hash");
     return false;
   }
-  Suc("($fileNum|$numOfFiles) Passed integrity check MD5: $hash '$fileName'");
+  Suc("Passed integrity check MD5: $hash '$fileName'");
   return true;
 }
 
-bool Promt(String msg)
+bool promptYesNo(String msg)
 {
-  do {
+  do
+  {
     stdout.write(msg);
-    String input = stdin.readLineSync()?.toLowerCase().trim() ?? "";
-
+    final input = stdin.readLineSync()?.toLowerCase().trim() ?? "";
     if (input == "y" || input == "yes") return true;
-    else if (input == "n" || input == "no") return false;
-  } while(true);
+    if (input == "n" || input == "no") return false;
+  } while (true);
 }
 
-void OnReceiverError(Object error, StackTrace st)
-{
-  Err('Error receiving bytes: $error');
-  VerErr('Stack Trace:\n$st');
-}
-
-String GetFileName(String received, String outpath, bool isFolder)
-{
-  if (isFolder) return FileIO.ReplaceRootDir(received.substring(0, received.indexOf("|")), outpath, outpath.isNotEmpty);
-  if (outpath.isEmpty) return received.substring(0, received.indexOf("|"));
-  return outpath;
-}
-
-Future<List<List<String>>> ReceiveFile(ServerSocket server, String path, int keepFiles) async
-{
-  ProgressBar.Init();
-  FileIO file = FileIO();
-  bool finished = false;
-  bool isFolder = false;
-  int bytes = 0;
-  int remaining = 1;
-  int numOfFiles = 0;
-  int numOfFilesTotal = 0;
-  const int hashSize = 32;
-  String receivedHash = ""; // will be used to store some other stuff as well
-  String fileName = "";
-  AccumulatorSink<Digest> hashOut = AccumulatorSink<Digest>();
-  ByteConversionSink hashIn = md5.startChunkedConversion(hashOut);
-  List<List<String>> fileHashValues = [];
-
-  server.listen((Socket socket) async
-  {
-    socket.listen((Uint8List data) async
-    {
-      if (numOfFiles == 0)
-      {
-        receivedHash += ascii.decode(data, allowInvalid: true);
-        if (!receivedHash.contains ('|')) return;
-
-        data = data.sublist(data.indexOf(124) + 1); // '|'
-        isFolder = receivedHash[0] == "1";
-        try { numOfFiles = int.parse(receivedHash.substring(1, receivedHash.indexOf("|"))); }
-        on FormatException catch(e) { Err("Failed to parse files header of message \"${e.source}\" at character ${e.offset} reason: ${e.message}"); }
-        receivedHash = "";
-        numOfFilesTotal = numOfFiles;
-        Ver("Is folder: $isFolder");
-        Ver("Number of files: $numOfFiles");
-      }
-
-      if (fileName.isEmpty)
-      {
-        receivedHash += ascii.decode(data, allowInvalid: true);
-        if (!receivedHash.contains ('|')) return;
-
-        data = data.sublist(data.indexOf(124) + 1); // '|'
-        fileName = GetFileName(receivedHash, path, isFolder);
-        FileIO.CreateParentDirs(fileName);
-        receivedHash = "";
-        Ver("File name: $fileName");
-      }
-
-      if (bytes == 0)
-      {
-        receivedHash += ascii.decode(data, allowInvalid: true);
-        if (!receivedHash.contains ('|')) return;
-
-        data = data.sublist(data.indexOf(124) + 1); // '|'
-        try { bytes = int.parse(receivedHash.substring(0, receivedHash.indexOf("|"))) + hashSize; } // -1 = empty folder
-        on FormatException catch(e) { Err("Failed to parse size header of message \"${e.source}\" at character ${e.offset} reason: ${e.message}"); }
-        remaining = bytes;
-        receivedHash = "";
-        if (bytes == hashSize-1)
-        {
-          FileIO.CreateDirs(fileName);
-          remaining = hashSize;
-        }
-        else if (!file.Open(fileName, FileMode.write)) remaining = 0;
-        Ver("Bytes to receive: $remaining");
-      }
-
-
-      int toReceive = remaining - data.length < 0 ? remaining : data.length;
-      if (remaining - toReceive < hashSize) // receiving hash in total or at least partially
-      {
-        if (toReceive > hashSize)
-        {
-          int dataSize = toReceive - hashSize;
-          hashIn.addSlice(data, 0, dataSize, false);
-          file.WriteChunk(data, dataSize);
-          receivedHash += String.fromCharCodes(data, dataSize); // might cause errors
-        }
-        else
-        {
-          receivedHash += String.fromCharCodes(data); // might cause errors
-        }
-      }
-      else
-      {
-        hashIn.addSlice(data, 0, toReceive, false);
-        file.WriteChunk(data, toReceive);
-      }
-      remaining -= toReceive;
-      ProgressBar.Show(bytes - remaining, bytes);
-
-
-      if (remaining <= 0) // less than should never happen but just in case
-      {
-        ProgressBar.Init();
-        receivedHash = receivedHash.substring(receivedHash.length - hashSize);
-        hashIn.close();
-        if (!CheckIntegrity(receivedHash, hashOut.events.single.toString(), fileName, numOfFilesTotal-numOfFiles+1, numOfFilesTotal))
-        {
-          // 0 ask, 1 keep, 2 delete
-          if ((keepFiles == 0 && Promt("Checksums don't match do you want to delete the file? [Y|N]: "))) file.Delete();
-          else if (keepFiles == 2) file.Delete();
-        }
-        else file.Close();
-        if (file.Exists()) fileHashValues.add([fileName, receivedHash]);
-
-        --numOfFiles;
-        if (numOfFiles == 0)
-        {
-          finished = true;
-          socket.add([1]);
-          await socket.flush();
-          socket.destroy();
-        }
-        else
-        {
-          bytes = 0;
-          remaining = 1;
-          receivedHash = "";
-          fileName = "";
-          hashOut = AccumulatorSink<Digest>();
-          hashIn = md5.startChunkedConversion(hashOut);
-          socket.add([1]);
-          await socket.flush();
-        }
-      }
-    }, onError: OnReceiverError, onDone: (){ socket.destroy(); finished = true; });
-  }, onError: OnReceiverError);
-
-  while (!finished) await Future.delayed(Duration(milliseconds: 200));
-  return fileHashValues;
-}
-
-Future<void> VerifyWrittenFiles(List<List<String>> fileHashValues) async
-{
-  int idx = 0;
-  int correctFiles = fileHashValues.length;
-  Log("\n=======================Verifying=======================");
-  for (var pair in fileHashValues)
-  {
-    ProgressBar.Init();
-    idx++;
-    FileIO file = FileIO();
-    if(FileIO.IsDirectory(pair[0]) || !file.Open(pair[0], FileMode.read)) continue;
-
-    final int totalSize = file.Size();
-    int bytes = totalSize;
-
-    AccumulatorSink<Digest> hashOut = AccumulatorSink<Digest>();
-    final ByteConversionSink hashIn = md5.startChunkedConversion(hashOut);
-    while (bytes > 0)
-    {
-      Uint8List buffer = file.ReadChunk(FileIO.Threshold);
-      ProgressBar.Show(totalSize - bytes, totalSize);
-      hashIn.add(buffer);
-      bytes -= buffer.length;
-    }
-
-    file.Close();
-    hashIn.close();
-    final hashString = hashOut.events.single.toString();
-    if(!CheckIntegrity(pair[1], hashString, pair[0], idx, fileHashValues.length)) correctFiles--;
-  }
-  Log("Correct files: $correctFiles, corrupted files ${fileHashValues.length - correctFiles}");
-}
-
-Future<ServerSocket?> SetupSocketReceiver(int port) async
+Future<ServerSocket?> setupSocketReceiver(int port) async
 {
   Ver("Receiver");
   try
   {
-    ServerSocket server = await ServerSocket.bind(InternetAddress.anyIPv6, port);
+    final server = await ServerSocket.bind(InternetAddress.anyIPv6, port);
     Ver("Connected");
     return server;
   }
-  on SocketException catch(e)
+  on SocketException catch (e)
   {
     Err("Failed to bind socket to port $port reason: ${e.message}");
     if (e.osError != null) VerErr("${e.osError}");
   }
-  on ArgumentError catch(e)
+  on ArgumentError catch (e)
   {
     Err(e.toString());
   }
@@ -277,13 +100,210 @@ Future<void> FindSender(int discoveryPort, int bindPort) async
   }
 }
 
-Future<void> Receive(int port, String path, int keepFiles, bool verifyWrittenFiles, bool skipLookup, int discoveryPort, int bindPort) async
+Future<void> Receive(int port, String outputPath, KeepFilesMode keepFiles, bool verifyWrittenFiles, bool skipLookup, int discoveryPort, int bindPort) async
 {
   if (!skipLookup) await FindSender(discoveryPort, bindPort);
-  final ServerSocket? server = await SetupSocketReceiver(port);
+  final server = await setupSocketReceiver(port);
   if (server == null) return;
 
-  List<List<String>> fileHashValues = await ReceiveFile(server, path, keepFiles);
-  server.close();
-  if (verifyWrittenFiles) await VerifyWrittenFiles(fileHashValues);
+  final fileHashes = <List<String>>[];
+  try
+  {
+    final socket = await server.first;
+    await _receiveStream(socket, outputPath, keepFiles, fileHashes);
+  }
+  finally
+  {
+    await server.close();
+  }
+
+  if (verifyWrittenFiles) await verifyFiles(fileHashes);
+}
+
+Future<void> _receiveStream(Socket socket, String outputPath, KeepFilesMode keepFiles, List<List<String>> fileHashes) async
+{
+  final parser = FrameParser();
+  final session = _ReceiverSession(outputPath, keepFiles, fileHashes);
+
+  try
+  {
+    await for (final data in socket)
+    {
+      final frames = parser.add(data);
+      for (final frame in frames)
+      {
+        if (frame.version != kProtocolVersion)
+        {
+          throw StateError("Unsupported protocol version: ${frame.version}");
+        }
+
+        await session.handleFrame(frame);
+        if (session.isComplete)
+        {
+          socket.destroy();
+          return;
+        }
+      }
+    }
+  }
+  catch (e, st)
+  {
+    Err("Error receiving bytes: $e");
+    VerErr("Stack Trace:\n$st");
+  }
+}
+
+Future<void> verifyFiles(List<List<String>> fileHashValues) async
+{
+  int idx = 0;
+  int correctFiles = fileHashValues.length;
+  Log("\n=======================Verifying=======================");
+
+  for (final pair in fileHashValues)
+  {
+    ProgressBar.Init();
+    idx++;
+    final file = File(pair[0]);
+    if (await FileSystemEntity.isDirectory(pair[0]) || !await file.exists()) continue;
+
+    final totalSize = await file.length();
+    int bytesRead = 0;
+    final hashOut = DigestAccumulator();
+    final hashIn = md5.startChunkedConversion(hashOut);
+
+    await for (final chunk in file.openRead())
+    {
+      hashIn.add(chunk);
+      bytesRead += chunk.length;
+      ProgressBar.Show(bytesRead, totalSize);
+    }
+
+    hashIn.close();
+    final hashString = hashOut.events.single.toString();
+    if (!checkIntegrity(pair[1], hashString, pair[0])) correctFiles--;
+  }
+
+  Log("Correct files: $correctFiles, corrupted files ${fileHashValues.length - correctFiles}");
+}
+
+class _ReceiverSession
+{
+  _ReceiverSession(this.outputRoot, this.keepFiles, this.fileHashes);
+
+  final String outputRoot;
+  final KeepFilesMode keepFiles;
+  final List<List<String>> fileHashes;
+
+  FileWriter? _writer;
+  String _currentPath = "";
+  bool _currentIsDir = false;
+  int _currentSize = 0;
+  int _bytesReceived = 0;
+  DigestAccumulator? _hashOut;
+  ByteConversionSink? _hashIn;
+  bool isComplete = false;
+
+  Future<void> handleFrame(ProtocolFrame frame) async
+  {
+    switch (frame.type)
+    {
+      case MessageType.fileStart:
+        await _handleFileStart(Protocol.decodeFileStart(frame.payload));
+        break;
+      case MessageType.fileChunk:
+        await _handleFileChunk(frame.payload);
+        break;
+      case MessageType.fileEnd:
+        await _handleFileEnd(Protocol.decodeFileEnd(frame.payload));
+        break;
+      case MessageType.transferComplete:
+        isComplete = true;
+        break;
+    }
+  }
+
+  Future<void> _handleFileStart(FileStartMessage msg) async
+  {
+    _currentPath = _resolveOutputPath(outputRoot, msg.relativePath);
+    _currentIsDir = msg.isDirectory;
+    _currentSize = msg.size;
+    _bytesReceived = 0;
+    ProgressBar.Init();
+
+    _hashOut = DigestAccumulator();
+    _hashIn = md5.startChunkedConversion(_hashOut!);
+
+    if (_currentIsDir)
+    {
+      await FileIO.ensureDir(_currentPath);
+      return;
+    }
+
+    await FileIO.ensureParentDir(_currentPath);
+    _writer = await FileWriter.open(_currentPath);
+  }
+
+  Future<void> _handleFileChunk(Uint8List data) async
+  {
+    if (_currentIsDir) return;
+    if (_hashIn == null || _writer == null)
+    {
+      throw StateError("Received file chunk without active file");
+    }
+
+    _hashIn!.add(data);
+    await _writer!.write(data, data.length);
+    _bytesReceived += data.length;
+    ProgressBar.Show(_bytesReceived, _currentSize);
+  }
+
+  Future<void> _handleFileEnd(String receivedHash) async
+  {
+    _hashIn?.close();
+    final computedHash = _hashOut?.events.single.toString() ?? "";
+
+    final integrityOk = checkIntegrity(receivedHash, computedHash, _currentPath);
+    if (!_currentIsDir)
+    {
+      if (!integrityOk)
+      {
+        final shouldDelete = keepFiles == KeepFilesMode.delete ||
+            (keepFiles == KeepFilesMode.ask &&
+                promptYesNo("Checksums don't match. Delete the file? [Y|N]: "));
+        if (shouldDelete) await _deleteCurrentFile();
+      }
+
+      if (File(_currentPath).existsSync())
+      {
+        await _writer?.close();
+        fileHashes.add([_currentPath, receivedHash]);
+      }
+    }
+
+    _resetState();
+  }
+
+  Future<void> _deleteCurrentFile() async
+  {
+    if (_writer == null) return;
+    await _writer!.delete();
+  }
+
+  void _resetState()
+  {
+    _writer = null;
+    _currentPath = "";
+    _currentIsDir = false;
+    _currentSize = 0;
+    _bytesReceived = 0;
+    _hashOut = null;
+    _hashIn = null;
+  }
+
+  String _resolveOutputPath(String outputRoot, String relativePath)
+  {
+    final safeRelative = FileIO.sanitizeRelativePath(relativePath);
+    if (outputRoot.isEmpty) return safeRelative;
+    return path.join(outputRoot, safeRelative);
+  }
 }
