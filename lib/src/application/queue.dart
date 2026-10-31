@@ -1,0 +1,330 @@
+import 'dart:async';
+import 'dart:io';
+import 'package:path/path.dart' as p;
+import '../core/models.dart';
+import '../identity/identity.dart';
+import '../transfer/transfer.dart';
+import 'state.dart';
+
+enum JobStatus {
+  queued,
+  transferring,
+  paused,
+  interrupted,
+  completed,
+  failed,
+  cancelled,
+}
+
+class TransferJob {
+  TransferJob({
+    required this.id,
+    required this.path,
+    required this.host,
+    required this.port,
+    required this.fingerprint,
+    required this.compression,
+    required this.status,
+    this.error,
+    this.files = 0,
+    this.bytes = 0,
+  });
+  final String id, path, host, fingerprint;
+  final int port, files, bytes;
+  final bool compression;
+  final JobStatus status;
+  final String? error;
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'path': path,
+    'host': host,
+    'port': port,
+    'fingerprint': fingerprint,
+    'compression': compression,
+    'status': status.name,
+    'error': error,
+    'files': files,
+    'bytes': bytes,
+  };
+  factory TransferJob.fromJson(Map<String, dynamic> json) {
+    try {
+      final job = TransferJob(
+        id: json['id'] as String,
+        path: json['path'] as String,
+        host: json['host'] as String,
+        port: json['port'] as int,
+        fingerprint: json['fingerprint'] as String,
+        compression: json['compression'] as bool,
+        status: JobStatus.values.byName(json['status'] as String),
+        error: json['error'] as String?,
+        files: json['files'] as int? ?? 0,
+        bytes: json['bytes'] as int? ?? 0,
+      );
+      if (job.id.isEmpty ||
+          !p.isAbsolute(job.path) ||
+          job.host.isEmpty ||
+          job.port < 1 ||
+          job.port > 65535 ||
+          !RegExp(r'^[0-9a-f]{64}$').hasMatch(job.fingerprint) ||
+          job.files < 0 ||
+          job.bytes < 0) {
+        throw const FormatException();
+      }
+      return job;
+    } catch (_) {
+      throw const NshareException('state', 'Invalid queue job');
+    }
+  }
+}
+
+class QueueStore {
+  QueueStore(this.directory) : _store = StateStore(directory, 'queue');
+  final Directory directory;
+  final StateStore _store;
+  List<Map<String, dynamic>> _jobs(Map<String, dynamic> data) {
+    final value = data['jobs'] ?? <dynamic>[];
+    if (value is! List) throw const NshareException('state', 'Invalid queue');
+    final jobs = value
+        .map(
+          (v) => TransferJob.fromJson(
+            Map<String, dynamic>.from(v as Map),
+          ).toJson(),
+        )
+        .toList();
+    if (jobs.map((v) => v['id']).toSet().length != jobs.length) {
+      throw const NshareException('state', 'Duplicate job IDs');
+    }
+    return jobs;
+  }
+
+  Future<List<TransferJob>> list() async =>
+      _jobs(await _store.read()).map(TransferJob.fromJson).toList();
+  Future<TransferJob> add(
+    String path,
+    String host,
+    int port,
+    String fingerprint, {
+    bool compression = false,
+  }) async {
+    final job = TransferJob.fromJson(
+      TransferJob(
+        id: randomNonce().replaceAll('=', ''),
+        path: p.normalize(p.absolute(path)),
+        host: host,
+        port: port,
+        fingerprint: fingerprint.toLowerCase(),
+        compression: compression,
+        status: JobStatus.queued,
+      ).toJson(),
+    );
+    await _store.update((data) {
+      final jobs = _jobs(data);
+      if (jobs.length >= 10000) {
+        throw const NshareException('limit', 'Queue contains 10000 jobs');
+      }
+      jobs.add(job.toJson());
+      data['jobs'] = jobs;
+    });
+    return job;
+  }
+
+  Future<void> change(String id, String action, {int? position}) =>
+      _store.update((data) {
+        final jobs = _jobs(data);
+        final index = jobs.indexWhere((v) => v['id'] == id);
+        if (index < 0) throw const NshareException('usage', 'Unknown job ID');
+        final job = jobs[index];
+        final status = JobStatus.values.byName(job['status'] as String);
+        switch (action) {
+          case 'pause':
+            if (![
+              JobStatus.queued,
+              JobStatus.transferring,
+              JobStatus.interrupted,
+            ].contains(status)) {
+              throw const NshareException('usage', 'Job cannot be paused');
+            }
+            job['status'] = JobStatus.paused.name;
+          case 'resume':
+            if (![JobStatus.paused, JobStatus.interrupted].contains(status)) {
+              throw const NshareException('usage', 'Job cannot be resumed');
+            }
+            job['status'] = JobStatus.queued.name;
+            job['error'] = null;
+          case 'retry':
+            if (![
+              JobStatus.failed,
+              JobStatus.interrupted,
+              JobStatus.cancelled,
+            ].contains(status)) {
+              throw const NshareException('usage', 'Job cannot be retried');
+            }
+            job['status'] = JobStatus.queued.name;
+            job['error'] = null;
+          case 'cancel':
+            if ([JobStatus.completed, JobStatus.cancelled].contains(status)) {
+              throw const NshareException('usage', 'Job already terminal');
+            }
+            job['status'] = JobStatus.cancelled.name;
+          case 'move':
+            if (position == null || position < 0 || position >= jobs.length) {
+              throw const NshareException('usage', 'Invalid queue position');
+            }
+            jobs.removeAt(index);
+            jobs.insert(position, job);
+          case 'remove':
+            if (status == JobStatus.transferring) {
+              throw const NshareException(
+                'usage',
+                'Cancel an active job before removing it',
+              );
+            }
+            jobs.removeAt(index);
+          default:
+            throw const NshareException('usage', 'Unknown queue action');
+        }
+        data['jobs'] = jobs;
+      });
+  Future<void> recover() => _store.update((data) {
+    final jobs = _jobs(data);
+    for (final job in jobs) {
+      if (job['status'] == JobStatus.transferring.name) {
+        job['status'] = JobStatus.interrupted.name;
+        job['error'] = 'Receiver owner stopped; resume explicitly';
+      }
+    }
+    data['jobs'] = jobs;
+  });
+  Future<TransferJob?> claim() => _store.update((data) {
+    final jobs = _jobs(data);
+    final index = jobs.indexWhere((v) => v['status'] == JobStatus.queued.name);
+    if (index < 0) return null;
+    jobs[index]['status'] = JobStatus.transferring.name;
+    data['jobs'] = jobs;
+    return TransferJob.fromJson(jobs[index]);
+  });
+  Future<void> finish(String id, {TransferResult? result, Object? error}) =>
+      _store.update((data) {
+        final jobs = _jobs(data);
+        final index = jobs.indexWhere((v) => v['id'] == id);
+        if (index < 0) return;
+        final job = jobs[index];
+        // User pause/cancel wins over an in-flight network completion.
+        if (job['status'] == JobStatus.transferring.name) {
+          job['status'] =
+              (result != null ? JobStatus.completed : JobStatus.failed).name;
+          job['error'] = error is NshareException
+              ? error.code
+              : error == null
+              ? null
+              : 'transfer';
+          if (result != null) {
+            job['files'] = result.files;
+            job['bytes'] = result.bytes;
+          }
+        }
+        data['jobs'] = jobs;
+      });
+}
+
+/// Holds the lock for its lifetime: only one runner may recover and claim jobs.
+class QueueRunner {
+  QueueRunner(this.store, this.identity, this.trust);
+  final QueueStore store;
+  final DeviceIdentity identity;
+  final TrustStore trust;
+  static final _owners = <String>{};
+  final stopped = CancellationToken();
+  CancellationToken? _active;
+  void stop() {
+    stopped.cancel();
+    _active?.cancel();
+  }
+
+  Future<void> run({
+    bool watch = false,
+    void Function(TransferProgress)? onProgress,
+  }) async {
+    final key = p.normalize(p.absolute(store.directory.path));
+    if (!_owners.add(key)) {
+      throw const NshareException(
+        'busy',
+        'A queue runner already owns this state',
+      );
+    }
+    RandomAccessFile? lock;
+    try {
+      await store.directory.create(recursive: true);
+      lock = await File(
+        p.join(key, 'queue-owner.lock'),
+      ).open(mode: FileMode.append);
+      try {
+        await lock.lock(FileLock.exclusive);
+      } on FileSystemException {
+        throw const NshareException(
+          'busy',
+          'A queue runner already owns this state',
+        );
+      }
+      await store.recover();
+      while (!stopped.isCancelled) {
+        final job = await store.claim();
+        if (job == null) {
+          if (!watch) break;
+          await Future.any([
+            Future<void>.delayed(const Duration(milliseconds: 250)),
+            stopped.whenCancelled,
+          ]);
+          continue;
+        }
+        final cancellation = CancellationToken();
+        _active = cancellation;
+        var polling = false;
+        final timer = Timer.periodic(const Duration(milliseconds: 150), (
+          _,
+        ) async {
+          if (polling) return;
+          polling = true;
+          try {
+            final jobs = await store.list();
+            final current = jobs.where((v) => v.id == job.id).firstOrNull;
+            if (current == null || current.status != JobStatus.transferring) {
+              cancellation.cancel();
+            }
+          } catch (_) {
+            cancellation.cancel();
+          } finally {
+            polling = false;
+          }
+        });
+        try {
+          final result = await sendPath(
+            job.path,
+            job.host,
+            job.port,
+            identity,
+            trust,
+            expectedFingerprint: job.fingerprint,
+            compression: job.compression,
+            cancellation: cancellation,
+            onProgress: onProgress,
+          );
+          await store.finish(job.id, result: result);
+        } catch (error) {
+          if (stopped.isCancelled) {
+            // Shutdown is recoverable, not a failed or implicitly retried transfer.
+            await store.recover();
+          } else {
+            await store.finish(job.id, error: error);
+          }
+        } finally {
+          timer.cancel();
+          _active = null;
+        }
+      }
+    } finally {
+      await lock?.close();
+      _owners.remove(key);
+    }
+  }
+}

@@ -9,6 +9,7 @@ import '../discovery/discovery.dart';
 import 'package:args/args.dart';
 import '../core/models.dart';
 import '../application/state.dart';
+import '../application/queue.dart';
 import '../application/pairing.dart';
 import '../application/sharing.dart';
 import '../discovery/interfaces.dart';
@@ -112,6 +113,36 @@ ArgParser createParser() {
       ..addOption('peer-fingerprint')
       ..addOption('text', help: 'Omit to read UTF-8 text from stdin'),
   );
+  parser.addCommand(
+    'queue',
+    ArgParser()
+      ..addFlag('help', abbr: 'h', negatable: false)
+      ..addOption(
+        'action',
+        allowed: [
+          'add',
+          'list',
+          'show',
+          'run',
+          'pause',
+          'resume',
+          'cancel',
+          'retry',
+          'move',
+          'remove',
+        ],
+        defaultsTo: 'list',
+      )
+      ..addOption('path')
+      ..addOption('ip')
+      ..addOption('port', defaultsTo: '53317')
+      ..addOption('peer-fingerprint')
+      ..addOption('id')
+      ..addOption('position')
+      ..addFlag('compress')
+      ..addFlag('watch', negatable: false)
+      ..addFlag('json', negatable: false),
+  );
   return parser;
 }
 
@@ -133,7 +164,7 @@ Future<int> runCli(List<String> arguments) async {
     if (args['help'] as bool || arguments.isEmpty) {
       stdout.writeln(
         'nshare v2 — local network file transfer\n'
-        'Usage: nshare [global options] <send|receive|devices|trust|settings|pair|clipboard> [options]\n'
+        'Usage: nshare [global options] <send|receive|devices|trust|settings|pair|clipboard|queue> [options]\n'
         '${parser.usage}',
       );
       return 0;
@@ -196,6 +227,74 @@ Future<int> runCli(List<String> arguments) async {
     final settings = await settingsStore.load();
     final identity = await DeviceIdentity.load(directory);
     final trust = TrustStore(directory);
+    if (command.name == 'queue') {
+      final store = QueueStore(directory);
+      final action = command['action'] as String;
+      if (action == 'add') {
+        final path = command['path'] as String?;
+        final host = command['ip'] as String?;
+        final pin = command['peer-fingerprint'] as String?;
+        if (path == null || host == null || pin == null) {
+          throw const NshareException(
+            'usage',
+            'Queue add requires --path, --ip and a verified --peer-fingerprint',
+          );
+        }
+        final job = await store.add(
+          path,
+          host,
+          parsePort(command['port'] as String),
+          _fingerprint(pin),
+          compression: command.wasParsed('compress')
+              ? command['compress'] as bool
+              : settings.compression,
+        );
+        stdout.writeln(jsonEncode(job.toJson()));
+        return 0;
+      }
+      if (action == 'run') {
+        final runner = QueueRunner(store, identity, trust);
+        final signal = ProcessSignal.sigint.watch().listen(
+          (_) => runner.stop(),
+        );
+        try {
+          await runner.run(watch: command['watch'] as bool);
+        } finally {
+          await signal.cancel();
+        }
+        final failed = (await store.list()).any(
+          (v) => v.status == JobStatus.failed,
+        );
+        return runner.stopped.isCancelled
+            ? 130
+            : failed
+            ? 1
+            : 0;
+      }
+      if (action != 'list' && action != 'show') {
+        final id = command['id'] as String?;
+        if (id == null) throw const NshareException('usage', 'Supply --id');
+        await store.change(
+          id,
+          action,
+          position: int.tryParse(command['position'] as String? ?? ''),
+        );
+      }
+      final jobs = await store.list();
+      final id = command['id'] as String?;
+      if (action == 'show' && (id == null || !jobs.any((v) => v.id == id))) {
+        throw const NshareException('usage', 'Supply an existing --id');
+      }
+      stdout.writeln(
+        jsonEncode(
+          jobs
+              .where((v) => action != 'show' || v.id == id)
+              .map((v) => v.toJson())
+              .toList(),
+        ),
+      );
+      return 0;
+    }
     if (command.name == 'pair') {
       final join = command['join'] as String?;
       if (join != null) {

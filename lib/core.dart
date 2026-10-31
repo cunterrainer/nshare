@@ -13,3 +13,4 @@ export 'src/storage/paged_manifest.dart'
     show PagedManifest, collectTransferManifest;
 export 'src/application/pairing.dart';
 export 'src/application/sharing.dart';
+export 'src/application/queue.dart';
