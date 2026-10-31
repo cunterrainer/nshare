@@ -29,6 +29,7 @@ class LocalService {
   final String _token;
   final ProgressCallback? _onProgress;
   bool _startingReceiver = false;
+  Completer<void>? _receiverStartDone;
   static final _owners = <String>{};
   TransferReceiver? receiver;
   ServiceApproval _approvalMode = ServiceApproval.app;
@@ -134,6 +135,8 @@ class LocalService {
       throw const NshareException('busy', 'Receiver already running');
     }
     _startingReceiver = true;
+    final startDone = Completer<void>();
+    _receiverStartDone = startDone;
     try {
       _approvalMode = approvalMode;
       final started = await TransferReceiver.start(
@@ -160,6 +163,8 @@ class LocalService {
       receiver = started;
     } finally {
       _startingReceiver = false;
+      startDone.complete();
+      _receiverStartDone = null;
     }
   }
 
@@ -235,16 +240,23 @@ class LocalService {
         request.response.write(jsonEncode(status));
       } else if (request.method == 'POST' && request.uri.path == '/stop') {
         request.response.write('{}');
-        await request.response.close();
-        unawaited(close());
+        try {
+          await request.response.close();
+        } finally {
+          unawaited(close());
+        }
         return;
       } else {
         request.response.statusCode = HttpStatus.notFound;
       }
     } catch (_) {
-      request.response.statusCode = HttpStatus.internalServerError;
+      try {
+        request.response.statusCode = HttpStatus.internalServerError;
+      } catch (_) {}
     } finally {
-      await request.response.close();
+      try {
+        await request.response.close();
+      } catch (_) {}
     }
   }
 
@@ -255,6 +267,7 @@ class LocalService {
       _runner?.stop();
       await _running;
       _runner = null;
+      await _receiverStartDone?.future;
       await stopReceiver();
       await _http.close(force: true);
       if (await _descriptor.exists()) await _descriptor.delete();

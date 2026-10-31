@@ -116,4 +116,35 @@ void main() {
       }
     },
   );
+  test(
+    'service shutdown waits for an in-flight receiver start to release its port',
+    () async {
+      final root = await Directory.systemTemp.createTemp('nshare_start_stop_');
+      LocalService? owner;
+      try {
+        final identity = await DeviceIdentity.load(root);
+        owner = await LocalService.start(root, identity, TrustStore(root));
+        final probe = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+        final port = probe.port;
+        await probe.close();
+        final opening = owner.startReceiver(
+          output: Directory('${root.path}/out'),
+          port: port,
+          discover: false,
+          approveOffer: (_) async => false,
+        );
+        final rejected = expectLater(opening, throwsA(isA<NshareException>()));
+        await owner.close();
+        await rejected;
+        final rebound = await ServerSocket.bind(
+          InternetAddress.loopbackIPv4,
+          port,
+        );
+        await rebound.close();
+      } finally {
+        await owner?.close();
+        await root.delete(recursive: true);
+      }
+    },
+  );
 }
