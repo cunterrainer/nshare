@@ -75,6 +75,9 @@ ArgParser createParser() {
     'devices',
     ArgParser()
       ..addFlag('help', abbr: 'h', negatable: false)
+      ..addFlag('json', negatable: false)
+      ..addFlag('watch', negatable: false)
+      ..addFlag('remembered', negatable: false)
       ..addOption('discovery-port', defaultsTo: '1970'),
   );
   parser.addCommand(
@@ -301,6 +304,33 @@ Future<int> runCli(List<String> arguments) async {
     if (command.name == 'queue') {
       final store = QueueStore(directory);
       final action = command['action'] as String;
+      if (action == 'events' ||
+          (action == 'list' && command['watch'] as bool)) {
+        final cancelled = CancellationToken();
+        final signal = ProcessSignal.sigint.watch().listen(
+          (_) => cancelled.cancel(),
+        );
+        String? previous;
+        try {
+          while (!cancelled.isCancelled) {
+            final json = jsonEncode({
+              'event': 'queue',
+              'jobs': (await store.list()).map((j) => j.toJson()).toList(),
+            });
+            if (json != previous) {
+              stdout.writeln(json);
+              previous = json;
+            }
+            await Future.any([
+              Future<void>.delayed(const Duration(milliseconds: 250)),
+              cancelled.whenCancelled,
+            ]);
+          }
+        } finally {
+          await signal.cancel();
+        }
+        return 130;
+      }
       if (action == 'add') {
         final path = command['path'] as String?;
         final host = command['ip'] as String?;
@@ -411,18 +441,62 @@ Future<int> runCli(List<String> arguments) async {
       (_) => cancellation.cancel(),
     );
     if (command.name == 'devices') {
-      final devices = await discoverNearby(
-        port: parsePort(command['discovery-port'] as String),
-      );
-      for (final device in devices) {
-        stdout.writeln(
-          '${device.fingerprint}\t${_safe(device.name)}\t${device.address}:${device.port}',
+      do {
+        final devices = await discoverNearby(
+          port: parsePort(command['discovery-port'] as String),
+          onDiagnostic: (message) => stderr.writeln(message),
         );
-      }
-      if (devices.isEmpty) {
-        stderr.writeln('No receivers found. Try a direct --ip address.');
-      }
-      return 0;
+        final results = <Map<String, dynamic>>[
+          for (final device in devices)
+            {
+              'name': device.name,
+              'fingerprint': device.fingerprint,
+              'address': device.address,
+              'port': device.port,
+              'source': 'discovery',
+              'verified': false,
+            },
+        ];
+        if (command['remembered'] as bool) {
+          for (final peer in (await trust.list()).entries) {
+            if (devices.any((d) => d.fingerprint == peer.key)) continue;
+            final data = peer.value as Map;
+            for (final endpoint in data['endpoints'] as List? ?? []) {
+              final text = endpoint.toString();
+              final split = text.lastIndexOf(':');
+              if (split < 1) continue;
+              final port = int.tryParse(text.substring(split + 1));
+              if (port == null) continue;
+              results.add({
+                'name': data['name'],
+                'fingerprint': peer.key,
+                'address': text.substring(0, split),
+                'port': port,
+                'source': 'remembered',
+                'verified': false,
+              });
+            }
+          }
+        }
+        if (command['json'] as bool || command['watch'] as bool) {
+          stdout.writeln(jsonEncode(results));
+        } else {
+          for (final device in results) {
+            stdout.writeln(
+              '${device['fingerprint']}\t${_safe(device['name'].toString())}\t${device['address']}:${device['port']}',
+            );
+          }
+        }
+        if (results.isEmpty) {
+          stderr.writeln('No receivers found. Try a direct --ip address.');
+        }
+        if (!(command['watch'] as bool)) return 0;
+        await Future.any([
+          Future<void>.delayed(const Duration(seconds: 2)),
+          cancellation.whenCancelled,
+        ]);
+      } while (!cancellation.isCancelled);
+      return 130;
     }
     final expected = command['peer-fingerprint'] as String?;
     if (expected != null) _fingerprint(expected);

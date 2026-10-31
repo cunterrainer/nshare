@@ -1,0 +1,74 @@
+name: Flutter and interface parity
+on:
+  push:
+    paths: ['lib/**', 'bin/**', 'apps/**', 'pubspec.*', '.github/workflows/flutter.yml']
+  pull_request:
+    paths: ['lib/**', 'bin/**', 'apps/**', 'pubspec.*', '.github/workflows/flutter.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: dart pub get
+      - run: flutter pub get
+        working-directory: apps/nshare_app
+      - run: dart format --output=none --set-exit-if-changed lib test
+        working-directory: apps/nshare_app
+      - run: flutter analyze
+        working-directory: apps/nshare_app
+      - run: flutter test --reporter expanded
+        working-directory: apps/nshare_app
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux
+            command: flutter build linux --release
+            artifact: apps/nshare_app/build/linux/x64/release/bundle
+          - os: windows-latest
+            target: windows
+            command: flutter build windows --release
+            artifact: apps/nshare_app/build/windows/x64/runner/Release
+          - os: macos-latest
+            target: macos
+            command: flutter build macos --release
+            artifact: apps/nshare_app/build/macos/Build/Products/Release/*.app
+          - os: ubuntu-latest
+            target: android
+            command: flutter build apk --debug
+            artifact: apps/nshare_app/build/app/outputs/flutter-apk/app-debug.apk
+          - os: macos-latest
+            target: ios
+            command: flutter build ios --release --no-codesign
+            artifact: apps/nshare_app/build/ios/iphoneos/*.app
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - uses: actions/setup-java@v4
+        if: matrix.target == 'android'
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Linux native dependencies
+        if: matrix.target == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libayatana-appindicator3-dev liblzma-dev
+      - run: flutter pub get
+        working-directory: apps/nshare_app
+      - run: ${{ matrix.command }}
+        working-directory: apps/nshare_app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nshare-${{ matrix.target }}
+          path: ${{ matrix.artifact }}
