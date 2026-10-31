@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:path/path.dart' as p;
 import '../identity/identity.dart';
 import '../transfer/transfer.dart';
@@ -8,6 +9,8 @@ import '../discovery/discovery.dart';
 import 'package:args/args.dart';
 import '../core/models.dart';
 import '../application/state.dart';
+import '../application/pairing.dart';
+import '../application/sharing.dart';
 import '../discovery/interfaces.dart';
 
 ArgParser createParser() {
@@ -51,6 +54,11 @@ ArgParser createParser() {
       )
       ..addFlag('once', negatable: false)
       ..addFlag(
+        'accept-clipboard',
+        negatable: false,
+        help: 'Explicitly accept clipboard text and write it to stdout',
+      )
+      ..addFlag(
         'accept',
         negatable: false,
         help: 'Accept offers from authenticated peers',
@@ -79,6 +87,31 @@ ArgParser createParser() {
       ..addOption('set')
       ..addOption('value', allowed: ['true', 'false']),
   );
+  parser.addCommand(
+    'pair',
+    ArgParser()
+      ..addFlag('help', abbr: 'h', negatable: false)
+      ..addOption(
+        'host',
+        help: 'This device address reachable from the other device',
+      )
+      ..addOption('port', defaultsTo: '53317')
+      ..addFlag('qr', negatable: false)
+      ..addOption('svg', help: 'Export invitation QR to an SVG file')
+      ..addOption(
+        'join',
+        help: 'Invitation copied from a trusted device screen',
+      ),
+  );
+  parser.addCommand(
+    'clipboard',
+    ArgParser()
+      ..addFlag('help', abbr: 'h', negatable: false)
+      ..addOption('ip', mandatory: true)
+      ..addOption('port', defaultsTo: '53317')
+      ..addOption('peer-fingerprint')
+      ..addOption('text', help: 'Omit to read UTF-8 text from stdin'),
+  );
   return parser;
 }
 
@@ -100,7 +133,7 @@ Future<int> runCli(List<String> arguments) async {
     if (args['help'] as bool || arguments.isEmpty) {
       stdout.writeln(
         'nshare v2 — local network file transfer\n'
-        'Usage: nshare [global options] <send|receive|devices|trust|settings> [options]\n'
+        'Usage: nshare [global options] <send|receive|devices|trust|settings|pair|clipboard> [options]\n'
         '${parser.usage}',
       );
       return 0;
@@ -163,6 +196,36 @@ Future<int> runCli(List<String> arguments) async {
     final settings = await settingsStore.load();
     final identity = await DeviceIdentity.load(directory);
     final trust = TrustStore(directory);
+    if (command.name == 'pair') {
+      final join = command['join'] as String?;
+      if (join != null) {
+        await joinInvitation(
+          PairingInvitation.parse(join),
+          identity,
+          trust,
+          cancellation: cancellation,
+        );
+        stdout.writeln('Paired.');
+      } else {
+        final host = command['host'] as String?;
+        if (host == null) {
+          throw const NshareException('usage', 'Supply --host or --join');
+        }
+        final invite = await InvitationStore(directory).issue(
+          host,
+          parsePort(command['port'] as String),
+          identity.fingerprint,
+        );
+        stdout.writeln(invite.uri);
+        if (command['qr'] as bool) stdout.write(invite.terminalQr);
+        final svg = command['svg'] as String?;
+        if (svg != null) await File(svg).writeAsString(invite.svg);
+        stderr.writeln(
+          'Expires in five minutes. Start receive with the same state directory. Receiver must verify and approve the joining peer.',
+        );
+      }
+      return 0;
+    }
     if (command.name == 'trust') {
       final forget = command['forget'] as String?;
       if (forget != null) await trust.forget(_fingerprint(forget));
@@ -202,6 +265,31 @@ Future<int> runCli(List<String> arguments) async {
       );
     }
 
+    if (command.name == 'clipboard') {
+      var text = command['text'] as String?;
+      if (text == null) {
+        final bytes = BytesBuilder();
+        await for (final chunk in stdin) {
+          if (bytes.length + chunk.length > maxClipboardBytes) {
+            throw const NshareException('limit', 'Clipboard exceeds 64 KiB');
+          }
+          bytes.add(chunk);
+        }
+        text = utf8.decode(bytes.takeBytes());
+      }
+      await shareText(
+        text,
+        command['ip'] as String,
+        parsePort(command['port'] as String),
+        identity,
+        trust,
+        expectedFingerprint: command['peer-fingerprint'] as String?,
+        approvePeer: stdin.hasTerminal ? approvePeer : null,
+        cancellation: cancellation,
+      );
+      stderr.writeln('Clipboard text accepted.');
+      return 0;
+    }
     var previousProgress = DateTime.fromMillisecondsSinceEpoch(0);
     void progress(TransferProgress event) {
       final now = DateTime.now();
@@ -269,6 +357,16 @@ Future<int> runCli(List<String> arguments) async {
       conflict: ConflictPolicy.values.byName(command['conflict'] as String),
       approvePeer: stdin.hasTerminal ? approvePeer : null,
       expectedFingerprint: expected?.toLowerCase(),
+      approveClipboard: command['accept-clipboard'] as bool
+          ? (offer) async {
+              if (stdout.hasTerminal) {
+                stdout.write(_safe(offer.text));
+              } else {
+                stdout.write(offer.text);
+              }
+              return true;
+            }
+          : null,
       approveOffer: (offer) async =>
           command['accept'] as bool ||
           await terminal.confirm(
@@ -276,7 +374,7 @@ Future<int> runCli(List<String> arguments) async {
           ),
       onProgress: progress,
       onResult: (result) {
-        stdout.writeln(
+        (command['accept-clipboard'] as bool ? stderr : stdout).writeln(
           'Complete: ${result.files} verified files, ${result.skipped} skipped.',
         );
         if (command['once'] as bool && !stopped.isCompleted) {

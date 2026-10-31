@@ -15,7 +15,7 @@ dependencies:
     crypto: ^3.0.3
     ffi: ^2.2.0
     path: ^1.8.3
-    qr: ^4.0.1
+    qr: ^3.0.2
     unorm_dart: ^0.3.3
 
 dev_dependencies:
