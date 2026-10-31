@@ -113,8 +113,9 @@ class LocalService {
     void Function(TransferResult)? onResult,
     void Function(Object)? onError,
   }) async {
-    if (_closed)
+    if (_closed) {
       throw const NshareException('service', 'Receiver service has stopped');
+    }
     if (receiver != null) {
       throw const NshareException('busy', 'Receiver already running');
     }

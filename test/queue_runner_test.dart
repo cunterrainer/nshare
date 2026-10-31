@@ -29,8 +29,9 @@ void main() {
       try {
         final deadline = DateTime.now().add(const Duration(seconds: 5));
         while ((await queue.list()).single.status != JobStatus.waitingForPeer) {
-          if (DateTime.now().isAfter(deadline))
+          if (DateTime.now().isAfter(deadline)) {
             throw TimeoutException('Job did not enter network backoff');
+          }
           await Future<void>.delayed(const Duration(milliseconds: 20));
         }
         server = await TransferReceiver.start(
