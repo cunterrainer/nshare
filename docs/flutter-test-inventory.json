@@ -1,0 +1,2964 @@
+{
+  "baselineDartTests": 322,
+  "suites": {
+    "dart": {
+      "passed": 683,
+      "skipped": 0,
+      "tests": [
+        {
+          "file": "test/receiver_validation_test.dart",
+          "name": "receiver rejects a noncontiguous first data offset"
+        },
+        {
+          "file": "test/receiver_validation_test.dart",
+          "name": "receiver rejects more bytes than the declared file size"
+        },
+        {
+          "file": "test/receiver_validation_test.dart",
+          "name": "receiver rejects file-end before all offered bytes arrive"
+        },
+        {
+          "file": "test/receiver_validation_test.dart",
+          "name": "receiver rejects data whose digest differs despite matching length"
+        },
+        {
+          "file": "test/receiver_validation_test.dart",
+          "name": "receiver rejects file-end naming a different transfer"
+        },
+        {
+          "file": "test/receiver_validation_test.dart",
+          "name": "receiver rejects a second data frame instead of file-end"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "missing extensions preserve v2 behavior"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "unknown extensions are ignored"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "negotiates manifest-pages-v1"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "negotiates block-gzip-v1"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "negotiates clipboard-v1"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "negotiates pair-v1"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "rejects malformed capabilities true"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "rejects malformed capabilities 3"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "rejects malformed capabilities gzip"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "rejects malformed capabilities {}"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "rejects malformed capabilities []"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "rejects malformed capabilities [null]"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "rejects malformed capabilities [3]"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "rejects malformed capabilities [a, a]"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "rejects malformed capabilities [a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a]"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "rejects malformed capabilities [xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx]"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "manifestBegin explicit id round trip"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "manifestBegin rejects excessive advertised payload before allocation"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "manifestPage explicit id round trip"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "manifestPage rejects excessive advertised payload before allocation"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "manifestEnd explicit id round trip"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "manifestEnd rejects excessive advertised payload before allocation"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compressedData explicit id round trip"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compressedData rejects excessive advertised payload before allocation"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "clipboard explicit id round trip"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "clipboard rejects excessive advertised payload before allocation"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "clipboardAck explicit id round trip"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "clipboardAck rejects excessive advertised payload before allocation"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "pair explicit id round trip"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "pair rejects excessive advertised payload before allocation"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "pairAck explicit id round trip"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "pairAck rejects excessive advertised payload before allocation"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 1 compressible false preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 1 compressible true preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 2 compressible false preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 2 compressible true preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 8 compressible false preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 8 compressible true preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 16 compressible false preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 16 compressible true preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 31 compressible false preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 31 compressible true preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 64 compressible false preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 64 compressible true preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 127 compressible false preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 127 compressible true preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 256 compressible false preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 256 compressible true preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 1024 compressible false preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 1024 compressible true preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 4096 compressible false preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 4096 compressible true preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 32768 compressible false preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 32768 compressible true preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 65535 compressible false preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 65535 compressible true preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 65536 compressible false preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compression size 65536 compressible true preserves original bytes"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "reject malformed compressed payload size 0"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "reject malformed compressed payload size 1"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "reject malformed compressed payload size 4"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "reject malformed compressed payload size 8"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "reject malformed compressed payload size 12"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "reject malformed compressed payload size 65549"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "decompression enforces declared size 0"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "decompression enforces declared size 1"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "decompression enforces declared size 65537"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "decompression enforces declared size 4294967295"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "corrupt compressed bytes fail integrity"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compress rejects source size 0"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "compress rejects source size 65537"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "new queue is empty without writing state"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "concurrent additions retain all jobs"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "claim preserves FIFO and persists active state"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "recovery interrupts active jobs and leaves queued work intact"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "pause from waitingForPeer enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "resume from waitingForPeer enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "retry from waitingForPeer enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "cancel from waitingForPeer enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "remove from waitingForPeer enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "pause from scanning enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "resume from scanning enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "retry from scanning enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "cancel from scanning enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "remove from scanning enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "pause from connecting enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "resume from connecting enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "retry from connecting enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "cancel from connecting enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "remove from connecting enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "pause from awaitingApproval enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "resume from awaitingApproval enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "retry from awaitingApproval enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "cancel from awaitingApproval enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "remove from awaitingApproval enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "pause from verifying enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "resume from verifying enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "retry from verifying enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "cancel from verifying enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "remove from verifying enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "pause from queued enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "resume from queued enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "retry from queued enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "cancel from queued enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "remove from queued enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "pause from transferring enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "resume from transferring enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "retry from transferring enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "cancel from transferring enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "remove from transferring enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "pause from paused enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "resume from paused enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "retry from paused enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "cancel from paused enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "remove from paused enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "pause from interrupted enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "resume from interrupted enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "retry from interrupted enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "cancel from interrupted enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "remove from interrupted enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "pause from completed enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "resume from completed enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "retry from completed enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "cancel from completed enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "remove from completed enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "pause from failed enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "resume from failed enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "retry from failed enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "cancel from failed enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "remove from failed enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "pause from cancelled enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "resume from cancelled enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "retry from cancelled enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "cancel from cancelled enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "remove from cancelled enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "reorder is persisted independently of job ID"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "invalid position -1 preserves queue"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "invalid position 2 preserves queue"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "invalid position 999 preserves queue"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "late success does not override explicit pause"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "late failure does not override explicit cancellation"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "completion persists counts"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "failure stores code without clipboard or secret content"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "transient timeout uses bounded persistent retries"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "transient network uses bounded persistent retries"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "transient disconnected uses bounded persistent retries"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "transient uncertain uses bounded persistent retries"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "transient busy uses bounded persistent retries"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "permanent identity is never retried automatically"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "permanent rejected is never retried automatically"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "permanent integrity is never retried automatically"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "permanent source is never retried automatically"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "permanent protocol is never retried automatically"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS end-to-end file size 0 bytes"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS end-to-end file size 1 bytes"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS end-to-end file size 2 bytes"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS end-to-end file size 255 bytes"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS end-to-end file size 256 bytes"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS end-to-end file size 4095 bytes"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS end-to-end file size 4096 bytes"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS end-to-end file size 65535 bytes"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS end-to-end file size 65536 bytes"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS end-to-end file size 65537 bytes"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS end-to-end file size 131071 bytes"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS end-to-end file size 131072 bytes"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS end-to-end file size 131073 bytes"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS end-to-end file size 1048579 bytes"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS preserves filename café.txt"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS preserves filename 文件.txt"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS preserves filename emoji-📦.bin"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS preserves filename space name.txt"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS preserves filename résumé_日本語.txt"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS preserves filename multi.part.name"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS preserves filename .hidden"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS directory end-to-end empty root"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS directory end-to-end only empty directories"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS directory end-to-end deep nesting"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS directory end-to-end mixed empty and nonempty files"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS directory end-to-end 100 small files"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS directory end-to-end hidden subdirectories"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS directory end-to-end all binary byte values"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native TLS directory end-to-end Unicode directory with spaces"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native end-to-end conflict policy refuse"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native end-to-end conflict policy skip"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native end-to-end conflict policy overwrite"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native directory/file collision never replaces the destination directory"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native retry revalidates finalized bytes without resending data"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native retry refuses a destination modified after completion"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native changed source uses a new manifest and explicit overwrite"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native sender and receiver can share their complete identity/trust state"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native remembered peers transfer again without fingerprint arguments"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native noninteractive receiver declines offers without explicit acceptance"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native authenticated receiver rejects the wrong sender pin before files"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native receiver remains alive across four distinct sender sessions"
+        },
+        {
+          "file": "test/native_e2e_matrix_test.dart",
+          "name": "native receiver termination retains a partial and restart resumes it"
+        },
+        {
+          "file": "test/core_test.dart",
+          "name": "cancellation is idempotent and observable by adapters"
+        },
+        {
+          "file": "test/process_test.dart",
+          "name": "compiled CLI survives killed sender and resumes after both processes restart"
+        },
+        {
+          "file": "test/process_test.dart",
+          "name": "compiled CLI transfers a directory with spaces, Unicode, binary and empty entries locally"
+        },
+        {
+          "file": "test/process_test.dart",
+          "name": "sender and receiver share one local identity and retries send zero file bytes"
+        },
+        {
+          "file": "test/process_test.dart",
+          "name": "one running receiver accepts multiple independent sender processes"
+        },
+        {
+          "file": "test/process_test.dart",
+          "name": "compiled CLI refuses an existing file without reporting success or overwriting it"
+        },
+        {
+          "file": "test/process_test.dart",
+          "name": "compiled CLI sends over IPv6 loopback on the same device"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 0 bytes repetitive=false saved=false"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 0 bytes repetitive=false saved=true"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 0 bytes repetitive=true saved=false"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 0 bytes repetitive=true saved=true"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 1 bytes repetitive=false saved=false"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 1 bytes repetitive=false saved=true"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 1 bytes repetitive=true saved=false"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 1 bytes repetitive=true saved=true"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 31 bytes repetitive=false saved=false"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 31 bytes repetitive=false saved=true"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 31 bytes repetitive=true saved=false"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 31 bytes repetitive=true saved=true"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 1024 bytes repetitive=false saved=false"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 1024 bytes repetitive=false saved=true"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 1024 bytes repetitive=true saved=false"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 1024 bytes repetitive=true saved=true"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 4096 bytes repetitive=false saved=false"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 4096 bytes repetitive=false saved=true"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 4096 bytes repetitive=true saved=false"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 4096 bytes repetitive=true saved=true"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 65535 bytes repetitive=false saved=false"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 65535 bytes repetitive=false saved=true"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 65535 bytes repetitive=true saved=false"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 65535 bytes repetitive=true saved=true"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 65536 bytes repetitive=false saved=false"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 65536 bytes repetitive=false saved=true"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 65536 bytes repetitive=true saved=false"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 65536 bytes repetitive=true saved=true"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 65537 bytes repetitive=false saved=false"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 65537 bytes repetitive=false saved=true"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 65537 bytes repetitive=true saved=false"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 65537 bytes repetitive=true saved=true"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 131072 bytes repetitive=false saved=false"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 131072 bytes repetitive=false saved=true"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 131072 bytes repetitive=true saved=false"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 131072 bytes repetitive=true saved=true"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 262145 bytes repetitive=false saved=false"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 262145 bytes repetitive=false saved=true"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 262145 bytes repetitive=true saved=false"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native compressed transfer 262145 bytes repetitive=true saved=true"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native clipboard sends exact UTF8 text length 0"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native clipboard sends exact UTF8 text length 10"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native clipboard sends exact UTF8 text length 17"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native clipboard sends exact UTF8 text length 6"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native clipboard sends exact UTF8 text length 3"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native clipboard sends exact UTF8 text length 1000"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native clipboard is rejected without separate consent"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native camera-free pairing consumes invitation exactly once"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native queue preserves paused job and sends remaining FIFO work"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native local service exposes status and shuts down through authenticated client"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native pair help is available without side effects"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native clipboard help is available without side effects"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native queue help is available without side effects"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native settings help is available without side effects"
+        },
+        {
+          "file": "test/v3_native_e2e_test.dart",
+          "name": "native service help is available without side effects"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI help for global exits without creating state"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI help for send exits without creating state"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI help for receive exits without creating state"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI help for devices exits without creating state"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI help for trust exits without creating state"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI show-ip include-loopback=false is standalone and does not create state"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI show-ip include-loopback=true is standalone and does not create state"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects unknown global flag as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects unknown send flag as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects missing send path as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects two send paths as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects unexpected receive argument as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects unexpected devices argument as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects unexpected trust argument as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects unknown command as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects show-ip plus command as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects show-ip plus positional argument as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects both target selectors as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects invalid sender TCP port 0 as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects invalid sender TCP port -1 as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects invalid sender TCP port 65536 as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects invalid sender TCP port abc as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects invalid sender TCP port 1.5 as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects invalid receiver TCP port 0 as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects invalid receiver TCP port 65536 as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects invalid discovery port as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects invalid fingerprint length=0 as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects invalid fingerprint length=3 as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects invalid fingerprint length=64 as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects invalid fingerprint length=65 as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects unsupported conflict policy as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI rejects missing port value as usage error"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI missing source fails without reporting success"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI trust creates a persistent identity and forgets an unknown pin safely"
+        },
+        {
+          "file": "test/cli_test.dart",
+          "name": "help does not start a receiver"
+        },
+        {
+          "file": "test/cli_test.dart",
+          "name": "show-ip lists interfaces independently"
+        },
+        {
+          "file": "test/cli_test.dart",
+          "name": "unknown flags and conflicting standalone command fail"
+        },
+        {
+          "file": "test/trust_matrix_test.dart",
+          "name": "new trust store starts empty"
+        },
+        {
+          "file": "test/trust_matrix_test.dart",
+          "name": "unverified unknown peer is rejected without an approval callback"
+        },
+        {
+          "file": "test/trust_matrix_test.dart",
+          "name": "declined pairing never persists trust"
+        },
+        {
+          "file": "test/trust_matrix_test.dart",
+          "name": "approved pairing survives a fresh store instance"
+        },
+        {
+          "file": "test/trust_matrix_test.dart",
+          "name": "verified uppercase expected fingerprint is normalized"
+        },
+        {
+          "file": "test/trust_matrix_test.dart",
+          "name": "mismatched explicit pin is rejected before approval is requested"
+        },
+        {
+          "file": "test/trust_matrix_test.dart",
+          "name": "remembered identity does not prompt for pairing a second time"
+        },
+        {
+          "file": "test/trust_matrix_test.dart",
+          "name": "repeated connections do not duplicate endpoint pins"
+        },
+        {
+          "file": "test/trust_matrix_test.dart",
+          "name": "forgetting one peer preserves the other peer and endpoint"
+        },
+        {
+          "file": "test/trust_matrix_test.dart",
+          "name": "changed endpoint identity is rejected even with explicit new fingerprint"
+        },
+        {
+          "file": "test/trust_matrix_test.dart",
+          "name": "concurrent store instances preserve all independently approved peers"
+        },
+        {
+          "file": "test/trust_matrix_test.dart",
+          "name": "concurrent endpoint additions to one identity are not lost"
+        },
+        {
+          "file": "test/storage_test.dart",
+          "name": "unsafe portable paths are rejected, never silently rewritten"
+        },
+        {
+          "file": "test/storage_test.dart",
+          "name": "manifest binds hashes and safe receiver only finalizes verified bytes"
+        },
+        {
+          "file": "test/storage_test.dart",
+          "name": "case and Unicode normalization collisions and oversized totals are rejected"
+        },
+        {
+          "file": "test/storage_test.dart",
+          "name": "symlink destinations are refused"
+        },
+        {
+          "file": "test/identity_test.dart",
+          "name": "identity persists and signatures cannot be replayed for another challenge"
+        },
+        {
+          "file": "test/identity_test.dart",
+          "name": "real TLS connection verifies both identities before application data"
+        },
+        {
+          "file": "test/identity_test.dart",
+          "name": "trust rejects changed endpoint identity and can be forgotten"
+        },
+        {
+          "file": "test/v2_protocol_test.dart",
+          "name": "fixed header and fragmented/coalesced decoding"
+        },
+        {
+          "file": "test/v2_protocol_test.dart",
+          "name": "oversized header rejected before payload buffering"
+        },
+        {
+          "file": "test/v2_protocol_test.dart",
+          "name": "truncation, version mismatch and invalid metadata fail"
+        },
+        {
+          "file": "test/v2_protocol_test.dart",
+          "name": "decoding is independent of every possible single split boundary"
+        },
+        {
+          "file": "test/v2_protocol_test.dart",
+          "name": "random fragmentation preserves ordering across many mixed frames"
+        },
+        {
+          "file": "test/v2_protocol_test.dart",
+          "name": "unknown message IDs fail without waiting for their declared payload"
+        },
+        {
+          "file": "test/v2_protocol_test.dart",
+          "name": "exact payload limits work and oversize control and data frames fail"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "real UDP discovery ignores wrong magic and retains the valid response"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "real UDP discovery ignores old version and retains the valid response"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "real UDP discovery ignores future version and retains the valid response"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "real UDP discovery ignores unrelated request and retains the valid response"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "real UDP discovery ignores missing request and retains the valid response"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "real UDP discovery ignores short fingerprint and retains the valid response"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "real UDP discovery ignores nonhex fingerprint and retains the valid response"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "real UDP discovery ignores uppercase fingerprint and retains the valid response"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "real UDP discovery ignores zero port and retains the valid response"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "real UDP discovery ignores negative port and retains the valid response"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "real UDP discovery ignores excess port and retains the valid response"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "real UDP discovery ignores string port and retains the valid response"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "real UDP discovery ignores missing name and retains the valid response"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "real UDP discovery ignores empty name and retains the valid response"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "real UDP discovery ignores oversize name and retains the valid response"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "real UDP discovery ignores invalid UTF8"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "real UDP discovery ignores malformed JSON"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "real UDP discovery ignores oversized datagram"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "real UDP discovery ignores JSON array"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "selection never guesses when no receivers responded"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "selection never guesses between different receivers"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "selection finds an exact requested fingerprint"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "selection rejects an absent requested fingerprint"
+        },
+        {
+          "file": "test/discovery_matrix_test.dart",
+          "name": "selection rejects ambiguous duplicate fingerprint advertisements"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "invitation round trips endpoint 192.168.1.4"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "invitation round trips endpoint 127.0.0.1"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "invitation round trips endpoint ::1"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "invitation round trips endpoint fe80::1%eth0"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "invitation round trips endpoint my-pc.local"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation v=1"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation v=2"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation v=4"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation v="
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation host="
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation host=bad host"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation host=/etc/passwd"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation host=a@b"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation host=a?b"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation host=a#b"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation host=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation port=0"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation port=-1"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation port=65536"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation port=nan"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation fp=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation fp=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation fp=gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation fp="
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation token="
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation token=abc"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation expires=0"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation expires=nan"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation expires=1793404800000"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invitation expires=1793405460000"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invalid invitation envelope https://example.com"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invalid invitation envelope nshare://pair"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invalid invitation envelope nshare://pair?v=3&host=192.168.1.4&port="
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invalid invitation envelope nshare://pair?v=3&host=192.168.1.4&port="
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "reject invalid invitation envelope xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "invitation consumption is atomic and single use"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "expired token is rejected by receiver"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "QR exports contain quiet zone and no private key"
+        },
+        {
+          "file": "test/pairing_sharing_test.dart",
+          "name": "UTF8 clipboard limit counts bytes"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "wire contract hello uses fixed ID 1"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "wire contract challenge uses fixed ID 2"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "wire contract proof uses fixed ID 3"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "wire contract ready uses fixed ID 4"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "wire contract offer uses fixed ID 10"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "wire contract accept uses fixed ID 11"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "wire contract fileStart uses fixed ID 12"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "wire contract fileAccept uses fixed ID 13"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "wire contract data uses fixed ID 14"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "wire contract fileEnd uses fixed ID 15"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "wire contract fileAck uses fixed ID 16"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "wire contract complete uses fixed ID 17"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "wire contract completeAck uses fixed ID 18"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "wire contract cancel uses fixed ID 20"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "wire contract error uses fixed ID 21"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "control metadata rejects empty"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "control metadata rejects malformed UTF8"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "control metadata rejects null"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "control metadata rejects array"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "control metadata rejects string"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "control metadata rejects integer"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "control metadata rejects boolean true"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "control metadata rejects boolean false"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "control metadata rejects unterminated"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "control metadata rejects NaN"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "control metadata rejects trailing data"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "control metadata rejects invalid key"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "required string rejects missing"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "required string rejects number"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "required string rejects boolean"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "required string rejects empty"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "required string rejects over limit"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "required string rejects list"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "required string preserves valid abcde"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "required string preserves valid 文件"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "required string preserves valid hello"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "required integer rejects missing"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "required integer rejects fraction"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "required integer rejects string"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "required integer rejects boolean"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "required integer rejects negative"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "required integer rejects above limit"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "required integer accepts boundary/interior 0"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "required integer accepts boundary/interior 1"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "required integer accepts boundary/interior 10"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "decoder rejects corrupted magic byte 0"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "decoder rejects corrupted magic byte 1"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "decoder rejects corrupted magic byte 2"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "decoder rejects corrupted magic byte 3"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "decoder rejects unsupported version 0"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "decoder rejects unsupported version 1"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "decoder rejects unsupported version 3"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "decoder rejects unsupported version 255"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "decoder rejects undefined message ID 0"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "decoder rejects undefined message ID 5"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "decoder rejects undefined message ID 9"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "decoder rejects undefined message ID 19"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "decoder rejects undefined message ID 255"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "decoder rejects uint32 maximum length for data immediately"
+        },
+        {
+          "file": "test/protocol_matrix_test.dart",
+          "name": "decoder rejects uint32 maximum length for offer immediately"
+        },
+        {
+          "file": "test/transfer_test.dart",
+          "name": "real TLS transfer preserves nested files, empty entries and Unicode"
+        },
+        {
+          "file": "test/transfer_test.dart",
+          "name": "explicit skip and overwrite policies preserve their distinct outcomes"
+        },
+        {
+          "file": "test/transfer_test.dart",
+          "name": "refused offer never writes destination and sender does not claim success"
+        },
+        {
+          "file": "test/discovery_test.dart",
+          "name": "loopback UDP discovery replies to source port and stops at deadline"
+        },
+        {
+          "file": "test/compression_transfer_test.dart",
+          "name": "TLS compression requested=false allowed=false"
+        },
+        {
+          "file": "test/compression_transfer_test.dart",
+          "name": "TLS compression requested=false allowed=true"
+        },
+        {
+          "file": "test/compression_transfer_test.dart",
+          "name": "TLS compression requested=true allowed=false"
+        },
+        {
+          "file": "test/compression_transfer_test.dart",
+          "name": "TLS compression requested=true allowed=true"
+        },
+        {
+          "file": "test/compression_transfer_test.dart",
+          "name": "incompressible TLS blocks use raw DATA without expansion"
+        },
+        {
+          "file": "test/resume_test.dart",
+          "name": "verified partial survives restart and completed files retry idempotently"
+        },
+        {
+          "file": "test/resume_test.dart",
+          "name": "corrupt retained prefix fails and explicit restart discards it"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "new settings are opt-in and loading creates no identity"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "compression persists true without changing other settings"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "compression persists false without changing other settings"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "compression rejects invalid value true"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "compression rejects invalid value 1"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "compression rejects invalid value null"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "allowCompression persists true without changing other settings"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "allowCompression persists false without changing other settings"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "allowCompression rejects invalid value true"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "allowCompression rejects invalid value 1"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "allowCompression rejects invalid value null"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "receiveInBackground persists true without changing other settings"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "receiveInBackground persists false without changing other settings"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "receiveInBackground rejects invalid value true"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "receiveInBackground rejects invalid value 1"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "receiveInBackground rejects invalid value null"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "startAtLogin persists true without changing other settings"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "startAtLogin persists false without changing other settings"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "startAtLogin rejects invalid value true"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "startAtLogin rejects invalid value 1"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "startAtLogin rejects invalid value null"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "unknown settings leave persisted state unchanged"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "concurrent store instances serialize read-modify-write"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "failed mutation preserves state and releases locks"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "unsupported state [] fails closed"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "unsupported state {version: 99} fails closed"
+        },
+        {
+          "file": "test/application_state_test.dart",
+          "name": "unsupported state {count: 1} fails closed"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject empty"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject dot"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject parent"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject root"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject absolute Unix"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject parent escape"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject nested parent"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject nested dot"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject backslash traversal"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject Windows absolute"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject UNC"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject double separator"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject trailing separator"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject trailing dot"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject trailing space"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject nested trailing dot"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject nested trailing space"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject colon"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject wildcard"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject question mark"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject quote"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject less than"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject greater than"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject pipe"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject NUL"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject tab"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject newline"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject carriage return"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject DEL"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject state root"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject state root case"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject byte length"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject UTF8 byte length"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject reserved CON"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject reserved prn"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject reserved AUX"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject reserved nul"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject reserved COM1"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject reserved COM9"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject reserved LPT1"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject reserved LPT9"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject reserved extension con.txt"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject reserved extension PRN.log"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject reserved extension aux.bin"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject reserved extension nul.dat"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject reserved extension com1.txt"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable paths reject reserved extension lpt9.txt"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable path preserves notes.txt"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable path preserves folder/file"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable path preserves .hidden"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable path preserves folder/.hidden"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable path preserves a..b"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable path preserves leading space/file"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable path preserves file name.txt"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable path preserves café.txt"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable path preserves 文件.txt"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable path preserves 📦.bin"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable path preserves é.txt"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable path preserves auxiliary.txt"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable path preserves COM10.txt"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable path preserves null.txt"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable path preserves folder/.nshare-state/file"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "portable path preserves 1024 byte boundary"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects missing id"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects negative id"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects fractional id"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects string id"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects nonconsecutive id"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects missing path"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects empty path"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects numeric path"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects missing kind"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects empty kind"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects unknown kind"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects numeric kind"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects missing size"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects negative size"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects fractional size"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects string size"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects boolean size"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects missing digest"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects numeric digest"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects empty digest"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects short digest"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects long digest"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects nonhex digest"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects uppercase digest"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects invalid entry collection null"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects invalid entry collection false"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects invalid entry collection \"entries\""
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects invalid entry collection []"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects invalid entry collection [null]"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects invalid entry collection [1]"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects invalid entry collection [true]"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects invalid transfer identity 4"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects invalid transfer identity 0"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects invalid transfer identity 63"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects invalid transfer identity 64"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects invalid transfer identity 1"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects path conflict same versus same"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects path conflict Same versus same"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects path conflict é versus é"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects path conflict file versus file/child"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects directory metadata size=1"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects directory metadata size=0"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest rejects more than 1024 entries"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest accepts exactly 1024 distinct entries"
+        },
+        {
+          "file": "test/path_manifest_matrix_test.dart",
+          "name": "manifest collects a changed source into a different transfer identity"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "DNS-SD parses full service metadata and source endpoint"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "DNS-SD supports scoped IPv6 source addresses"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "truncated DNS packet at 0 does not produce a device"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "truncated DNS packet at 1 does not produce a device"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "truncated DNS packet at 2 does not produce a device"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "truncated DNS packet at 4 does not produce a device"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "truncated DNS packet at 8 does not produce a device"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "truncated DNS packet at 11 does not produce a device"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "truncated DNS packet at 12 does not produce a device"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "truncated DNS packet at 15 does not produce a device"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "truncated DNS packet at 20 does not produce a device"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "truncated DNS packet at 30 does not produce a device"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "truncated DNS packet at 50 does not produce a device"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "truncated DNS packet at 100 does not produce a device"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "truncated DNS packet at 288 does not produce a device"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "DNS-SD rejects malformed fingerprint aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "DNS-SD rejects malformed fingerprint gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "DNS-SD rejects malformed fingerprint AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "DNS-SD rejects zero service port"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "expired DNS records do not produce a device"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "DNS query is never interpreted as advertisement"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "malicious compression pointer loop is bounded"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "excessive DNS record count rejected before parse"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "oversized multicast packet rejected"
+        },
+        {
+          "file": "test/mdns_service_test.dart",
+          "name": "service endpoint requires bearer authentication and releases ownership"
+        },
+        {
+          "file": "test/failure_test.dart",
+          "name": "out-of-order messages fail before destination writes"
+        },
+        {
+          "file": "test/failure_test.dart",
+          "name": "closing receiver cancels an unresolved UI approval without waiting five minutes"
+        },
+        {
+          "file": "test/failure_test.dart",
+          "name": "pending first-time pairing does not hold trust storage after shutdown"
+        },
+        {
+          "file": "test/failure_test.dart",
+          "name": "missing final acknowledgment is an uncertain failure even after file acknowledgments"
+        },
+        {
+          "file": "test/failure_test.dart",
+          "name": "cancellation interrupts data streaming without finalizing partial files"
+        },
+        {
+          "file": "test/failure_test.dart",
+          "name": "network inactivity has a bounded deadline"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged validation rejects unsafe path ../x"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged validation rejects unsafe path /x"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged validation rejects unsafe path C:/x"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged validation rejects unsafe path a\\b"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged validation rejects unsafe path a//b"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged validation rejects unsafe path a/./b"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged validation rejects unsafe path a/../b"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged validation rejects unsafe path .nshare-state/x"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged validation rejects unsafe path CON"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged validation rejects unsafe path NUL.txt"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged validation rejects unsafe path a."
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged validation rejects unsafe path a "
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged validation rejects unsafe path a\u0000b"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "disk index rejects collision [a, a]"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "disk index rejects collision [A, a]"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "disk index rejects collision [é, é]"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "disk index rejects collision [a, a/b]"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "disk index rejects collision [a/b, a]"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "disk index rejects collision [Dir/a, dir/b]"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged entry rejects {id: 1}"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged entry rejects {id: -1}"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged entry rejects {size: -1}"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged entry rejects {size: 1}"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged entry rejects {kind: link}"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged entry rejects {sha256: bad}"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged entry rejects {kind: directory, size: 1, sha256: }"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged entry rejects {path: 3}"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged entry rejects {sha256: null}"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged manifest rejects incorrect summary {files: 0}"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged manifest rejects incorrect summary {bytes: 1}"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged manifest rejects incorrect summary {transfer: 0000000000000000000000000000000000000000000000000000000000000000}"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged manifest rejects entry count 0"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged manifest rejects entry count -1"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged manifest rejects entry count 1000001"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "paged collection has deterministic identity and is disposable"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "cancelled collection stops and cleans up"
+        },
+        {
+          "file": "test/paged_manifest_test.dart",
+          "name": "1100-file folder transfers through real TLS with paginated metadata"
+        },
+        {
+          "file": "test/queue_runner_test.dart",
+          "name": "queue retries a real unavailable peer and completes when its listener returns"
+        },
+        {
+          "file": "test/picker_source_test.dart",
+          "name": "picker staging rejects a missing file without retaining a snapshot"
+        },
+        {
+          "file": "test/picker_source_test.dart",
+          "name": "picker staging rejects a directory without retaining a snapshot"
+        },
+        {
+          "file": "test/picker_source_test.dart",
+          "name": "persistent picker copy survives cache deletion and completes a real queued TLS transfer"
+        },
+        {
+          "file": "test/queue_restart_test.dart",
+          "name": "queued restart discards a corrupt retained prefix and verifies the replacement"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "restart from waitingForPeer enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "restart from scanning enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "restart from connecting enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "restart from awaitingApproval enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "restart from verifying enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "restart from queued enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "restart from transferring enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "restart from paused enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "restart from interrupted enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "restart from completed enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "restart from failed enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "restart from cancelled enforces lifecycle"
+        },
+        {
+          "file": "test/service_control_test.dart",
+          "name": "native CLI starts a queue-only owner receiver with an explicit verified policy"
+        },
+        {
+          "file": "test/service_control_test.dart",
+          "name": "service shutdown waits for an in-flight receiver start to release its port"
+        }
+      ]
+    },
+    "flutter": {
+      "passed": 53,
+      "skipped": 0,
+      "tests": [
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "Devices is accessible at width 390.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "Send is accessible at width 390.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "Receive is accessible at width 390.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "Queue is accessible at width 390.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "History is accessible at width 390.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "Settings is accessible at width 390.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "Devices is accessible at width 720.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "Send is accessible at width 720.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "Receive is accessible at width 720.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "Queue is accessible at width 720.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "History is accessible at width 720.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "Settings is accessible at width 720.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "Devices is accessible at width 1100.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "Send is accessible at width 1100.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "Receive is accessible at width 1100.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "Queue is accessible at width 1100.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "History is accessible at width 1100.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "Settings is accessible at width 1100.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "compression defaults off and changes only through explicit switch"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "incoming compression has independent opt-in"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "discovery refresh shows a device without trusting it"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "manual IP fallback opens full CLI-equivalent send form"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "receiver state is explicit before starting"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "clipboard sharing is a separate explicit action"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue waitingForPeer renders correct category at 390.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue waitingForPeer renders correct category at 1100.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue scanning renders correct category at 390.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue scanning renders correct category at 1100.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue connecting renders correct category at 390.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue connecting renders correct category at 1100.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue awaitingApproval renders correct category at 390.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue awaitingApproval renders correct category at 1100.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue verifying renders correct category at 390.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue verifying renders correct category at 1100.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue queued renders correct category at 390.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue queued renders correct category at 1100.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue transferring renders correct category at 390.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue transferring renders correct category at 1100.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue paused renders correct category at 390.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue paused renders correct category at 1100.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue interrupted renders correct category at 390.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue interrupted renders correct category at 1100.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue completed renders correct category at 390.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue completed renders correct category at 1100.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue failed renders correct category at 390.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue failed renders correct category at 1100.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue cancelled renders correct category at 390.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "queue cancelled renders correct category at 1100.0"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "failures are visible and copyable"
+        },
+        {
+          "file": "apps/nshare_app/test/widget_test.dart",
+          "name": "receiver conflict policy is explicit and usable on a phone-width screen"
+        },
+        {
+          "file": "apps/nshare_app/test/controller_interop_test.dart",
+          "name": "native CLI sends real bytes to Flutter receiver controller"
+        },
+        {
+          "file": "apps/nshare_app/test/controller_interop_test.dart",
+          "name": "Flutter persistent queue sends real bytes to native CLI receiver"
+        },
+        {
+          "file": "apps/nshare_app/test/controller_interop_test.dart",
+          "name": "two Flutter application controllers exchange a real queued folder"
+        }
+      ]
+    }
+  },
+  "nativeWindowTests": 2,
+  "total": 738,
+  "additional": 416
+}

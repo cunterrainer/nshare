@@ -1,17 +1,17 @@
-# nshare_app
+# nshare Flutter
 
-A new Flutter project.
+Android/iOS/Windows/macOS/Linux client for the shared Dart nshare engine.
 
-## Getting Started
+Run `flutter pub get`, then `flutter run -d <device>`. See the repository
+[README](../../README.md) for setup, pairing, queue, compression and clipboard.
 
-This project is a starting point for a Flutter application.
+`flutter test` includes widget/layout tests and real controller interoperability
+with a separately compiled CLI. These desktop-host tests need `dart` on PATH.
+`integration_test/desktop_transfer_test.dart` drives a native desktop window and
+separate CLI processes; on Linux run it under Xvfb with native build dependencies.
+It is a desktop integration suite, not a physical-mobile test.
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Native platform build success does not validate camera permissions, background
+execution, network isolation or document-provider behavior on physical devices.
+Android background receiving is opt-in and visible; iOS suspends its listener.
+Production signing and store distribution are not configured.

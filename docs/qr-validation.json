@@ -1,0 +1,6 @@
+{
+  "decoder": "ZXing C++",
+  "svgRecoveredCompleteInvitation": true,
+  "terminalRecoveredCompleteInvitation": true,
+  "terminalColumns": 65
+}

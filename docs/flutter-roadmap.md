@@ -41,3 +41,13 @@ Existing recorded baseline: 322 passing tests, 48 native process transfers, Dart
 3.13.7 on Linux. Fresh baseline validation is running during implementation.
 Physical mobile/desktop matrix, camera, sleep and background service checks
 require the corresponding host/device and must not be inferred from Linux tests.
+
+## Delivered implementation
+
+Shared services, all five Flutter project targets, negotiated extensions,
+QR/copy pairing, disk-backed large folders, durable queues, bounded network
+retries, opt-in compression, explicit clipboard sharing, native mobile folder
+adapters and platform receiver lifecycle controls are implemented. Every commit
+was pushed. Source, packaging workflows and the full validation record are in
+[flutter-validation.md](flutter-validation.md). Physical-device runtime gates
+remain pending; no simulated or loopback check is represented as hardware proof.

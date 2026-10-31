@@ -1,177 +1,278 @@
-# nshare v2
+# nshare
 
-A Dart CLI for encrypted, resumable file and folder transfers on a local network.
-The UI-independent library can also back a future Flutter interface.
+Encrypted, resumable file, folder and text sharing on your local network. A Dart
+CLI and a Flutter application share the same transfer engine. No account, relay,
+cloud pairing service or Internet connection is required at runtime.
 
-Requires Dart 3.8+. Desktop targets: Linux, macOS and Windows. No relay, cloud
-account or Internet connection is required at runtime. Discovery is IPv4 UDP;
-direct connections support IPv4 and IPv6. v2 is incompatible with v1.
+Flutter targets Android, iOS, Windows, macOS and Linux. The standalone CLI targets
+Windows, macOS and Linux and builds without installing Flutter.
 
-## Build and run
+## Run
+
+CLI (Dart 3.8+):
 
 ```sh
 dart pub get
 dart run bin/nshare.dart --help
 dart compile exe bin/nshare.dart -o nshare
+# Windows: -o nshare.exe
 ```
 
-On Windows use `-o nshare.exe`. Alternatively install from your checkout with
-`dart pub global activate --source path .`, then run `nshare`.
-The examples below use the compiled executable on PATH.
+Flutter (validated with Flutter 3.47.9 / Dart 3.13.7):
 
-## Show this device's IP addresses
+```sh
+cd apps/nshare_app
+flutter pub get
+flutter run -d linux     # or windows, macos, a connected Android/iOS device
+# Desktop executable profiles also accept --state-dir and --output.
+```
+
+Linux desktop builds need clang, CMake, Ninja, pkg-config, GTK3 development files,
+libayatana-appindicator3-dev and liblzma-dev. iOS requires macOS/Xcode, iOS 15.5+
+and signing for physical installation. CI builds Android debug APKs and unsigned
+iOS applications; production signing/distribution is a separate release step.
+
+## Interfaces
+
+The Flutter app has Devices, Send, Receive, Queue, History and Settings screens.
+Choose a file/folder, select a nearby device or enter its address, verify its
+identity and enqueue the transfer. Every incoming transfer and clipboard offer
+requires separate approval. Discovery results do not establish identity trust.
+
+Desktop Flutter and CLI share the default identity, settings and queue. Flutter
+runs a user-local receiver/queue service; CLI queue commands can control its
+persisted jobs. `service --action start` can also start a receiver through that
+existing owner with the command's explicit approval and file policies. If a CLI service already owns the state, Flutter attaches to its
+status. That service retains its existing approval policy. A standalone
+foreground CLI transfer does not require the service or Flutter.
+
+Mobile file selection persists a private copy before enqueueing, protecting jobs
+from picker-cache eviction. Mobile folder selection imports a private snapshot using Android's document-tree
+provider or iOS security-scoped access. Copying streams data rather than loading
+whole files into memory, but requires additional disk space. Snapshots preserve
+queue/resume access after the original picker permission ends. Receiving uses
+app documents; stop receiving and use **Export received folder** to copy results
+to a selected provider. Resume receipts are excluded from exports. Imported
+snapshots remain in app storage; deleting a queue entry does not delete source
+files. Desktop selections use ordinary filesystem paths.
+
+## Current device IP
 
 ```sh
 nshare --show-ip
 nshare --show-ip --include-loopback
 ```
 
-Lists interface name, address family, and address, then exits. This does not open
-a listener, start discovery, create an identity, or query a public IP service.
-Devices with Ethernet, Wi-Fi or VPN connections can have several addresses.
+Lists local interface names, address families and addresses. It exits without
+starting discovery/listeners, creating an identity, or querying a public IP
+service. In Flutter, Receive → Choose this device IP lists the same interfaces.
 
-## Pair and transfer
+## Pair with QR or without a camera
 
-On both devices, obtain your own certificate fingerprint:
-
-```sh
-nshare trust
-```
-
-Compare the full SHA-256 fingerprints through a trusted channel (for example,
-read them directly from each device's screen). Then start the receiver:
+Start receiving, then display an invitation on that device. CLI example (two
+terminals on the receiving device):
 
 ```sh
-nshare receive --output ./downloads
+nshare receive --output ./received
+nshare pair --host 192.168.1.42 --qr --svg pairing.svg
 ```
 
-On the sender:
+A phone can scan the QR in Flutter. A desktop without a camera can paste the
+invitation into Flutter or use:
+
+```sh
+nshare pair --join 'nshare://pair?v=3&host=...'
+```
+
+Use an invitation obtained from a trusted device screen/copy channel. Invitations
+pin the receiver's full certificate fingerprint, expire after five minutes, and
+are single-use. The receiver must still verify and approve the joining device's
+fingerprint. The CLI prints its own fingerprint while joining; `nshare trust`
+also displays it. QR display/export never requires a camera. Use SVG output for
+small terminals or long invitations.
+
+Alternatively compare full SHA-256 fingerprints on both devices and approve the
+first connection interactively. A fingerprint you have already verified can be
+supplied for noninteractive use:
+
+```sh
+nshare receive --output ./received --once --accept --peer-fingerprint "$SENDER_FP"
+nshare send ./photos --ip 192.168.1.42 --peer-fingerprint "$RECEIVER_FP"
+```
+
+Trusting an identity does not automatically accept file offers, overwrite files,
+or replace clipboard contents. Changed identities at pinned endpoints fail
+closed. `nshare trust --forget "$PEER_FP"` removes a remembered peer after you
+have independently verified the identity change.
+
+## Discovery and direct connections
 
 ```sh
 nshare devices
+nshare devices --json --remembered
+nshare devices --watch
+nshare send ./photos --to "$RECEIVER_FP"
 nshare send ./photos --ip 192.168.1.42
-# Or choose the full fingerprint shown by discovery:
-nshare send ./photos --to <receiver-fingerprint>
 ```
 
-On first connection each side prompts to trust the peer after fingerprint
-verification. Type `yes` only after the comparison. The receiver then separately
-approves the transfer offer. Remembered identity trust does not automatically
-accept offers. Sender input `./photos` becomes `downloads/photos/...`.
-No arguments prints help; `send --help` and `receive --help` describe options.
+Discovery combines IPv4/IPv6 mDNS/DNS-SD with IPv4 UDP fallback. Watched snapshots
+expire absent devices; saved addresses are explicitly unverified for reachability.
+Optional multicast failures do not prevent direct transfers. Wi-Fi client
+isolation, VPNs, firewalls and mobile permissions can prevent discovery.
 
-For noninteractive use, supply fingerprints you have **already verified**:
+The receiver defaults to a dual-stack listener where available, with IPv4
+fallback. Use `receive --bind` to choose a specific address. Direct IPv6 addresses
+are supported, including interface-scoped link-local addresses. TCP defaults to
+53317, UDP discovery to 1970, and mDNS to 5353. Configure your local-network
+firewall profile accordingly. `--port` / `--discovery-port` override transfer and
+UDP ports; mDNS uses its standard port.
+
+## Large folders, conflicts and resume
+
+Large manifests are paginated and spooled to temporary disk with a disk-backed
+collision index. Limits: 1,000,000 total entries, 100,000 children in one source
+directory, 512 MiB encoded manifest metadata. Individual control frames stay
+bounded at 256 KiB; file chunks at 64 KiB. Disk exhaustion fails the operation.
+
+- Default `--conflict refuse` leaves existing destination files untouched.
+- `--conflict overwrite` replaces a file only after its replacement is verified.
+- `--conflict skip` reports existing files as skipped, not verified.
+- Resume is enabled by default; repeat the send or resume/retry a queued job.
+- `send --no-resume` discards retained partial bytes for that offer, without
+  authorizing replacement of finalized destinations.
+
+Paths reject traversal, links, absolute paths, Windows reserved names, duplicates,
+case collisions and Unicode-normalization collisions. Empty files/folders and
+Unicode names are preserved. Permissions, timestamps, extended attributes, hard
+links and sparse layout are not preserved.
+
+Flutter's Receive screen also selects refuse/skip/replace policies while stopped.
+Queue restart discards retained partial bytes; it does not authorize overwriting
+finalized destinations. Normal resume/retry uses verified retained bytes.
+
+Partial files and receipts live in the destination's `.nshare-state`, bound to
+peer identity, deterministic manifest and canonical output root. Retained bytes
+are rehashed on both sides before resume; completed destinations are rehashed
+before receipt reuse. Final success requires receiver acknowledgment. Folder
+transfers are not atomic: earlier files can be complete when a later file fails.
+Only one receiver may write a given output root at once. Keep that root under
+your control; portable Dart filesystem checks do not defeat a hostile local
+process concurrently replacing path components.
+
+Small uncompressed transfers remain compatible with v2 peers. Large manifests,
+clipboard, invitation completion and compressed blocks require negotiated v3
+extensions. Unsupported requests fail explicitly; authentication never falls back
+to weaker trust rules.
+
+## Queue and receiver service
 
 ```sh
-nshare receive --output ./downloads --once --accept --peer-fingerprint <sender-fingerprint>
-nshare send ./photos --ip 192.168.1.42 --peer-fingerprint <receiver-fingerprint>
+nshare queue --action add --path ./photos --ip 192.168.1.42 --peer-fingerprint "$RECEIVER_FP"
+nshare queue --json
+nshare queue --action run
+nshare queue --action pause --id "$JOB_ID"
+nshare queue --action resume --id "$JOB_ID"
+nshare queue --action retry --id "$JOB_ID"
+nshare queue --action restart --id "$JOB_ID"
+nshare queue --action move --id "$JOB_ID" --position 0
+nshare queue --action cancel --id "$JOB_ID"
+nshare queue --action remove --id "$JOB_ID"
+nshare queue --action events
 ```
 
-`--accept` accepts offers only after peer authentication. It does not bypass
-pairing. `--once` exits after the first transfer attempt. Otherwise the receiver
-continues listening and handles one authenticated session at a time.
-
-Transfer TCP port defaults to 53317; discovery UDP port defaults to 1970. Open
-those inbound ports on the receiver's local-network firewall profile. Use
-`--port` and `--discovery-port` to change them. Discovery never establishes trust.
-If Wi-Fi client isolation, a VPN or a firewall blocks broadcast, use `--ip`.
-For IPv6, bind the receiver with `--bind ::` and connect with a direct IPv6
-address; link-local addresses may need an interface scope such as `%en0`.
-Discovery currently returns IPv4 addresses only.
-
-For a transfer between two processes on this same device, see the
-[same-device test instructions and results](docs/same-device-test.md).
-
-## Conflicts and resume
-
-- Default `--conflict refuse`: existing destination files are left untouched.
-- `--conflict overwrite`: replace a file only after its replacement is verified.
-- `--conflict skip`: keep existing files and report them as skipped, not verified.
-- Resume is enabled by default. Re-run the same send command after interruption.
-- `send --no-resume` discards retained partial data for that offered file and
-  restarts it; it does not authorize overwriting a finalized destination.
-
-Partial files and completion receipts live in the output root's `.nshare-state`
-directory, bound to the sender identity, deterministic manifest and canonical
-output root. Receiver hashes its retained prefix; sender independently compares
-it before continuing. Incomplete trailing chunks are discarded. Full SHA-256
-and file size are checked before finalization. A changed source produces a new
-manifest and cannot reuse old partial bytes. A corrupt prefix fails clearly;
-retry with `--no-resume`.
-
-Completed files are rehashed before a receipt is reused, allowing retries after
-lost acknowledgments without sending data again. Transfer success requires the
-receiver's final acknowledgment. A disconnection can leave earlier files
-complete; folder transfers are not all-or-nothing transactions.
-
-To discard all retained partials/receipts, stop the receiver and delete only
-`.nshare-state` inside the selected output root. Finalized files remain. Retain
-receipts if you want idempotent retries under the default refusal policy.
-
-## Identity and local state
-
-Global `--state-dir <directory>` must appear before the command. Default identity
-and trust storage is `$XDG_CONFIG_HOME/nshare` or `~/.config/nshare` on Unix,
-and `%APPDATA%/nshare` on Windows (with a user-profile fallback).
+Jobs retain order and state across restarts. Compression is captured when a job
+is added; changing its preference affects newly added jobs. Interrupted active jobs require
+explicit resume/retry. Transient network failures receive at most three automatic retries with 1/2/4-second
+backoff. Failed authentication, integrity failures and declined approvals are never
+implicitly retried. Scheduling currently runs one outgoing job at a time.
+`queue --action run` drains runnable jobs; paused/interrupted jobs remain pending.
+`--watch` keeps a runner alive; `events` emits changed snapshots as newline-delimited
+JSON. Queue capacity is 10,000 jobs, including history; remove old jobs as needed.
 
 ```sh
-nshare trust
-nshare trust --forget <fingerprint>
-nshare --state-dir ./private-state receive --output ./downloads
+nshare service --action run --output ./received
+nshare service --action start --output ./received --accept --peer-fingerprint "$SENDER_FP"
+nshare service --action status
+nshare service --action stop
 ```
 
-The state directory contains a private key: keep it private. Unix permissions are
-restricted using the platform `chmod` executable; Windows uses inherited ACLs
-from the selected user directory. A changed identity at a pinned address is
-rejected; verify the change before forgetting the old fingerprint. Certificates
-last ten years; deliberate identity rotation requires fresh pairing.
+`run` stays in the foreground; `start` launches a detached process. Detached
+receiving needs an explicit offer policy and already verified trust because it
+cannot display terminal prompts. The control endpoint binds only to loopback and
+requires a bearer token stored in owner-only state. Desktop tray controls can
+show the Flutter window, stop receiving or quit. Start-at-login and keeping the
+window in the tray are separate opt-in settings.
 
-## Limits and file policy
+## Compression is opt-in
 
-Offers are limited to 1024 entries and 256 KiB of encoded metadata. Split larger
-folders into separate sends. Data chunks are 64 KiB and writes use backpressure;
-file contents are never loaded entirely into memory. Files are hashed before
-sending and verified again at the destination, adding disk reads intentionally.
+Both outgoing compression and incoming decompression permission default to off.
+Flutter exposes independent switches. CLI preferences and per-command overrides:
 
-Paths use portable relative names. Links, traversal, absolute paths, Windows
-reserved names, case- or Unicode-normalization-colliding entries and unsupported filesystem objects are
-rejected. Empty files, empty folders and Unicode names are preserved. Permission
-bits, timestamps, hard-link relationships, sparse layout and extended attributes
-are not preserved. Collision checks compare Unicode NFC and case-folded paths while preserving
-original names. Other unsupported names fail through the destination filesystem;
-names are not silently rewritten.
+```sh
+nshare settings
+nshare settings --set compression --value true
+nshare settings --set allowCompression --value true
+nshare send ./photos --ip 192.168.1.42 --compress
+nshare send ./photos --ip 192.168.1.42 --no-compress
+nshare receive --output ./received --allow-compression
+```
 
-The caller-selected output root is canonicalized. Receiver-controlled paths below
-it reject symlinks. Keep that root under your control: another local process
-must not concurrently replace its components. Dart's portable filesystem API
-does not provide race-free directory-relative file operations against a hostile
-local writer. Run only one receiver per output root.
+Each independently compressed gzip block retains original-file offsets for
+resume. Blocks that grow are sent raw. The receiver bounds decompression and
+verifies original sizes and SHA-256 hashes. Results distinguish original file
+bytes from network data payload bytes (excluding TLS/framing overhead).
 
-Ctrl+C cancels sending or stops receiving. Connection timeout is 10 seconds,
-network inactivity timeout 60 seconds, approval timeout five minutes. Exit codes:
-0 success, 1 operation failure, 64 usage error, 130 cancellation. Diagnostics and
-progress go to stderr; results go to stdout.
+## Clipboard text
 
-## Library and development
+```sh
+nshare clipboard --ip 192.168.1.42 --peer-fingerprint "$RECEIVER_FP" --text 'Hello'
+printf 'Hello' | nshare clipboard --ip 192.168.1.42 --peer-fingerprint "$RECEIVER_FP"
+nshare receive --once --accept-clipboard --peer-fingerprint "$SENDER_FP" > clipboard.txt
+```
 
-Import `package:nshare/nshare.dart`. `sendPath`, `TransferReceiver`, typed approval
-callbacks, `CancellationToken`, progress events and `TransferTask.progress`
-separate transfer behavior from UI code. See [example/send.dart](example/send.dart).
-Flutter itself is not required. Mobile permission, lifecycle, key-storage and
-interface discovery adapters still require platform-specific work.
+The CLI can exchange text through stdin/stdout without a desktop clipboard
+provider. Flutter sends the current clipboard explicitly and offers incoming
+text for approval before copying it. No passive clipboard monitoring or automatic
+synchronization is enabled. Text is limited to 64 KiB UTF-8 and omitted from
+ordinary logs/history. CLI receiving writes exact text when stdout is redirected;
+terminal output replaces control characters for safe display. `--accept` for
+files does not imply `--accept-clipboard`.
+
+## Background behavior and state
+
+Desktop can keep receiving with the window in its tray, or through the CLI service.
+Android's opt-in background receiver uses a visible foreground-service
+notification with a Stop action; pending approvals require opening the app. OS
+start, battery and process restrictions still apply. It does not auto-start on
+boot. iOS receiving works while active; suspending the app stops receiving and
+reopening restores the listener. iOS cannot provide an unrestricted always-on
+LAN receiver. App background operation is separately tested from native builds.
+
+Global CLI `--state-dir` precedes the command. Defaults: `$XDG_CONFIG_HOME/nshare`
+or `~/.config/nshare` on Unix, `%APPDATA%/nshare` on Windows. Mobile state lives in
+app-private support storage. State contains a private key: keep it private. Unix
+permissions are set through libc; Windows uses the selected user's inherited ACLs.
+The macOS desktop build is intended for direct distribution, outside App Sandbox,
+so CLI/UI state and queued source paths remain accessible across restarts.
+
+Ctrl+C cancels foreground operations. Exit codes: 0 success, 1 failure, 64 usage,
+130 cancellation. Progress and diagnostics go to stderr; results go to stdout.
+`send --help`, `receive --help` and each other command's help list options.
+
+## Development and evidence
 
 ```sh
 dart format --output=none --set-exit-if-changed lib bin test example tool
 dart analyze --fatal-infos
 dart test
+cd apps/nshare_app
+flutter analyze
+flutter test
+# Native desktop UI + separate compiled CLI processes:
+xvfb-run -a flutter test integration_test/desktop_transfer_test.dart -d linux
 ```
 
-The suite has 322 tests, including 48 end-to-end tests using separate compiled
-CLI processes that actually transfer files locally. It covers interruption/restart,
-verified resume, corruption/refusal, and boundary/malformed-input cases. See the
-[test guide and inventory](docs/testing.md). CI runs Linux, macOS and Windows,
-plus the minimum Dart SDK on Linux. Physical two-device networking and mobile
-behavior need separate hardware validation.
-
-See [architecture](docs/architecture.md), [protocol v2](docs/protocol-v2.md), and
-[validation record](docs/validation.md).
+See [delivery and platform evidence](docs/flutter-validation.md), the
+[v3 extension specification](docs/protocol-v3.md), the
+[v2 transport specification](docs/protocol-v2.md), and the
+[original baseline test inventory](docs/testing.md).

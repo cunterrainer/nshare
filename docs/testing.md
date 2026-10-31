@@ -1,4 +1,4 @@
-# Expanded test suite
+# Original v2 expanded test suite (historical baseline)
 
 The suite contains **322 independently registered tests**, up from 42:
 **280 new tests**, including **42 new native end-to-end tests**. The local Linux
@@ -101,3 +101,5 @@ CI runs the same suite on Linux, macOS and Windows, plus Dart 3.8.0 on Linux.
 Same-device tests do not establish that a particular two-device network permits
 broadcast or inbound transfers; physical-network firewall/Wi-Fi checks remain
 separate.
+
+The Flutter/v3 implementation adds a separate expanded suite; see [current validation](flutter-validation.md).

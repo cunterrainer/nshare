@@ -1,0 +1,8 @@
+{
+  "scope": "same-device native processes; UDP query port intentionally has no advertiser",
+  "mdnsDiscovery": true,
+  "sendUsingDiscoveredFingerprint": true,
+  "destinationVerified": true,
+  "senderExit": 0,
+  "receiverExit": 0
+}

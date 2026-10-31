@@ -1,4 +1,4 @@
-# nshare v2 implementation
+# nshare v2 implementation (historical baseline)
 
 Scope: a Dart desktop CLI for LAN file/folder transfer. No relay, Internet
 service, Flutter dependency, compression, or parallel file streams. The library
@@ -69,3 +69,5 @@ Original revision: 3adf003. The environment initially had no Dart executable;
 a temporary SDK is installed outside the repository for baseline and validation.
 Existing integration tests largely simulate components rather than exercise a
 network transfer. Baseline results will be recorded when available.
+
+Current CLI/Flutter application services and v3 extensions are described in [the roadmap](flutter-roadmap.md), [protocol extensions](protocol-v3.md) and [validation](flutter-validation.md).

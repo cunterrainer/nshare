@@ -1,0 +1,23 @@
+{
+  "scope": "same-process loopback TLS; no physical-device claim",
+  "results": [
+    {
+      "workload": "many-files",
+      "files": 100000,
+      "originalBytes": 0,
+      "networkPayloadBytes": 0,
+      "elapsedMs": 457759,
+      "processMaxRssBytes": 464867328,
+      "verified": true
+    },
+    {
+      "workload": "large-file",
+      "files": 1,
+      "originalBytes": 2147483649,
+      "networkPayloadBytes": 3145729,
+      "elapsedMs": 154193,
+      "processMaxRssBytes": 1045344256,
+      "verified": true
+    }
+  ]
+}
