@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:ffi';
+import 'package:ffi/ffi.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
@@ -17,17 +19,22 @@ String randomNonce() => base64Url.encode(
 );
 
 Future<void> privatePath(String path, {bool directory = false}) async {
-  if (!Platform.isWindows) {
-    final result = await Process.run('chmod', [
-      directory ? '700' : '600',
-      path,
-    ]);
-    if (result.exitCode != 0) {
+  if (Platform.isWindows) return;
+  final nativePath = path.toNativeUtf8();
+  try {
+    final chmod = DynamicLibrary.process()
+        .lookupFunction<
+          Int32 Function(Pointer<Utf8>, Uint32),
+          int Function(Pointer<Utf8>, int)
+        >('chmod');
+    if (chmod(nativePath, directory ? 448 : 384) != 0) {
       throw const NshareException(
         'permissions',
         'Cannot restrict local state permissions',
       );
     }
+  } finally {
+    malloc.free(nativePath);
   }
 }
 

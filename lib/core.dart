@@ -7,3 +7,5 @@ export 'src/discovery/interfaces.dart';
 export 'src/identity/identity.dart' show DeviceIdentity, TrustStore;
 export 'src/transfer/transfer.dart';
 export 'src/core/task.dart';
+
+export 'src/application/state.dart';
