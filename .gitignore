@@ -2,7 +2,7 @@
 # Created by `dart pub`
 .dart_tool/
 .idea/
-nshare
+/nshare
 # Local build output and example identities
 /build/
 /nshare.exe

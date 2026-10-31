@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
+import 'package:path/path.dart' as p;
 import '../core/models.dart';
 import '../application/sharing.dart';
 import '../application/pairing.dart';
@@ -274,6 +275,10 @@ class TransferReceiver {
   final _mdns = <MdnsAdvertiser>[];
   final Set<WireConnection> _connections = {};
   final Set<Future<void>> _tasks = {};
+  static final _outputOwners = <String>{};
+  String? _outputKey;
+  RandomAccessFile? _outputLock;
+  bool _closed = false;
   int get port => _server.port;
 
   static Future<TransferReceiver> start({
@@ -339,6 +344,39 @@ class TransferReceiver {
       rethrow;
     }
     return receiver;
+  }
+
+  Future<void> _acquireOutput() async {
+    if (_outputLock != null) return;
+    if (await FileSystemEntity.type(output.path, followLinks: false) ==
+        FileSystemEntityType.link) {
+      throw const NshareException('path', 'Output root must not be a link');
+    }
+    await output.create(recursive: true);
+    final canonical = await output.resolveSymbolicLinks();
+    if (!_outputOwners.add(canonical)) {
+      throw const NshareException(
+        'busy',
+        'Another receiver owns this output folder',
+      );
+    }
+    RandomAccessFile? lease;
+    try {
+      final state = Directory(p.join(canonical, '.nshare-state'));
+      await assertNoLinks(state.path);
+      await state.create();
+      await privatePath(state.path, directory: true);
+      final path = p.join(state.path, 'receiver.lock');
+      await assertNoLinks(path);
+      lease = await File(path).open(mode: FileMode.append);
+      await lease.lock(FileLock.exclusive);
+      _outputKey = canonical;
+      _outputLock = lease;
+    } catch (_) {
+      await lease?.close();
+      _outputOwners.remove(canonical);
+      rethrow;
+    }
   }
 
   void _accept(SecureSocket socket) {
@@ -423,6 +461,7 @@ class TransferReceiver {
           'Receiver declined the transfer',
         );
       }
+      await _acquireOutput();
       final store = await DestinationStore.open(
         output,
         manifest,
@@ -619,6 +658,8 @@ class TransferReceiver {
   }
 
   Future<void> close() async {
+    if (_closed) return;
+    _closed = true;
     for (final advertiser in _mdns) {
       await advertiser.close();
     }
@@ -630,5 +671,7 @@ class TransferReceiver {
       await wire.close();
     }
     await Future.wait(_tasks.toList());
+    await _outputLock?.close();
+    if (_outputKey != null) _outputOwners.remove(_outputKey);
   }
 }

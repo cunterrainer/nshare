@@ -110,7 +110,7 @@ ArgParser createParser() {
     'clipboard',
     ArgParser()
       ..addFlag('help', abbr: 'h', negatable: false)
-      ..addOption('ip', mandatory: true)
+      ..addOption('ip')
       ..addOption('port', defaultsTo: '53317')
       ..addOption('peer-fingerprint')
       ..addOption('text', help: 'Omit to read UTF-8 text from stdin'),
@@ -474,6 +474,9 @@ Future<int> runCli(List<String> arguments) async {
           bytes.add(chunk);
         }
         text = utf8.decode(bytes.takeBytes());
+      }
+      if (command['ip'] == null) {
+        throw const NshareException('usage', 'Supply --ip');
       }
       await shareText(
         text,
