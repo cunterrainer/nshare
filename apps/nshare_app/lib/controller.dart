@@ -13,6 +13,7 @@ class NshareController extends ChangeNotifier {
   Directory? stateDirectory, receiveDirectory;
   DeviceIdentity? identity;
   AppSettings settings = const AppSettings();
+  ConflictPolicy conflictPolicy = ConflictPolicy.refuse;
   List<DiscoveredDevice> devices = [];
   List<TransferJob> jobs = [];
   LocalService? service;
@@ -88,6 +89,10 @@ class NshareController extends ChangeNotifier {
           (await getApplicationDocumentsDirectory()).path,
           'nshare-received',
         ),
+      );
+      final uiState = await StateStore(stateDirectory!, 'ui').read();
+      conflictPolicy = ConflictPolicy.values.byName(
+        uiState['conflict'] as String? ?? 'refuse',
       );
       identity = await DeviceIdentity.load(stateDirectory!);
       settings = await SettingsStore(stateDirectory!).load();
@@ -258,6 +263,7 @@ class NshareController extends ChangeNotifier {
       port: port,
       approvePeer: _approve,
       allowCompression: settings.allowCompression,
+      conflict: conflictPolicy,
       approveOffer: (offer) async =>
           await confirm?.call(
             'Incoming transfer',
@@ -308,6 +314,20 @@ class NshareController extends ChangeNotifier {
       await LocalServiceClient(stateDirectory!).stop();
       externalStatus = null;
     }
+    notify();
+  }
+
+  Future<void> setConflictPolicy(ConflictPolicy value) async {
+    if (receiving) {
+      throw const NshareException(
+        'busy',
+        'Stop receiving before changing file policy',
+      );
+    }
+    await StateStore(stateDirectory!, 'ui').update((data) {
+      data['conflict'] = value.name;
+    });
+    conflictPolicy = value;
     notify();
   }
 

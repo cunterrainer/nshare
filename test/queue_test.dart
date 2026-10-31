@@ -41,7 +41,14 @@ void main() {
     },
   );
   for (final status in JobStatus.values) {
-    for (final action in ['pause', 'resume', 'retry', 'cancel', 'remove']) {
+    for (final action in [
+      'pause',
+      'resume',
+      'retry',
+      'restart',
+      'cancel',
+      'remove',
+    ]) {
       test('$action from ${status.name} enforces lifecycle', () async {
         final job = await add();
         final state = StateStore(root, 'queue');
@@ -63,6 +70,12 @@ void main() {
             JobStatus.failed,
             JobStatus.interrupted,
             JobStatus.cancelled,
+          ].contains(status),
+          'restart' => [
+            JobStatus.failed,
+            JobStatus.interrupted,
+            JobStatus.cancelled,
+            JobStatus.paused,
           ].contains(status),
           'cancel' => ![
             JobStatus.completed,

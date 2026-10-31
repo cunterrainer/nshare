@@ -351,6 +351,35 @@ class _HomeState extends State<NshareHome> with WidgetsBindingObserver {
         style: Theme.of(context).textTheme.titleLarge,
       ),
       SelectableText('Destination: ${c.receiveDirectory?.path ?? 'Loading…'}'),
+      InputDecorator(
+        decoration: const InputDecoration(
+          labelText: 'Existing destination files',
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<ConflictPolicy>(
+            value: c.conflictPolicy,
+            isExpanded: true,
+            items: [
+              for (final policy in ConflictPolicy.values)
+                DropdownMenuItem(
+                  value: policy,
+                  child: Text(switch (policy) {
+                    ConflictPolicy.refuse => 'Refuse existing files',
+                    ConflictPolicy.skip => 'Skip existing files',
+                    ConflictPolicy.overwrite => 'Replace after verification',
+                  }, overflow: TextOverflow.ellipsis),
+                ),
+            ],
+            onChanged: (c.receiving || c.busy)
+                ? null
+                : (value) {
+                    if (value != null) {
+                      unawaited(c.perform(() => c.setConflictPolicy(value)));
+                    }
+                  },
+          ),
+        ),
+      ),
       const Text(
         'Each incoming transfer and clipboard offer requires approval.',
       ),
@@ -502,6 +531,20 @@ class _HomeState extends State<NshareHome> with WidgetsBindingObserver {
                         JobStatus.cancelled,
                       ].contains(job.status))
                         action('Retry', () => c.queueAction(job.id, 'retry')),
+                      if ([
+                        JobStatus.failed,
+                        JobStatus.interrupted,
+                        JobStatus.cancelled,
+                        JobStatus.paused,
+                      ].contains(job.status))
+                        action('Restart from beginning', () async {
+                          if (await confirm(
+                            'Restart transfer',
+                            'Discard retained partial bytes and restart. This does not authorize overwriting finalized files; the receiver controls its existing-file policy.',
+                          )) {
+                            await c.queueAction(job.id, 'restart');
+                          }
+                        }),
                       if (![
                         JobStatus.completed,
                         JobStatus.cancelled,

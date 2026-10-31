@@ -137,6 +137,7 @@ ArgParser createParser() {
           'resume',
           'cancel',
           'retry',
+          'restart',
           'move',
           'remove',
           'events',
@@ -150,6 +151,7 @@ ArgParser createParser() {
       ..addOption('id')
       ..addOption('position')
       ..addFlag('compress')
+      ..addFlag('resume', defaultsTo: true)
       ..addFlag('watch', negatable: false)
       ..addFlag('json', negatable: false),
   );
@@ -164,6 +166,11 @@ ArgParser createParser() {
       )
       ..addOption('output', defaultsTo: './downloads')
       ..addOption('port', defaultsTo: '53317')
+      ..addOption(
+        'conflict',
+        allowed: ['refuse', 'skip', 'overwrite'],
+        defaultsTo: 'refuse',
+      )
       ..addOption('peer-fingerprint')
       ..addFlag('accept', negatable: false)
       ..addFlag('allow-compression'),
@@ -271,6 +278,8 @@ Future<int> runCli(List<String> arguments) async {
         'run',
         '--output',
         Directory(command['output'] as String).absolute.path,
+        '--conflict',
+        command['conflict'] as String,
         '--port',
         command['port'] as String,
         if (command['accept'] as bool) '--accept',
@@ -351,6 +360,7 @@ Future<int> runCli(List<String> arguments) async {
           host,
           parsePort(command['port'] as String),
           _fingerprint(pin),
+          resume: command['resume'] as bool,
           compression: command.wasParsed('compress')
               ? command['compress'] as bool
               : settings.compression,
@@ -522,6 +532,7 @@ Future<int> runCli(List<String> arguments) async {
       );
       try {
         await service.startReceiver(
+          conflict: ConflictPolicy.values.byName(command['conflict'] as String),
           output: Directory(command['output'] as String),
           port: parsePort(command['port'] as String),
           expectedFingerprint: expected,

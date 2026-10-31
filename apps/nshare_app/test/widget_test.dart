@@ -20,6 +20,12 @@ class FakeController extends NshareController {
   }
 
   @override
+  Future<void> setConflictPolicy(ConflictPolicy policy) async {
+    conflictPolicy = policy;
+    notify();
+  }
+
+  @override
   Future<void> search() async {
     devices = [
       const DiscoveredDevice(
@@ -168,4 +174,19 @@ void main() {
     await tester.pump();
     expect(find.text('network: no route'), findsOneWidget);
   });
+  testWidgets(
+    'receiver conflict policy is explicit and usable on a phone-width screen',
+    (tester) async {
+      final c = await mount(tester, 390);
+      await tester.tap(find.text('Receive').last);
+      await tester.pumpAndSettle();
+      expect(c.conflictPolicy, ConflictPolicy.refuse);
+      await tester.tap(find.byType(DropdownButton<ConflictPolicy>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Replace after verification').last);
+      await tester.pumpAndSettle();
+      expect(c.conflictPolicy, ConflictPolicy.overwrite);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

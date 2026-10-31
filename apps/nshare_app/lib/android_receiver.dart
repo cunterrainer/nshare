@@ -114,11 +114,16 @@ class ReceiverTask extends TaskHandler {
       final port = (await FlutterForegroundTask.getData<int>(key: 'port'))!;
       final identity = await DeviceIdentity.load(state);
       final settings = await SettingsStore(state).load();
+      final uiState = await StateStore(state, 'ui').read();
+      final conflict = ConflictPolicy.values.byName(
+        uiState['conflict'] as String? ?? 'refuse',
+      );
       service = await LocalService.start(state, identity, TrustStore(state));
       await service!.startReceiver(
         output: output,
         port: port,
         allowCompression: settings.allowCompression,
+        conflict: conflict,
         approvePeer: (peer) => ask(
           'Verify peer fingerprint',
           'Compare the full peer fingerprint on its screen:\n${peer.fingerprint}\n\nThis device:\n${identity.fingerprint}',

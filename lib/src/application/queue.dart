@@ -43,10 +43,11 @@ class TransferJob {
     this.bytes = 0,
     this.retryCount = 0,
     this.notBefore = 0,
+    this.resume = true,
   });
   final String id, path, host, fingerprint;
   final int port, files, bytes, retryCount, notBefore;
-  final bool compression;
+  final bool compression, resume;
   final JobStatus status;
   final String? error;
   Map<String, dynamic> toJson() => {
@@ -56,6 +57,7 @@ class TransferJob {
     'port': port,
     'fingerprint': fingerprint,
     'compression': compression,
+    'resume': resume,
     'status': status.name,
     'error': error,
     'files': files,
@@ -72,6 +74,7 @@ class TransferJob {
         port: json['port'] as int,
         fingerprint: json['fingerprint'] as String,
         compression: json['compression'] as bool,
+        resume: json['resume'] as bool? ?? true,
         status: JobStatus.values.byName(json['status'] as String),
         error: json['error'] as String?,
         files: json['files'] as int? ?? 0,
@@ -127,6 +130,7 @@ class QueueStore {
     int port,
     String fingerprint, {
     bool compression = false,
+    bool resume = true,
   }) async {
     final job = TransferJob.fromJson(
       TransferJob(
@@ -136,6 +140,7 @@ class QueueStore {
         port: port,
         fingerprint: fingerprint.toLowerCase(),
         compression: compression,
+        resume: resume,
         status: JobStatus.queued,
       ).toJson(),
     );
@@ -174,6 +179,7 @@ class QueueStore {
             }
             job['status'] = JobStatus.queued.name;
             job['error'] = null;
+            job['resume'] = true;
             job['notBefore'] = 0;
           case 'retry':
             if (![
@@ -185,8 +191,26 @@ class QueueStore {
             }
             job['status'] = JobStatus.queued.name;
             job['error'] = null;
+            job['resume'] = true;
             job['notBefore'] = 0;
             job['retryCount'] = 0;
+          case 'restart':
+            if (![
+              JobStatus.failed,
+              JobStatus.interrupted,
+              JobStatus.cancelled,
+              JobStatus.paused,
+            ].contains(status)) {
+              throw const NshareException(
+                'usage',
+                'Pause or stop a job before restarting',
+              );
+            }
+            job['status'] = JobStatus.queued.name;
+            job['resume'] = false;
+            job['retryCount'] = 0;
+            job['notBefore'] = 0;
+            job['error'] = null;
           case 'cancel':
             if ([JobStatus.completed, JobStatus.cancelled].contains(status)) {
               throw const NshareException('usage', 'Job already terminal');
@@ -386,6 +410,7 @@ class QueueRunner {
             trust,
             expectedFingerprint: job.fingerprint,
             compression: job.compression,
+            resume: job.resume,
             cancellation: cancellation,
             onProgress: (progress) {
               if (previousPhase != progress.phase &&
