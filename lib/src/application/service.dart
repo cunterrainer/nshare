@@ -8,6 +8,8 @@ import '../transfer/transfer.dart';
 import 'queue.dart';
 import 'sharing.dart';
 
+enum ServiceApproval { app, terminal, automatic, unavailable }
+
 /// User-local control endpoint. Bearer credentials live in owner-only state.
 class LocalService {
   LocalService._(
@@ -26,6 +28,7 @@ class LocalService {
   final String _token;
   static final _owners = <String>{};
   TransferReceiver? receiver;
+  ServiceApproval _approvalMode = ServiceApproval.app;
   QueueRunner? _runner;
   Future<void>? _running;
   bool _closed = false;
@@ -37,6 +40,11 @@ class LocalService {
     'pid': pid,
     'fingerprint': identity.fingerprint,
     'receiverPort': receiver?.port,
+    'stopping': _closed,
+    'output': receiver?.output.absolute.path,
+    'conflict': receiver?.conflict.name,
+    'allowCompression': receiver?.allowCompression,
+    'approvalMode': receiver == null ? null : _approvalMode.name,
     'queueRunning': _runner != null,
   };
   static Future<LocalService> start(
@@ -107,6 +115,7 @@ class LocalService {
     String? expectedFingerprint,
     bool allowCompression = false,
     ConflictPolicy conflict = ConflictPolicy.refuse,
+    ServiceApproval approvalMode = ServiceApproval.app,
     int port = 53317,
     bool discover = true,
     InternetAddress? bind,
@@ -120,6 +129,7 @@ class LocalService {
     if (receiver != null) {
       throw const NshareException('busy', 'Receiver already running');
     }
+    _approvalMode = approvalMode;
     receiver = await TransferReceiver.start(
       identity: identity,
       trust: trust,

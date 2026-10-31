@@ -350,14 +350,14 @@ class _HomeState extends State<NshareHome> with WidgetsBindingObserver {
         c.receiverDescription,
         style: Theme.of(context).textTheme.titleLarge,
       ),
-      SelectableText('Destination: ${c.receiveDirectory?.path ?? 'Loading…'}'),
+      SelectableText('Destination: ${c.receivePathLabel}'),
       InputDecorator(
         decoration: const InputDecoration(
           labelText: 'Existing destination files',
         ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<ConflictPolicy>(
-            value: c.conflictPolicy,
+            value: c.activeConflictPolicy,
             isExpanded: true,
             items: [
               for (final policy in ConflictPolicy.values)
@@ -380,9 +380,7 @@ class _HomeState extends State<NshareHome> with WidgetsBindingObserver {
           ),
         ),
       ),
-      const Text(
-        'Each incoming transfer and clipboard offer requires approval.',
-      ),
+      Text(c.approvalDescription),
       if (Platform.isIOS)
         const Text(
           'iOS receiving works while this app is active. Suspended apps cannot stay reachable.',
@@ -584,7 +582,7 @@ class _HomeState extends State<NshareHome> with WidgetsBindingObserver {
         subtitle: const Text(
           'Explicit permission to decompress received file blocks.',
         ),
-        value: c.settings.allowCompression,
+        value: c.incomingCompression,
         onChanged: c.receiving
             ? null
             : (v) => unawaited(

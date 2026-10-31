@@ -532,6 +532,11 @@ Future<int> runCli(List<String> arguments) async {
       );
       try {
         await service.startReceiver(
+          approvalMode: command['accept'] as bool
+              ? ServiceApproval.automatic
+              : stdin.hasTerminal
+              ? ServiceApproval.terminal
+              : ServiceApproval.unavailable,
           conflict: ConflictPolicy.values.byName(command['conflict'] as String),
           output: Directory(command['output'] as String),
           port: parsePort(command['port'] as String),

@@ -83,7 +83,7 @@ final class FolderAccess: NSObject, UIDocumentPickerDelegate {
           if count > 1_000_000 { throw CocoaError(.fileReadTooLarge) }
           let values = try item.resourceValues(forKeys: Set(keys))
           if values.isSymbolicLink == true { throw CocoaError(.fileReadUnsupportedScheme) }
-          let relative = String(item.path.dropFirst(root.path.count + 1))
+          let relative = item.pathComponents.dropFirst(root.pathComponents.count).joined(separator: "/")
           if relative.split(separator: "/").count > 128 { throw CocoaError(.fileReadTooLarge) }
           let target = destination.appendingPathComponent(relative)
           if values.isDirectory == true { try manager.createDirectory(at: target, withIntermediateDirectories: true) }

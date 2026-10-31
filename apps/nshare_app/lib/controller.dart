@@ -70,10 +70,37 @@ class NshareController extends ChangeNotifier {
 
   bool get mobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
   bool get receiving =>
-      service?.receiver != null || externalStatus?['receiverPort'] != null;
-  String get receiverDescription => receiving
+      service?.receiver != null ||
+      externalStatus?['receiverPort'] != null ||
+      externalStatus?['stopping'] == true;
+  String get receiverDescription => externalStatus?['stopping'] == true
+      ? 'Stopping receiver…'
+      : receiving
       ? 'Listening on port ${service?.receiver?.port ?? externalStatus?['receiverPort']}'
       : 'Receiver stopped';
+  String get receivePathLabel =>
+      externalStatus?['output'] as String? ??
+      service?.receiver?.output.absolute.path ??
+      receiveDirectory?.path ??
+      'Loading…';
+  ConflictPolicy get activeConflictPolicy =>
+      receiving && externalStatus?['conflict'] is String
+      ? ConflictPolicy.values.byName(externalStatus!['conflict'] as String)
+      : conflictPolicy;
+  bool get incomingCompression =>
+      receiving && externalStatus?['allowCompression'] is bool
+      ? externalStatus!['allowCompression'] as bool
+      : settings.allowCompression;
+  String get approvalDescription => switch (externalStatus?['approvalMode']) {
+    'automatic' =>
+      'The owning CLI service automatically accepts authenticated file offers. It declines clipboard offers.',
+    'terminal' =>
+      'File approvals are handled in the owning CLI terminal. Clipboard offers are declined.',
+    'unavailable' =>
+      'This detached receiver cannot approve offers. Stop it and restart with an explicit approval policy.',
+    'app' => 'Incoming requests are approved in the owning application.',
+    _ => 'Each incoming transfer and clipboard offer requires approval.',
+  };
   Future<void> initialize() async {
     try {
       if (Platform.isAndroid) {
