@@ -6,7 +6,7 @@ Validated in the Linux development workspace on 2026-10-31 with Dart 3.13.7.
 
 - `dart format --output=none --set-exit-if-changed lib bin test example tool`: clean.
 - `dart analyze --fatal-infos`: no issues.
-- `dart test --reporter expanded`: all 42 tests passed.
+- `dart test --reporter expanded`: all 322 tests passed (280 additional tests; zero failures or skips locally).
 - Native compilation: `dart compile exe bin/nshare.dart` succeeded. The process
   integration test also builds and runs a fresh native executable.
 - Native `--show-ip`: listed real IPv4/IPv6 interfaces and scoped link-local
@@ -33,6 +33,13 @@ asserts that no final destination file is exposed.
 The interruption process test kills a sender during a 32 MiB transfer,
 checks that only a partial exists, restarts both processes, resumes with fewer
 network bytes, and compares complete source/destination SHA-256 hashes.
+
+See the [expanded test guide](testing.md) and [runner-derived test inventory](test-inventory.json)
+for the breakdown. The expanded run includes 48 native process end-to-end tests
+(42 new) and 34 new native CLI checks. Both sender and receiver are separate
+compiled processes; successful cases verify destination content and both exit
+codes. The new failure/recovery case kills the receiver mid-transfer and verifies
+resumption after restart.
 
 ## Loopback measurements
 

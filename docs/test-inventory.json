@@ -1,0 +1,38 @@
+{
+  "command": "dart test --reporter json",
+  "environment": "Linux; Dart 3.13.7",
+  "previous_tests": 42,
+  "additional_tests": 280,
+  "passed_tests": 322,
+  "failed_tests": 0,
+  "skipped_tests": 0,
+  "new_native_end_to_end_tests": 42,
+  "all_native_end_to_end_tests": 48,
+  "new_test_files": {
+    "path_manifest_matrix_test.dart": 108,
+    "protocol_matrix_test.dart": 60,
+    "trust_matrix_test.dart": 12,
+    "discovery_matrix_test.dart": 24,
+    "cli_matrix_test.dart": 34,
+    "native_e2e_matrix_test.dart": 42
+  },
+  "all_test_files": {
+    "cli_matrix_test.dart": 34,
+    "cli_test.dart": 3,
+    "core_test.dart": 1,
+    "discovery_matrix_test.dart": 24,
+    "discovery_test.dart": 1,
+    "failure_test.dart": 6,
+    "identity_test.dart": 3,
+    "native_e2e_matrix_test.dart": 42,
+    "path_manifest_matrix_test.dart": 108,
+    "process_test.dart": 6,
+    "protocol_matrix_test.dart": 60,
+    "receiver_validation_test.dart": 6,
+    "resume_test.dart": 2,
+    "storage_test.dart": 4,
+    "transfer_test.dart": 3,
+    "trust_matrix_test.dart": 12,
+    "v2_protocol_test.dart": 7
+  }
+}

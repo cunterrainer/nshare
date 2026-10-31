@@ -56,7 +56,20 @@ replace `--ip 127.0.0.1` with `--to <same-fingerprint>` on the sender. Broadcast
 traffic must be permitted on the local interface. The automated process tests
 use direct loopback to remain reliable on CI hosts with restricted broadcast.
 
-## Automated coverage
+## Expanded native end-to-end coverage
+
+There are now 42 additional compiled-process end-to-end tests, alongside the six
+original process tests. They exercise byte/chunk boundaries, portable names, eight
+folder shapes, refusal/skip/overwrite, shared and remembered identity, repeated
+sessions, modified destinations, and receiver-termination recovery.
+
+```sh
+dart test test/native_e2e_matrix_test.dart --reporter expanded
+```
+
+See [the test guide](testing.md) for the complete 322-test inventory.
+
+## Original process coverage
 
 ```sh
 dart test test/process_test.dart --reporter expanded

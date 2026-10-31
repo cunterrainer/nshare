@@ -166,8 +166,10 @@ dart analyze --fatal-infos
 dart test
 ```
 
-Tests include real TLS sockets and compiled CLI processes, interruption/restart,
-verified resume, and corruption/refusal cases. CI runs Linux, macOS and Windows,
+The suite has 322 tests, including 48 end-to-end tests using separate compiled
+CLI processes that actually transfer files locally. It covers interruption/restart,
+verified resume, corruption/refusal, and boundary/malformed-input cases. See the
+[test guide and inventory](docs/testing.md). CI runs Linux, macOS and Windows,
 plus the minimum Dart SDK on Linux. Physical two-device networking and mobile
 behavior need separate hardware validation.
 
