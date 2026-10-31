@@ -88,6 +88,43 @@ void main() {
   );
 
   test(
+    'pending first-time pairing does not hold trust storage after shutdown',
+    () async {
+      final source = File('${temp.path}/pairing.txt')
+        ..writeAsStringSync('pairing');
+      final isolatedTrust = Directory('${temp.path}/fresh-trust')..createSync();
+      final approvalSeen = Completer<void>();
+      final server = await TransferReceiver.start(
+        identity: receiver,
+        trust: TrustStore(isolatedTrust),
+        output: Directory('${temp.path}/pairing-out'),
+        approvePeer: (_) {
+          approvalSeen.complete();
+          return Completer<bool>().future;
+        },
+        approveOffer: (_) async => true,
+        bind: InternetAddress.loopbackIPv4,
+        port: 0,
+        discover: false,
+      );
+      final sending = sendPath(
+        source.path,
+        '127.0.0.1',
+        server.port,
+        sender,
+        TrustStore(sender.directory),
+        expectedFingerprint: receiver.fingerprint,
+      );
+      final failed = expectLater(sending, throwsA(isA<NshareException>()));
+      await approvalSeen.future;
+      await server.close().timeout(const Duration(seconds: 2));
+      await failed;
+      await TrustStore(
+        isolatedTrust,
+      ).forget(sender.fingerprint).timeout(const Duration(seconds: 2));
+    },
+  );
+  test(
     'missing final acknowledgment is an uncertain failure even after file acknowledgments',
     () async {
       final source = File('${temp.path}/uncertain.txt')

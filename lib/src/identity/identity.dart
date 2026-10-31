@@ -200,12 +200,12 @@ class TrustStore {
     peers.remove(fingerprint);
   });
 
-  Future<void> approve(
+  void _validatePin(
+    Map<String, dynamic> peers,
     PeerIdentity peer,
-    PairingApproval? approval, {
     String? expectedFingerprint,
     String? endpoint,
-  }) => _mutate((peers) async {
+  ) {
     if (expectedFingerprint != null &&
         peer.fingerprint != expectedFingerprint.toLowerCase()) {
       throw const NshareException(
@@ -225,30 +225,39 @@ class TrustStore {
         );
       }
     }
-    if (peers.containsKey(peer.fingerprint)) {
-      if (endpoint != null) {
-        final entry = Map<String, dynamic>.from(peers[peer.fingerprint] as Map);
-        final endpoints = List<String>.from(entry['endpoints'] as List? ?? []);
-        if (!endpoints.contains(endpoint)) {
-          entry['endpoints'] = [...endpoints, endpoint];
-          peers[peer.fingerprint] = entry;
-        }
-      }
-      return;
-    }
-    if (expectedFingerprint == null &&
-        (approval == null ||
-            !await approval(peer).timeout(const Duration(minutes: 5)))) {
+  }
+
+  Future<void> approve(
+    PeerIdentity peer,
+    PairingApproval? approval, {
+    String? expectedFingerprint,
+    String? endpoint,
+  }) async {
+    final snapshot = await list();
+    _validatePin(snapshot, peer, expectedFingerprint, endpoint);
+    // Never hold an OS lock (or a timeout timer) while a UI decision is pending.
+    // The connection owns the approval deadline and cancellation race.
+    if (!snapshot.containsKey(peer.fingerprint) &&
+        expectedFingerprint == null &&
+        (approval == null || !await approval(peer))) {
       throw const NshareException(
         'untrusted',
         'Peer fingerprint requires out-of-band verification',
       );
     }
-    peers[peer.fingerprint] = {
-      'name': peer.name,
-      'endpoints': [?endpoint],
-    };
-  });
+    await _mutate((peers) async {
+      _validatePin(peers, peer, expectedFingerprint, endpoint);
+      final entry = peers.containsKey(peer.fingerprint)
+          ? Map<String, dynamic>.from(peers[peer.fingerprint] as Map)
+          : <String, dynamic>{'name': peer.name, 'endpoints': <String>[]};
+      final endpoints = List<String>.from(entry['endpoints'] as List? ?? []);
+      if (endpoint != null && !endpoints.contains(endpoint)) {
+        endpoints.add(endpoint);
+      }
+      entry['endpoints'] = endpoints;
+      peers[peer.fingerprint] = entry;
+    });
+  }
 }
 
 List<int> _transcript(

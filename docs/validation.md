@@ -6,7 +6,7 @@ Validated in the Linux development workspace on 2026-10-31 with Dart 3.13.7.
 
 - `dart format --output=none --set-exit-if-changed lib bin test example tool`: clean.
 - `dart analyze --fatal-infos`: no issues.
-- `dart test --reporter expanded`: all 26 tests passed.
+- `dart test --reporter expanded`: all 27 tests passed.
 - Native compilation: `dart compile exe bin/nshare.dart` succeeded. The process
   integration test also builds and runs a fresh native executable.
 - Native `--show-ip`: listed real IPv4/IPv6 interfaces and scoped link-local
@@ -18,7 +18,7 @@ truncated streams, invalid session ordering, real TLS authentication and identit
 persistence, changed pin rejection, bounded loopback UDP discovery, path and
 symlink rejection, Unicode/case collisions, total-size overflow, hash mismatch,
 empty/nested/Unicode files, skip/overwrite policies, refused offers, cancellation,
-approval shutdown, inactivity deadlines, corrupt resume prefixes, explicit
+approval/pairing shutdown without retained trust locks, inactivity deadlines, corrupt resume prefixes, explicit
 restart, idempotent finalized-file retries, and missing final acknowledgments.
 
 The native process integration test kills a sender during a 32 MiB transfer,
