@@ -63,7 +63,7 @@ class MainActivity : FlutterActivity() {
                         check(depth <= 128 && ++count <= 1_000_000) { "Folder limit exceeded" }
                         check(!ancestors.contains(uri.toString())) { "Cyclic document tree" }
                         if (mime(uri) == DocumentsContract.Document.MIME_TYPE_DIR) {
-                            check(destination.mkdir() || destination.isDirectory) { "Cannot create staging directory" }
+                            check(destination.mkdir()) { "Cannot create staging directory or duplicate folder name" }
                             val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, DocumentsContract.getDocumentId(uri))
                             contentResolver.query(children, arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID), null, null, null)?.use { cursor ->
                                 while (cursor.moveToNext()) {
@@ -96,15 +96,18 @@ class MainActivity : FlutterActivity() {
                     fun export(file: File, parent: Uri) {
                         check(!cancelled.get()) { "Export cancelled" }
                         check(file.canonicalPath == file.absolutePath) { "Links cannot be exported" }
-                        if (file.name == ".nshare-state") return
+                        if (file.name == ".nshare-state" && file.parentFile?.canonicalFile == root) return
                         val uri = DocumentsContract.createDocument(contentResolver, parent,
                             if (file.isDirectory) DocumentsContract.Document.MIME_TYPE_DIR else "application/octet-stream", file.name)
                             ?: error("Cannot create export document")
-                        if (file.isDirectory) file.listFiles()?.forEach { export(it, uri) }
-                        else contentResolver.openOutputStream(uri)?.use { output -> file.inputStream().use { it.copyTo(output, 65536) } }
+                        if (file.isDirectory) {
+                            val children = file.listFiles() ?: error("Cannot read export directory")
+                            children.forEach { export(it, uri) }
+                        } else contentResolver.openOutputStream(uri)?.use { output -> file.inputStream().use { it.copyTo(output, 65536) } }
                             ?: error("Cannot write export document")
                     }
-                    root.listFiles()?.forEach { export(it, exported) }
+                    val entries = root.listFiles() ?: error("Cannot read received folder")
+                    entries.forEach { export(it, exported) }
                     runOnUiThread { pending = null; reply.success(exported.toString()) }
                 }
             } catch (error: Exception) {
