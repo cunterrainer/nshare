@@ -34,7 +34,7 @@ final class FolderAccess: NSObject, UIDocumentPickerDelegate {
       if call.method == "importFolder" {
         self.pending = result; self.exporting = false
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.folder], asCopy: false)
-        picker.delegate = self; self.presenter?.present(picker, animated: true)
+        picker.delegate = self; self.presentPicker(picker)
       } else if call.method == "exportFolder", let args = call.arguments as? [String: Any], let path = args["path"] as? String {
         self.pending = result; self.exporting = true
         // Export a snapshot without internal resume receipts or keys.
@@ -48,7 +48,7 @@ final class FolderAccess: NSObject, UIDocumentPickerDelegate {
             }
             DispatchQueue.main.async {
               let picker = UIDocumentPickerViewController(forExporting: [snapshot], asCopy: true)
-              picker.delegate = self; self.presenter?.present(picker, animated: true)
+              picker.delegate = self; self.presentPicker(picker)
             }
           } catch { DispatchQueue.main.async { self.complete(FlutterError(code: "folder", message: error.localizedDescription, details: nil)) } }
         }
@@ -72,7 +72,11 @@ final class FolderAccess: NSObject, UIDocumentPickerDelegate {
         let destination = container.appendingPathComponent(root.lastPathComponent)
         try manager.createDirectory(at: destination, withIntermediateDirectories: true)
         let keys: [URLResourceKey] = [.isSymbolicLinkKey, .isDirectoryKey, .isRegularFileKey]
-        guard let items = manager.enumerator(at: root, includingPropertiesForKeys: keys, options: [], errorHandler: { _, _ in false }) else { throw CocoaError(.fileReadUnknown) }
+        var enumerationError: Error?
+        guard let items = manager.enumerator(at: root, includingPropertiesForKeys: keys, options: [], errorHandler: { _, error in
+          enumerationError = error
+          return false
+        }) else { throw CocoaError(.fileReadUnknown) }
         var count = 0
         for case let item as URL in items {
           count += 1
@@ -86,12 +90,26 @@ final class FolderAccess: NSObject, UIDocumentPickerDelegate {
           else if values.isRegularFile == true { try manager.copyItem(at: item, to: target) }
           else { throw CocoaError(.fileReadUnknown) }
         }
+        if let error = enumerationError { throw error }
         DispatchQueue.main.async { self.complete(destination.path) }
       } catch {
         if let path = staging { try? FileManager.default.removeItem(at: path) }
         DispatchQueue.main.async { self.complete(FlutterError(code: "folder", message: error.localizedDescription, details: nil)) }
       }
     }
+  }
+  private func presentPicker(_ picker: UIViewController) {
+    // Scene-based Flutter applications may not populate AppDelegate.window.
+    var host = presenter ?? UIApplication.shared.connectedScenes
+      .compactMap { $0 as? UIWindowScene }
+      .flatMap { $0.windows }
+      .first(where: { $0.isKeyWindow })?.rootViewController
+    while let presented = host?.presentedViewController { host = presented }
+    guard let host = host else {
+      complete(FlutterError(code: "window", message: "No active window for folder selection", details: nil))
+      return
+    }
+    host.present(picker, animated: true)
   }
   private func complete(_ value: Any?) { let callback = pending; pending = nil; callback?(value) }
 }
