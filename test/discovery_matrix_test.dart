@@ -58,7 +58,9 @@ void main() {
       final devices = await discoverDevices(
         port: socket.port,
         target: InternetAddress.loopbackIPv4,
-        duration: const Duration(milliseconds: 250),
+        // Use the real discovery budget: a sub-second window can expire before
+        // Windows schedules UDP reads while native compilation runs in parallel.
+        duration: const Duration(seconds: 3),
       );
       await sawRequest.future.timeout(const Duration(seconds: 2));
       expect(devices, hasLength(1));
