@@ -484,6 +484,7 @@ class _HomeState extends State<NshareHome> with WidgetsBindingObserver {
                     children: [
                       if ([
                         JobStatus.queued,
+                        JobStatus.waitingForPeer,
                         ...activeJobStatuses,
                         JobStatus.interrupted,
                       ].contains(job.status))

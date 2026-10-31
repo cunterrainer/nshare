@@ -154,6 +154,9 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('/photos/file.txt'), findsOneWidget);
         expect(find.textContaining(status.name), findsWidgets);
+        if (status == JobStatus.waitingForPeer) {
+          expect(find.text('Pause'), findsOneWidget);
+        }
         expect(tester.takeException(), isNull);
       });
     }
