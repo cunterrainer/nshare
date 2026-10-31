@@ -23,7 +23,8 @@ class NshareController extends ChangeNotifier {
   PairingInvitation? invitation;
   Future<bool> Function(String title, String details)? confirm;
   Future<bool> Function(ClipboardOffer offer)? confirmClipboard;
-  Timer? _refresh;
+  Timer? _refresh, _discoveryRefresh;
+  bool foreground = true;
   bool _disposed = false;
   bool _handoff = false;
   final _dialogs = <String>{};
@@ -96,6 +97,9 @@ class NshareController extends ChangeNotifier {
         const Duration(seconds: 1),
         (_) => unawaited(refresh()),
       );
+      _discoveryRefresh = Timer.periodic(const Duration(seconds: 15), (_) {
+        if (foreground && !searching) unawaited(search());
+      });
       await refresh();
     } catch (e) {
       error = e.toString();
@@ -129,6 +133,7 @@ class NshareController extends ChangeNotifier {
     if (!ready || _disposed || _handoff) return;
     try {
       jobs = await QueueStore(stateDirectory!).list();
+      if (service?.isClosed == true) service = null;
       if (service == null) {
         try {
           externalStatus = await LocalServiceClient(stateDirectory!).status();
@@ -395,6 +400,7 @@ class NshareController extends ChangeNotifier {
       TrustStore(stateDirectory!).forget(fingerprint);
   Future<void> shutdown() async {
     _refresh?.cancel();
+    _discoveryRefresh?.cancel();
     await service?.close();
     service = null;
   }
@@ -406,6 +412,7 @@ class NshareController extends ChangeNotifier {
       FlutterForegroundTask.removeTaskDataCallback(_taskMessage);
     }
     _refresh?.cancel();
+    _discoveryRefresh?.cancel();
     unawaited(service?.close());
     super.dispose();
   }

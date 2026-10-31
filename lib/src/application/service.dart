@@ -31,6 +31,7 @@ class LocalService {
   bool _closed = false;
   final _done = Completer<void>();
   Future<void> get done => _done.future;
+  bool get isClosed => _closed;
   File get _descriptor => File(p.join(directory.path, 'service.json'));
   Map<String, dynamic> get status => {
     'pid': pid,
@@ -112,6 +113,8 @@ class LocalService {
     void Function(TransferResult)? onResult,
     void Function(Object)? onError,
   }) async {
+    if (_closed)
+      throw const NshareException('service', 'Receiver service has stopped');
     if (receiver != null) {
       throw const NshareException('busy', 'Receiver already running');
     }

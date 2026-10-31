@@ -1,6 +1,6 @@
 name: nshare
 description: Secure, resumable LAN file transfers with a reusable Dart core.
-version: 2.0.0
+version: 3.0.0
 repository: https://github.com/cunterrainer/nshare
 
 executables:

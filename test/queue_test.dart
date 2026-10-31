@@ -51,6 +51,7 @@ void main() {
         final allowed = switch (action) {
           'pause' => [
             JobStatus.queued,
+            JobStatus.waitingForPeer,
             ...activeJobStatuses,
             JobStatus.interrupted,
           ].contains(status),
@@ -143,4 +144,44 @@ void main() {
     );
     expect((await store.list()).single.error, 'identity');
   });
+  for (final code in [
+    'timeout',
+    'network',
+    'disconnected',
+    'uncertain',
+    'busy',
+  ]) {
+    test('transient $code uses bounded persistent retries', () async {
+      final job = await add();
+      for (var attempt = 1; attempt <= 4; attempt++) {
+        await StateStore(root, 'queue').update((data) {
+          final raw = (data['jobs'] as List).first as Map;
+          raw['status'] = JobStatus.transferring.name;
+          raw['notBefore'] = 0;
+        });
+        await store.finish(job.id, error: NshareException(code, 'transient'));
+        final current = (await store.list()).single;
+        expect(current.retryCount, attempt.clamp(0, 3));
+        expect(
+          current.status,
+          attempt <= 3 ? JobStatus.waitingForPeer : JobStatus.failed,
+        );
+      }
+    });
+  }
+  for (final code in [
+    'identity',
+    'rejected',
+    'integrity',
+    'source',
+    'protocol',
+  ]) {
+    test('permanent $code is never retried automatically', () async {
+      final job = await add();
+      await store.claim();
+      await store.finish(job.id, error: NshareException(code, 'permanent'));
+      expect((await store.list()).single.status, JobStatus.failed);
+      expect((await store.list()).single.retryCount, 0);
+    });
+  }
 }

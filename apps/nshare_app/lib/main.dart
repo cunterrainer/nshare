@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import 'package:args/args.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
@@ -10,14 +11,44 @@ import 'package:nshare/nshare.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'controller.dart';
 
-void main() async {
+void main(List<String> arguments) async {
   WidgetsFlutterBinding.ensureInitialized();
   if (Platform.isAndroid) FlutterForegroundTask.initCommunicationPort();
-  final controller = NshareController();
-  if (!Platform.isAndroid && !Platform.isIOS) {
-    await DesktopIntegration(controller).initialize();
+  final parser = ArgParser()
+    ..addOption('state-dir')
+    ..addOption('output')
+    ..addFlag('help', negatable: false);
+  late final ArgResults options;
+  try {
+    options = parser.parse(arguments);
+    if (options.rest.isNotEmpty) {
+      throw const FormatException('Unexpected arguments');
+    }
+  } on FormatException catch (error) {
+    stderr.writeln('${error.message}\n${parser.usage}');
+    exit(64);
   }
+  if (options['help'] as bool) {
+    stdout.writeln(parser.usage);
+    exit(0);
+  }
+  final controller = NshareController(
+    stateDirectory: options['state-dir'] == null
+        ? null
+        : Directory(options['state-dir'] as String),
+    receiveDirectory: options['output'] == null
+        ? null
+        : Directory(options['output'] as String),
+  );
   runApp(NshareApp(controller: controller));
+  if (!Platform.isAndroid && !Platform.isIOS) {
+    try {
+      await DesktopIntegration(controller, arguments: arguments).initialize();
+    } catch (error) {
+      controller.error = 'Desktop integration unavailable: $error';
+      controller.notify();
+    }
+  }
 }
 
 class NshareApp extends StatelessWidget {
@@ -116,6 +147,7 @@ class _HomeState extends State<NshareHome> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    c.foreground = state == AppLifecycleState.resumed;
     if ((Platform.isIOS ||
             (Platform.isAndroid && !c.settings.receiveInBackground)) &&
         state == AppLifecycleState.paused &&

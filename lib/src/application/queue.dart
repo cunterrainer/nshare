@@ -7,6 +7,7 @@ import '../transfer/transfer.dart';
 import 'state.dart';
 
 enum JobStatus {
+  waitingForPeer,
   scanning,
   connecting,
   awaitingApproval,
@@ -40,9 +41,11 @@ class TransferJob {
     this.error,
     this.files = 0,
     this.bytes = 0,
+    this.retryCount = 0,
+    this.notBefore = 0,
   });
   final String id, path, host, fingerprint;
-  final int port, files, bytes;
+  final int port, files, bytes, retryCount, notBefore;
   final bool compression;
   final JobStatus status;
   final String? error;
@@ -57,6 +60,8 @@ class TransferJob {
     'error': error,
     'files': files,
     'bytes': bytes,
+    'retryCount': retryCount,
+    'notBefore': notBefore,
   };
   factory TransferJob.fromJson(Map<String, dynamic> json) {
     try {
@@ -71,6 +76,8 @@ class TransferJob {
         error: json['error'] as String?,
         files: json['files'] as int? ?? 0,
         bytes: json['bytes'] as int? ?? 0,
+        retryCount: json['retryCount'] as int? ?? 0,
+        notBefore: json['notBefore'] as int? ?? 0,
       );
       if (job.id.isEmpty ||
           !p.isAbsolute(job.path) ||
@@ -79,7 +86,10 @@ class TransferJob {
           job.port > 65535 ||
           !RegExp(r'^[0-9a-f]{64}$').hasMatch(job.fingerprint) ||
           job.files < 0 ||
-          job.bytes < 0) {
+          job.bytes < 0 ||
+          job.retryCount < 0 ||
+          job.retryCount > 3 ||
+          job.notBefore < 0) {
         throw const FormatException();
       }
       return job;
@@ -151,6 +161,7 @@ class QueueStore {
           case 'pause':
             if (![
               JobStatus.queued,
+              JobStatus.waitingForPeer,
               ...activeJobStatuses,
               JobStatus.interrupted,
             ].contains(status)) {
@@ -163,6 +174,7 @@ class QueueStore {
             }
             job['status'] = JobStatus.queued.name;
             job['error'] = null;
+            job['notBefore'] = 0;
           case 'retry':
             if (![
               JobStatus.failed,
@@ -173,6 +185,8 @@ class QueueStore {
             }
             job['status'] = JobStatus.queued.name;
             job['error'] = null;
+            job['notBefore'] = 0;
+            job['retryCount'] = 0;
           case 'cancel':
             if ([JobStatus.completed, JobStatus.cancelled].contains(status)) {
               throw const NshareException('usage', 'Job already terminal');
@@ -209,7 +223,14 @@ class QueueStore {
   });
   Future<TransferJob?> claim() => _store.update((data) {
     final jobs = _jobs(data);
-    final index = jobs.indexWhere((v) => v['status'] == JobStatus.queued.name);
+    final index = jobs.indexWhere(
+      (v) =>
+          [
+            JobStatus.queued.name,
+            JobStatus.waitingForPeer.name,
+          ].contains(v['status']) &&
+          (v['notBefore'] as int) <= DateTime.now().millisecondsSinceEpoch,
+    );
     if (index < 0) return null;
     jobs[index]['status'] = JobStatus.scanning.name;
     data['jobs'] = jobs;
@@ -241,8 +262,29 @@ class QueueStore {
         final job = jobs[index];
         // User pause/cancel wins over an in-flight network completion.
         if (activeJobStatuses.any((s) => s.name == job['status'])) {
-          job['status'] =
-              (result != null ? JobStatus.completed : JobStatus.failed).name;
+          final transient =
+              error is SocketException ||
+              error is TimeoutException ||
+              (error is NshareException &&
+                  [
+                    'network',
+                    'timeout',
+                    'disconnected',
+                    'uncertain',
+                    'busy',
+                  ].contains(error.code));
+          final attempts = job['retryCount'] as int;
+          if (result == null && transient && attempts < 3) {
+            job['retryCount'] = attempts + 1;
+            job['notBefore'] = DateTime.now()
+                .add(Duration(seconds: 1 << attempts))
+                .millisecondsSinceEpoch;
+            job['status'] = JobStatus.waitingForPeer.name;
+          } else {
+            job['status'] =
+                (result != null ? JobStatus.completed : JobStatus.failed).name;
+          }
+
           job['error'] = error is NshareException
               ? error.code
               : error == null
@@ -300,7 +342,12 @@ class QueueRunner {
       while (!stopped.isCancelled) {
         final job = await store.claim();
         if (job == null) {
-          if (!watch) break;
+          if (!watch &&
+              !(await store.list()).any(
+                (j) => j.status == JobStatus.waitingForPeer,
+              )) {
+            break;
+          }
           await Future.any([
             Future<void>.delayed(const Duration(milliseconds: 250)),
             stopped.whenCancelled,

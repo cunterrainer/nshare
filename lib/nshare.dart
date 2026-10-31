@@ -1,4 +1,4 @@
-/// Public nshare v2 API shared by the CLI and future Flutter adapters.
+/// Public Dart API shared by the CLI and Flutter application.
 library;
 
 export 'core.dart';

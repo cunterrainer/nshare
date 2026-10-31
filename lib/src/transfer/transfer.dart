@@ -306,6 +306,10 @@ class TransferReceiver {
   String? _outputKey;
   RandomAccessFile? _outputLock;
   bool _closed = false;
+  Timer? _networkTimer;
+  bool _checkingNetwork = false;
+  String _networkSignature = '';
+  int _mdnsGeneration = 0;
   int get port => _server.port;
   InternetAddress get address => _server.address;
 
@@ -381,11 +385,42 @@ class TransferReceiver {
       }
       // Optional providers must never delay listener readiness or crash reception.
       unawaited(receiver._advertiseMdns());
+      receiver._networkTimer = Timer.periodic(
+        const Duration(seconds: 10),
+        (_) => unawaited(receiver._networkChanged()),
+      );
     }
     return receiver;
   }
 
+  Future<void> _networkChanged() async {
+    if (_closed || _checkingNetwork) return;
+    _checkingNetwork = true;
+    try {
+      final interfaces = await NetworkInterface.list(includeLinkLocal: true);
+      final addresses = [
+        for (final interface in interfaces)
+          for (final address in interface.addresses)
+            '${interface.index}:${address.address}',
+      ]..sort();
+      final signature = addresses.join('|');
+      if (signature != _networkSignature && !_closed) {
+        _networkSignature = signature;
+        final previous = _mdns.toList();
+        _mdns.clear();
+        for (final advertiser in previous) {
+          await advertiser.close();
+        }
+        await _advertiseMdns();
+      }
+    } catch (_) {
+    } finally {
+      _checkingNetwork = false;
+    }
+  }
+
   Future<void> _advertiseMdns() async {
+    final generation = ++_mdnsGeneration;
     for (final ipv6 in [
       false,
       if (address.type == InternetAddressType.IPv6) true,
@@ -397,7 +432,7 @@ class TransferReceiver {
           port,
           ipv6: ipv6,
         );
-        if (_closed) {
+        if (_closed || generation != _mdnsGeneration) {
           await advertiser.close();
           return;
         }
@@ -722,7 +757,9 @@ class TransferReceiver {
   Future<void> close() async {
     if (_closed) return;
     _closed = true;
-    for (final advertiser in _mdns) {
+    _networkTimer?.cancel();
+    _mdnsGeneration++;
+    for (final advertiser in _mdns.toList()) {
       await advertiser.close();
     }
     _mdns.clear();

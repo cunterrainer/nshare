@@ -9,7 +9,8 @@ import 'package:window_manager/window_manager.dart';
 import 'controller.dart';
 
 class DesktopIntegration with WindowListener, TrayListener {
-  DesktopIntegration(this.controller);
+  DesktopIntegration(this.controller, {this.arguments = const []});
+  final List<String> arguments;
   final NshareController controller;
   bool _quitting = false;
   Future<void> initialize() async {
@@ -26,12 +27,16 @@ class DesktopIntegration with WindowListener, TrayListener {
     launchAtStartup.setup(
       appName: 'nshare',
       appPath: Platform.resolvedExecutable,
+      args: arguments,
     );
     controller.changeStartup = (enabled) async {
-      if (enabled) {
-        await launchAtStartup.enable();
-      } else {
-        await launchAtStartup.disable();
+      final success = enabled
+          ? await launchAtStartup.enable()
+          : await launchAtStartup.disable();
+      if (!success) {
+        throw StateError(
+          'The operating system did not accept the startup preference',
+        );
       }
     };
     try {
@@ -57,13 +62,6 @@ class DesktopIntegration with WindowListener, TrayListener {
     } catch (error) {
       // Do not hide a window if the host cannot provide a way to restore it.
       controller.error = 'System tray unavailable: $error';
-      controller.changeStartup = (enabled) async {
-        if (enabled) {
-          await launchAtStartup.enable();
-        } else {
-          await launchAtStartup.disable();
-        }
-      };
       _trayReady = false;
       return;
     }

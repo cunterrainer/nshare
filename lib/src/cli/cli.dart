@@ -188,7 +188,7 @@ Future<int> runCli(List<String> arguments) async {
     final args = parser.parse(arguments);
     if (args['help'] as bool || arguments.isEmpty) {
       stdout.writeln(
-        'nshare v2 — local network file transfer\n'
+        'nshare — local transfer (v2 transport, v3 extensions)\n'
         'Usage: nshare [global options] <send|receive|devices|trust|settings|pair|clipboard|queue|service> [options]\n'
         '${parser.usage}',
       );
