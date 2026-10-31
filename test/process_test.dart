@@ -36,30 +36,37 @@ void main() {
   });
   tearDownAll(() => temp.delete(recursive: true));
 
+  final usedPorts = <int>{};
   Future<int> freePort() async {
-    final probe = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
-    final port = probe.port;
-    await probe.close();
-    return port;
+    while (true) {
+      final probe = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+      final port = probe.port;
+      await probe.close();
+      // Keep certificate pins from different test scenarios on distinct endpoints.
+      if (usedPorts.add(port)) return port;
+    }
   }
 
   Future<RunningReceiver> receive(
     int port,
     String output, {
     void Function(String)? onLine,
+    Directory? state,
+    bool once = true,
+    String bind = '127.0.0.1',
   }) async {
     final process = await Process.start(executable, [
       '--state-dir',
-      receiver.directory.path,
+      (state ?? receiver.directory).path,
       'receive',
       '--bind',
-      '127.0.0.1',
+      bind,
       '--port',
       '$port',
       '--output',
       output,
       '--no-discover',
-      '--once',
+      if (once) '--once',
       '--accept',
       '--peer-fingerprint',
       sender.fingerprint,
@@ -198,4 +205,226 @@ void main() {
     },
     timeout: const Timeout(Duration(minutes: 2)),
   );
+
+  Future<ProcessResult> sendFile(
+    int port,
+    String source, {
+    String host = '127.0.0.1',
+    String? fingerprint,
+  }) => Process.run(executable, [
+    '--state-dir',
+    sender.directory.path,
+    'send',
+    source,
+    '--ip',
+    host,
+    '--port',
+    '$port',
+    '--peer-fingerprint',
+    fingerprint ?? receiver.fingerprint,
+  ]).timeout(const Duration(seconds: 30));
+
+  Future<void> stop(RunningReceiver running) async {
+    running.process.kill();
+    await running.process.exitCode.timeout(const Duration(seconds: 10));
+  }
+
+  test(
+    'compiled CLI transfers a directory with spaces, Unicode, binary and empty entries locally',
+    () async {
+      final source = Directory('${temp.path}/photos with spaces');
+      await Directory(
+        '${source.path}/文件/empty directory',
+      ).create(recursive: true);
+      await File('${source.path}/empty.txt').writeAsString('');
+      await File(
+        '${source.path}/文件/照片.bin',
+      ).writeAsBytes(List.generate(1048583, (i) => i % 256));
+      for (var i = 0; i < 64; i++) {
+        await File(
+          '${source.path}/note $i.txt',
+        ).writeAsString('file $i — café 日本語');
+      }
+      final manifest = await Manifest.collect(source.path);
+      final port = await freePort();
+      final output = Directory('${temp.path}/folder-output');
+      final running = await receive(port, output.path);
+      try {
+        await running.ready;
+        final result = await sendFile(port, source.path);
+        expect(
+          result.exitCode,
+          0,
+          reason: '${result.stderr}\n${running.output}',
+        );
+        expect(
+          await running.process.exitCode.timeout(const Duration(seconds: 10)),
+          0,
+          reason: running.output.toString(),
+        );
+        expect(
+          result.stdout,
+          contains(
+            '${manifest.files} verified files, 0 skipped, ${manifest.bytes} bytes sent',
+          ),
+        );
+        for (final entry in manifest.entries) {
+          final destination = p.joinAll([
+            output.path,
+            ...entry.path.split('/'),
+          ]);
+          if (entry.directory) {
+            expect(
+              await Directory(destination).exists(),
+              isTrue,
+              reason: entry.path,
+            );
+          } else {
+            expect(
+              await File(destination).length(),
+              entry.size,
+              reason: entry.path,
+            );
+            expect(
+              await hashFile(File(destination)),
+              entry.hash,
+              reason: entry.path,
+            );
+          }
+        }
+      } finally {
+        await stop(running);
+      }
+    },
+  );
+
+  test(
+    'sender and receiver share one local identity and retries send zero file bytes',
+    () async {
+      final source = File('${temp.path}/shared-identity.txt')
+        ..writeAsStringSync('same device');
+      final output = '${temp.path}/shared-output';
+      for (var attempt = 0; attempt < 2; attempt++) {
+        final port = await freePort();
+        final running = await receive(port, output, state: sender.directory);
+        try {
+          await running.ready;
+          final result = await sendFile(
+            port,
+            source.path,
+            fingerprint: sender.fingerprint,
+          );
+          expect(
+            result.exitCode,
+            0,
+            reason: '${result.stderr}\n${running.output}',
+          );
+          expect(
+            await running.process.exitCode.timeout(const Duration(seconds: 10)),
+            0,
+          );
+          expect(
+            result.stdout,
+            contains('${attempt == 0 ? await source.length() : 0} bytes sent'),
+          );
+          expect(
+            await File('$output/shared-identity.txt').readAsString(),
+            'same device',
+          );
+        } finally {
+          await stop(running);
+        }
+      }
+      final ownTrust =
+          (await TrustStore(sender.directory).list())[sender.fingerprint]
+              as Map;
+      expect(ownTrust['endpoints'], hasLength(2));
+    },
+  );
+
+  test(
+    'one running receiver accepts multiple independent sender processes',
+    () async {
+      final port = await freePort();
+      final output = '${temp.path}/persistent-output';
+      final running = await receive(port, output, once: false);
+      try {
+        await running.ready;
+        for (var i = 0; i < 3; i++) {
+          final source = File('${temp.path}/session-$i.txt')
+            ..writeAsStringSync('session $i');
+          final result = await sendFile(port, source.path);
+          expect(
+            result.exitCode,
+            0,
+            reason: '${result.stderr}\n${running.output}',
+          );
+          expect(
+            await File('$output/session-$i.txt').readAsString(),
+            'session $i',
+          );
+        }
+      } finally {
+        await stop(running);
+      }
+    },
+  );
+
+  test(
+    'compiled CLI refuses an existing file without reporting success or overwriting it',
+    () async {
+      final source = File('${temp.path}/protected.txt')
+        ..writeAsStringSync('replacement');
+      final output = Directory('${temp.path}/protected-output')..createSync();
+      final destination = File('${output.path}/protected.txt')
+        ..writeAsStringSync('original');
+      final port = await freePort();
+      final running = await receive(port, output.path);
+      try {
+        await running.ready;
+        final result = await sendFile(port, source.path);
+        expect(result.exitCode, 1);
+        expect(result.stdout, isNot(contains('Complete:')));
+        expect(result.stderr, contains('conflict'));
+        expect(
+          await running.process.exitCode.timeout(const Duration(seconds: 10)),
+          1,
+        );
+        expect(await destination.readAsString(), 'original');
+      } finally {
+        await stop(running);
+      }
+    },
+  );
+
+  test('compiled CLI sends over IPv6 loopback on the same device', () async {
+    ServerSocket probe;
+    try {
+      probe = await ServerSocket.bind(InternetAddress.loopbackIPv6, 0);
+    } on SocketException {
+      markTestSkipped('This host does not provide IPv6 loopback');
+      return;
+    }
+    final port = probe.port;
+    await probe.close();
+    final source = File('${temp.path}/ipv6.txt')
+      ..writeAsStringSync('IPv6 local transfer');
+    final output = '${temp.path}/ipv6-output';
+    final running = await receive(port, output, bind: '::1');
+    try {
+      await running.ready;
+      final result = await sendFile(port, source.path, host: '::1');
+      expect(result.exitCode, 0, reason: '${result.stderr}\n${running.output}');
+      expect(
+        await running.process.exitCode.timeout(const Duration(seconds: 10)),
+        0,
+      );
+      expect(
+        await File('$output/ipv6.txt').readAsString(),
+        'IPv6 local transfer',
+      );
+    } finally {
+      await stop(running);
+    }
+  });
 }

@@ -6,14 +6,15 @@ Validated in the Linux development workspace on 2026-10-31 with Dart 3.13.7.
 
 - `dart format --output=none --set-exit-if-changed lib bin test example tool`: clean.
 - `dart analyze --fatal-infos`: no issues.
-- `dart test --reporter expanded`: all 27 tests passed.
+- `dart test --reporter expanded`: all 42 tests passed.
 - Native compilation: `dart compile exe bin/nshare.dart` succeeded. The process
   integration test also builds and runs a fresh native executable.
 - Native `--show-ip`: listed real IPv4/IPv6 interfaces and scoped link-local
   addresses without starting a receiver.
 - `git diff --check`: clean.
 
-Coverage includes fragmented/coalesced/malformed/oversized protocol frames,
+Coverage includes every frame split boundary, seeded random fragmentation across
+mixed frames, exact payload-size boundaries, fragmented/coalesced/malformed/oversized protocol frames,
 truncated streams, invalid session ordering, real TLS authentication and identity
 persistence, changed pin rejection, bounded loopback UDP discovery, path and
 symlink rejection, Unicode/case collisions, total-size overflow, hash mismatch,
@@ -21,7 +22,15 @@ empty/nested/Unicode files, skip/overwrite policies, refused offers, cancellatio
 approval/pairing shutdown without retained trust locks, inactivity deadlines, corrupt resume prefixes, explicit
 restart, idempotent finalized-file retries, and missing final acknowledgments.
 
-The native process integration test kills a sender during a 32 MiB transfer,
+Native process tests also cover a successful mixed folder transfer, shared
+sender/receiver identity and trust storage, zero-byte retries, three independent
+sender sessions against one running receiver, default conflict refusal, and
+IPv6 loopback (skipped only on hosts without IPv6). Malformed real TLS transfers
+exercise invalid offsets, excess bytes, early completion, digest corruption,
+wrong transfer IDs and extra data after the declared file size. Each failure
+asserts that no final destination file is exposed.
+
+The interruption process test kills a sender during a 32 MiB transfer,
 checks that only a partial exists, restarts both processes, resumes with fewer
 network bytes, and compares complete source/destination SHA-256 hashes.
 
@@ -46,6 +55,13 @@ The workflow runs formatting, fatal-info analysis, the full tests and executable
 compilation on Linux, macOS and Windows, plus Dart 3.8.0 on Linux. The workflow
 results must be checked after pushing; defining the matrix alone is not evidence
 that those platforms passed.
+
+A separate same-device CLI smoke test successfully sent 19 files (2,097,519
+bytes) through the host's non-loopback IPv4 interface, verified every file hash,
+retried with zero file bytes, then discovered the receiver using `devices` and
+sent another file using `--to`. Both sender and receiver exited 0 on all three
+transfers. See [results and reproduction](same-device-test.md) and the
+[per-file hash record](same-device-results.json).
 
 Physical two-device discovery/transfer, Wi-Fi isolation and firewall behavior
 have not been tested in this single-container workspace. Mobile Flutter adapters

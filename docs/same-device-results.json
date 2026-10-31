@@ -1,0 +1,122 @@
+{
+  "device_address": "same-machine non-loopback IPv4 interface",
+  "verified_files": 19,
+  "first": {
+    "sender_exit": 0,
+    "receiver_exit": 0,
+    "sent_bytes": 2097519,
+    "sender_result": "Complete: 19 verified files, 0 skipped, 2097519 bytes sent.",
+    "receiver_result": "Complete: 19 verified files, 0 skipped."
+  },
+  "retry": {
+    "sender_exit": 0,
+    "receiver_exit": 0,
+    "sent_bytes": 0,
+    "sender_result": "Complete: 19 verified files, 0 skipped, 0 bytes sent.",
+    "receiver_result": "Complete: 19 verified files, 0 skipped."
+  },
+  "discovery": {
+    "sender_exit": 0,
+    "receiver_exit": 0,
+    "sent_bytes": 40,
+    "sender_result": "Complete: 1 verified files, 0 skipped, 40 bytes sent.",
+    "receiver_result": "Complete: 1 verified files, 0 skipped."
+  },
+  "hashes": [
+    {
+      "path": "empty.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "nested/binary.bin",
+      "bytes": 2097152,
+      "sha256": "91d3beb88a9b2f778a6c44a1c53b63d3c79931845a9aef84b3fb414610bd1938"
+    },
+    {
+      "path": "nested/\u6587\u4ef6.txt",
+      "bytes": 25,
+      "sha256": "6b6047d05456a8a790556c2cb3cf2334b8ca58e50f597d3d52eff0fe2f117c8b"
+    },
+    {
+      "path": "note 0.txt",
+      "bytes": 21,
+      "sha256": "cb3349707d7688a9578ada7ca165d573ba6ddead96e263ed4898b28694fb730e"
+    },
+    {
+      "path": "note 1.txt",
+      "bytes": 21,
+      "sha256": "5108544499f8ef1c497311690611099a2d364bf6fecd5f6d2103daf5aebbafc9"
+    },
+    {
+      "path": "note 10.txt",
+      "bytes": 22,
+      "sha256": "3c2f59b3819ea2bf0a05deb7a3c87b3326f8601101f0c1f6bc1664bff529ad17"
+    },
+    {
+      "path": "note 11.txt",
+      "bytes": 22,
+      "sha256": "c5672c64f1cd82684540d9cb3ec7465aea81b258af3dd51d9b6894429dd2d056"
+    },
+    {
+      "path": "note 12.txt",
+      "bytes": 22,
+      "sha256": "4e0d34f06dca1783d8e235c9940bcdfb21a49f61672e13ddffd29db0e067cc72"
+    },
+    {
+      "path": "note 13.txt",
+      "bytes": 22,
+      "sha256": "a641f6bd3644567f7b6c924c9cc830a20db912b441149ed2d18e8c1009837a8d"
+    },
+    {
+      "path": "note 14.txt",
+      "bytes": 22,
+      "sha256": "ffc962c1a494c08d0c13452bb656918a88d2076d917195f6b7b3ce28f735b4e5"
+    },
+    {
+      "path": "note 15.txt",
+      "bytes": 22,
+      "sha256": "257bef0ad5de07ba738ae93c9214f240334d0e154f1e3dc6ab8db09bc3bc48c1"
+    },
+    {
+      "path": "note 2.txt",
+      "bytes": 21,
+      "sha256": "17415e8e4dd67ae8b0e613c83bc4321803979853fe0a698c92ea6146c95cbd68"
+    },
+    {
+      "path": "note 3.txt",
+      "bytes": 21,
+      "sha256": "a6742b90cac8c654afa4a4d2a311661da943513996bc883d08dda808a40bbf71"
+    },
+    {
+      "path": "note 4.txt",
+      "bytes": 21,
+      "sha256": "b5f5cb28f69f09ee19a790529b96e2a6db7191e95d5f6fe816d9a3aab66c7002"
+    },
+    {
+      "path": "note 5.txt",
+      "bytes": 21,
+      "sha256": "d62d03899c25ea7b058e4d83e0e7c72b928da435c1c6fc2076a8d1a39f3cf1de"
+    },
+    {
+      "path": "note 6.txt",
+      "bytes": 21,
+      "sha256": "01a716f6be359b208c270edc5facc44dddcf23b96ef629734626bb0ee7e560d2"
+    },
+    {
+      "path": "note 7.txt",
+      "bytes": 21,
+      "sha256": "7fc4e9c8909f1f34c6ee7de04027e3f19fae1aeea7e97d669fe3fa226a716de6"
+    },
+    {
+      "path": "note 8.txt",
+      "bytes": 21,
+      "sha256": "b2675d77a56124afa39d3a67e2b8e5c1c7cf025352bc40ff4ef6c3e746f473f9"
+    },
+    {
+      "path": "note 9.txt",
+      "bytes": 21,
+      "sha256": "2dd4744f40c04662623802ceed660be0e3511c71b9923c4af2c1cba0f7204e07"
+    }
+  ]
+}

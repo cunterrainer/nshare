@@ -79,6 +79,9 @@ For IPv6, bind the receiver with `--bind ::` and connect with a direct IPv6
 address; link-local addresses may need an interface scope such as `%en0`.
 Discovery currently returns IPv4 addresses only.
 
+For a transfer between two processes on this same device, see the
+[same-device test instructions and results](docs/same-device-test.md).
+
 ## Conflicts and resume
 
 - Default `--conflict refuse`: existing destination files are left untouched.
