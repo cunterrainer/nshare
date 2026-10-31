@@ -267,6 +267,34 @@ Future<int> runCli(List<String> arguments) async {
         stdout.writeln(jsonEncode(await client.status()));
         return 0;
       }
+      Map<String, dynamic>? existing;
+      try {
+        existing = await client.status();
+      } catch (_) {}
+      if (existing != null) {
+        if (existing['stopping'] == true) {
+          throw const NshareException('busy', 'Receiver service is stopping');
+        }
+        if (existing['receiverPort'] == null) {
+          final preferences = await settingsStore.load();
+          existing = await client.startReceiver(
+            output: Directory(command['output'] as String),
+            port: parsePort(command['port'] as String),
+            accept: command['accept'] as bool,
+            allowCompression: command.wasParsed('allow-compression')
+                ? command['allow-compression'] as bool
+                : preferences.allowCompression,
+            conflict: ConflictPolicy.values.byName(
+              command['conflict'] as String,
+            ),
+            expectedFingerprint: command['peer-fingerprint'] == null
+                ? null
+                : _fingerprint(command['peer-fingerprint'] as String),
+          );
+        }
+        stdout.writeln(jsonEncode(existing));
+        return 0;
+      }
       final executable = Platform.resolvedExecutable;
       final script = Platform.script.toFilePath();
       final childArgs = [

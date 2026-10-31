@@ -78,20 +78,22 @@ class NshareController extends ChangeNotifier {
       : receiving
       ? 'Listening on port ${service?.receiver?.port ?? externalStatus?['receiverPort']}'
       : 'Receiver stopped';
+  Map<String, dynamic> get _ownerStatus =>
+      externalStatus ?? service?.status ?? const {};
   String get receivePathLabel =>
-      externalStatus?['output'] as String? ??
+      _ownerStatus['output'] as String? ??
       service?.receiver?.output.absolute.path ??
       receiveDirectory?.path ??
       'Loading…';
   ConflictPolicy get activeConflictPolicy =>
-      receiving && externalStatus?['conflict'] is String
-      ? ConflictPolicy.values.byName(externalStatus!['conflict'] as String)
+      receiving && _ownerStatus['conflict'] is String
+      ? ConflictPolicy.values.byName(_ownerStatus['conflict'] as String)
       : conflictPolicy;
   bool get incomingCompression =>
-      receiving && externalStatus?['allowCompression'] is bool
-      ? externalStatus!['allowCompression'] as bool
+      receiving && _ownerStatus['allowCompression'] is bool
+      ? _ownerStatus['allowCompression'] as bool
       : settings.allowCompression;
-  String get approvalDescription => switch (externalStatus?['approvalMode']) {
+  String get approvalDescription => switch (_ownerStatus['approvalMode']) {
     'automatic' =>
       'The owning CLI service automatically accepts authenticated file offers. It declines clipboard offers.',
     'terminal' =>
