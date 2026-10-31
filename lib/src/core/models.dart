@@ -42,6 +42,7 @@ class TransferProgress {
     this.total = 0,
     this.verifiedFiles = 0,
     this.bytesPerSecond = 0,
+    this.networkBytes = 0,
   });
   final TransferPhase phase;
   final String path;
@@ -49,6 +50,7 @@ class TransferProgress {
   final int total;
   final int verifiedFiles;
   final double bytesPerSecond;
+  final int networkBytes;
 }
 
 class PeerIdentity {
@@ -71,7 +73,13 @@ typedef OfferApproval = Future<bool> Function(TransferOffer offer);
 typedef ProgressCallback = void Function(TransferProgress progress);
 
 class TransferResult {
-  const TransferResult(this.files, this.bytes, {this.skipped = 0});
+  const TransferResult(
+    this.files,
+    this.bytes, {
+    this.skipped = 0,
+    int? networkBytes,
+  }) : networkBytes = networkBytes ?? bytes;
+  final int networkBytes;
   final int files;
   final int bytes;
   final int skipped;

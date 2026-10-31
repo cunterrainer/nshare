@@ -8,6 +8,28 @@ const protocolVersion = 2;
 const maxControlBytes = 256 * 1024;
 const maxChunkBytes = 64 * 1024;
 const maxFrameBytes = maxControlBytes;
+const supportedExtensions = <String>{
+  'manifest-pages-v1',
+  'block-gzip-v1',
+  'clipboard-v1',
+  'pair-v1',
+};
+Set<String> parseExtensions(Object? value) {
+  if (value == null) return {};
+  if (value is! List ||
+      value.length > 16 ||
+      value.any((v) => v is! String || v.isEmpty || v.length > 64) ||
+      value.toSet().length != value.length) {
+    throw const NshareException('protocol', 'Invalid extension list');
+  }
+  return value.cast<String>().toSet().intersection(supportedExtensions);
+}
+
+int frameLimit(WireType type) => switch (type) {
+  WireType.data => maxChunkBytes + 8,
+  WireType.compressedData => maxChunkBytes + 12,
+  _ => maxControlBytes,
+};
 
 /// IDs are part of the wire contract, never derived from enum indexes.
 enum WireType {
@@ -25,7 +47,15 @@ enum WireType {
   complete(17),
   completeAck(18),
   cancel(20),
-  error(21);
+  error(21),
+  manifestBegin(30),
+  manifestPage(31),
+  manifestEnd(32),
+  compressedData(33),
+  clipboard(34),
+  clipboardAck(35),
+  pair(36),
+  pairAck(37);
 
   const WireType(this.id);
   final int id;
@@ -47,7 +77,7 @@ class Frame {
 }
 
 Uint8List encodeFrame(WireType type, Uint8List payload) {
-  final limit = type == WireType.data ? maxChunkBytes + 8 : maxControlBytes;
+  final limit = frameLimit(type);
   if (payload.length > limit) {
     throw const NshareException('protocol', 'Frame exceeds size limit');
   }
@@ -87,7 +117,7 @@ class FrameDecoder {
       final length = ByteData.sublistView(
         buffer,
       ).getUint32(offset + 6, Endian.big);
-      final limit = type == WireType.data ? maxChunkBytes + 8 : maxControlBytes;
+      final limit = frameLimit(type);
       if (length > limit) {
         throw const NshareException('protocol', 'Frame exceeds size limit');
       }
@@ -124,6 +154,14 @@ class WireConnection {
     cancellation?.whenCancelled.then((_) => close());
     _cancellation = cancellation;
   }
+  Set<String> extensions = {};
+  bool supports(String name) => extensions.contains(name);
+  void require(String name) {
+    if (!supports(name)) {
+      throw NshareException('unsupported', 'Peer does not support $name');
+    }
+  }
+
   final Socket socket;
   final Duration timeout;
   late final StreamIterator<Frame> _frames;

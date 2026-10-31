@@ -7,6 +7,7 @@ import '../transfer/transfer.dart';
 import '../discovery/discovery.dart';
 import 'package:args/args.dart';
 import '../core/models.dart';
+import '../application/state.dart';
 import '../discovery/interfaces.dart';
 
 ArgParser createParser() {
@@ -24,6 +25,7 @@ ArgParser createParser() {
       ..addOption('port', defaultsTo: '53317')
       ..addOption('discovery-port', defaultsTo: '1970')
       ..addFlag('resume', defaultsTo: true)
+      ..addFlag('compress', help: 'Override the saved compression preference')
       ..addOption(
         'peer-fingerprint',
         help: 'Previously verified peer SHA-256 fingerprint',
@@ -43,6 +45,10 @@ ArgParser createParser() {
         defaultsTo: 'refuse',
       )
       ..addFlag('discover', defaultsTo: true)
+      ..addFlag(
+        'allow-compression',
+        help: 'Allow negotiated compressed transfers',
+      )
       ..addFlag('once', negatable: false)
       ..addFlag(
         'accept',
@@ -66,6 +72,13 @@ ArgParser createParser() {
       ..addFlag('help', abbr: 'h', negatable: false)
       ..addOption('forget', help: 'Remove a stored peer fingerprint'),
   );
+  parser.addCommand(
+    'settings',
+    ArgParser()
+      ..addFlag('help', abbr: 'h', negatable: false)
+      ..addOption('set')
+      ..addOption('value', allowed: ['true', 'false']),
+  );
   return parser;
 }
 
@@ -87,7 +100,7 @@ Future<int> runCli(List<String> arguments) async {
     if (args['help'] as bool || arguments.isEmpty) {
       stdout.writeln(
         'nshare v2 — local network file transfer\n'
-        'Usage: nshare [global options] <send|receive|devices|trust> [options]\n'
+        'Usage: nshare [global options] <send|receive|devices|trust|settings> [options]\n'
         '${parser.usage}',
       );
       return 0;
@@ -136,6 +149,18 @@ Future<int> runCli(List<String> arguments) async {
     final directory = Directory(
       args['state-dir'] as String? ?? _defaultStateDirectory(),
     );
+    final settingsStore = SettingsStore(directory);
+    if (command.name == 'settings') {
+      final key = command['set'] as String?;
+      final value = command['value'] as String?;
+      if ((key == null) != (value == null)) {
+        throw const NshareException('usage', 'Supply both --set and --value');
+      }
+      if (key != null) await settingsStore.set(key, value == 'true');
+      stdout.writeln(jsonEncode((await settingsStore.load()).toJson()));
+      return 0;
+    }
+    final settings = await settingsStore.load();
     final identity = await DeviceIdentity.load(directory);
     final trust = TrustStore(directory);
     if (command.name == 'trust') {
@@ -220,9 +245,12 @@ Future<int> runCli(List<String> arguments) async {
         cancellation: cancellation,
         onProgress: progress,
         resume: command['resume'] as bool,
+        compression: command.wasParsed('compress')
+            ? command['compress'] as bool
+            : settings.compression,
       );
       stdout.writeln(
-        'Complete: ${result.files} verified files, ${result.skipped} skipped, ${result.bytes} bytes sent.',
+        'Complete: ${result.files} verified files, ${result.skipped} skipped, ${result.bytes} bytes sent; ${result.networkBytes} network payload bytes.',
       );
       return 0;
     }
@@ -234,6 +262,9 @@ Future<int> runCli(List<String> arguments) async {
       bind: InternetAddress(command['bind'] as String),
       port: parsePort(command['port'] as String),
       discover: command['discover'] as bool,
+      allowCompression: command.wasParsed('allow-compression')
+          ? command['allow-compression'] as bool
+          : settings.allowCompression,
       discoveryPort: parsePort(command['discovery-port'] as String),
       conflict: ConflictPolicy.values.byName(command['conflict'] as String),
       approvePeer: stdin.hasTerminal ? approvePeer : null,

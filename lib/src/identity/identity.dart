@@ -343,6 +343,7 @@ Future<WireConnection> connectAuthenticated(
       'name': identity.name,
       'certificate': identity.certificate,
       'nonce': clientNonce,
+      'extensions': supportedExtensions.toList(),
     });
     final challenge = await wire.expect(
       WireType.challenge,
@@ -361,7 +362,11 @@ Future<WireConnection> connectAuthenticated(
         ),
       ),
     });
-    await wire.expect(WireType.ready, wait: const Duration(minutes: 5));
+    final ready = await wire.expect(
+      WireType.ready,
+      wait: const Duration(minutes: 5),
+    );
+    wire.extensions = parseExtensions(ready['extensions']);
     return wire;
   } catch (_) {
     await wire.close();
@@ -380,6 +385,7 @@ Future<PeerIdentity> authenticateIncoming(
     WireType.hello,
     wait: const Duration(minutes: 5),
   );
+  wire.extensions = parseExtensions(hello['extensions']);
   final certificate = requiredString(hello, 'certificate', max: 16384);
   final peer = PeerIdentity(
     requiredString(hello, 'name', max: 255),
@@ -407,6 +413,9 @@ Future<PeerIdentity> authenticateIncoming(
   await wire.waitFor(
     trust.approve(peer, approve, expectedFingerprint: expectedFingerprint),
   );
-  await wire.send(WireType.ready, {'version': protocolVersion});
+  await wire.send(WireType.ready, {
+    'version': protocolVersion,
+    'extensions': wire.extensions.toList(),
+  });
   return peer;
 }

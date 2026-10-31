@@ -6,6 +6,7 @@ import '../core/models.dart';
 import '../discovery/discovery.dart';
 import '../identity/identity.dart';
 import '../protocol/protocol.dart';
+import '../protocol/compression.dart';
 import '../storage/storage.dart';
 
 void _checkEntry(
@@ -38,6 +39,7 @@ Future<TransferResult> sendPath(
   CancellationToken? cancellation,
   ProgressCallback? onProgress,
   bool resume = true,
+  bool compression = false,
 }) async {
   final manifest = await Manifest.collect(input, cancellation: cancellation);
   onProgress?.call(
@@ -55,7 +57,11 @@ Future<TransferResult> sendPath(
   );
   var acknowledged = false;
   try {
-    await wire.send(WireType.offer, manifest.toJson());
+    if (compression) wire.require('block-gzip-v1');
+    await wire.send(WireType.offer, {
+      ...manifest.toJson(),
+      if (compression) 'compression': true,
+    });
     final accept = await wire.expect(
       WireType.accept,
       wait: const Duration(minutes: 5),
@@ -63,7 +69,13 @@ Future<TransferResult> sendPath(
     if (accept['transfer'] != manifest.id) {
       throw const NshareException('protocol', 'Unexpected accepted transfer');
     }
-    var files = 0, bytes = 0, skipped = 0, reused = 0;
+    if (compression && accept['compression'] != true) {
+      throw const NshareException(
+        'unsupported',
+        'Receiver has not enabled compression',
+      );
+    }
+    var files = 0, bytes = 0, skipped = 0, reused = 0, networkBytes = 0;
     final elapsed = Stopwatch()..start();
     for (final entry in manifest.entries) {
       cancellation?.check();
@@ -118,13 +130,19 @@ Future<TransferResult> sendPath(
             final payload = Uint8List(8 + chunk.length);
             ByteData.sublistView(payload).setUint64(0, offset, Endian.big);
             payload.setRange(8, payload.length, chunk);
-            await wire.sendBytes(WireType.data, payload);
+            final packed = compression ? compressBlock(offset, chunk) : null;
+            await wire.sendBytes(
+              packed == null ? WireType.data : WireType.compressedData,
+              packed ?? payload,
+            );
+            networkBytes += packed == null ? chunk.length : packed.length - 12;
             offset += chunk.length;
             bytes += chunk.length;
             onProgress?.call(
               TransferProgress(
                 phase: TransferPhase.transferring,
                 path: entry.path,
+                networkBytes: networkBytes,
                 bytes: bytes + reused,
                 total: manifest.bytes,
                 verifiedFiles: files,
@@ -176,7 +194,12 @@ Future<TransferResult> sendPath(
         verifiedFiles: files,
       ),
     );
-    return TransferResult(files, bytes, skipped: skipped);
+    return TransferResult(
+      files,
+      bytes,
+      skipped: skipped,
+      networkBytes: networkBytes,
+    );
   } catch (error) {
     try {
       await wire.send(WireType.error, {
@@ -211,12 +234,14 @@ class TransferReceiver {
     this.onProgress,
     this.onResult,
     this.onError,
+    this.allowCompression,
   );
   final SecureServerSocket _server;
   final DeviceIdentity identity;
   final TrustStore trust;
   final Directory output;
   final ConflictPolicy conflict;
+  final bool allowCompression;
   final PairingApproval? approvePeer;
   final OfferApproval approveOffer;
   final String? expectedFingerprint;
@@ -237,6 +262,7 @@ class TransferReceiver {
     InternetAddress? bind,
     int port = 53317,
     bool discover = true,
+    bool allowCompression = false,
     int discoveryPort = 1970,
     ConflictPolicy conflict = ConflictPolicy.refuse,
     PairingApproval? approvePeer,
@@ -262,6 +288,7 @@ class TransferReceiver {
       onProgress,
       onResult,
       onError,
+      allowCompression,
     );
     receiver._subscription = server.listen(
       receiver._accept,
@@ -303,9 +330,19 @@ class TransferReceiver {
         approve: approvePeer,
         expectedFingerprint: expectedFingerprint,
       );
-      final manifest = Manifest.parse(
-        await wire.expect(WireType.offer, wait: const Duration(minutes: 5)),
+      final offer = await wire.expect(
+        WireType.offer,
+        wait: const Duration(minutes: 5),
       );
+      final compression = offer['compression'] == true;
+      if (compression &&
+          (!allowCompression || !wire.supports('block-gzip-v1'))) {
+        throw const NshareException(
+          'unsupported',
+          'Receiver compression is disabled',
+        );
+      }
+      final manifest = Manifest.parse(offer);
       if (!await wire.waitFor(
         approveOffer(TransferOffer(peer, manifest.files, manifest.bytes)),
       )) {
@@ -320,8 +357,11 @@ class TransferReceiver {
         peer.fingerprint,
         conflict,
       );
-      await wire.send(WireType.accept, {'transfer': manifest.id});
-      var files = 0, bytes = 0, skipped = 0, reused = 0;
+      await wire.send(WireType.accept, {
+        'transfer': manifest.id,
+        if (compression) 'compression': true,
+      });
+      var files = 0, bytes = 0, skipped = 0, reused = 0, networkBytes = 0;
       final elapsed = Stopwatch()..start();
       for (final entry in manifest.entries) {
         final start = await wire.expect(WireType.fileStart);
@@ -388,7 +428,9 @@ class TransferReceiver {
           });
           while (offset < entry.size) {
             final frame = await wire.read();
-            if (frame.type != WireType.data || frame.payload.length <= 8) {
+            if ((frame.type != WireType.data &&
+                    !(compression && frame.type == WireType.compressedData)) ||
+                frame.payload.length <= 8) {
               throw const NshareException(
                 'protocol',
                 'Expected nonempty file data',
@@ -397,7 +439,12 @@ class TransferReceiver {
             final chunkOffset = ByteData.sublistView(
               frame.payload,
             ).getUint64(0, Endian.big);
-            final chunk = Uint8List.sublistView(frame.payload, 8);
+            final chunk = frame.type == WireType.compressedData
+                ? decompressBlock(frame.payload)
+                : Uint8List.sublistView(frame.payload, 8);
+            networkBytes +=
+                frame.payload.length -
+                (frame.type == WireType.compressedData ? 12 : 8);
             if (chunkOffset != offset || chunk.length > entry.size - offset) {
               throw const NshareException(
                 'protocol',
@@ -411,6 +458,7 @@ class TransferReceiver {
               TransferProgress(
                 phase: TransferPhase.transferring,
                 path: entry.path,
+                networkBytes: networkBytes,
                 bytes: bytes + reused,
                 total: manifest.bytes,
                 verifiedFiles: files,
@@ -473,7 +521,14 @@ class TransferReceiver {
           verifiedFiles: files,
         ),
       );
-      onResult?.call(TransferResult(files, bytes, skipped: skipped));
+      onResult?.call(
+        TransferResult(
+          files,
+          bytes,
+          skipped: skipped,
+          networkBytes: networkBytes,
+        ),
+      );
     } catch (error) {
       try {
         await wire.send(WireType.error, {
