@@ -187,6 +187,9 @@ class _HomeState extends State<NshareHome> with WidgetsBindingObserver {
         allowMultiple: false,
       ))?.files.single.path;
     }
+    if (path != null && c.mobile && !folder) {
+      path = await c.persistPickerFile(path);
+    }
     if (path != null) {
       source.text = path;
       if (mounted) setState(() => page = 1);

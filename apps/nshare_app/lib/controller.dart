@@ -326,6 +326,13 @@ class NshareController extends ChangeNotifier {
     notify();
   }
 
+  Future<String> persistPickerFile(String path) async {
+    final imports = Directory(
+      p.join((await getApplicationSupportDirectory()).path, 'nshare-imports'),
+    );
+    return (await stageSourceFile(File(path), imports)).path;
+  }
+
   Future<void> enqueue(
     String source,
     String host,

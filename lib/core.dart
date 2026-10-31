@@ -17,3 +17,4 @@ export 'src/application/queue.dart';
 export 'src/discovery/mdns.dart' show discoverNearby, watchNearby;
 export 'src/application/service.dart';
 export 'src/application/paths.dart';
+export 'src/application/sources.dart';
