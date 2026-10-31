@@ -1,13 +1,17 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import '../core/models.dart';
+import '../application/sharing.dart';
+import '../application/pairing.dart';
 import '../discovery/discovery.dart';
 import '../identity/identity.dart';
 import '../protocol/protocol.dart';
 import '../protocol/compression.dart';
 import '../storage/storage.dart';
+import '../storage/paged_manifest.dart';
 
 void _checkEntry(
   Map<String, dynamic> message,
@@ -41,27 +45,40 @@ Future<TransferResult> sendPath(
   bool resume = true,
   bool compression = false,
 }) async {
-  final manifest = await Manifest.collect(input, cancellation: cancellation);
+  final manifest = await collectTransferManifest(
+    input,
+    cancellation: cancellation,
+  );
   onProgress?.call(
     TransferProgress(phase: TransferPhase.connecting, total: manifest.bytes),
   );
-  final wire = await connectAuthenticated(
-    host,
-    port,
-    identity,
-    trust,
-    approve: approvePeer,
-    expectedFingerprint: expectedFingerprint,
-    targetFingerprint: targetFingerprint,
-    cancellation: cancellation,
-  );
+  late final WireConnection wire;
+  try {
+    wire = await connectAuthenticated(
+      host,
+      port,
+      identity,
+      trust,
+      approve: approvePeer,
+      expectedFingerprint: expectedFingerprint,
+      targetFingerprint: targetFingerprint,
+      cancellation: cancellation,
+    );
+  } catch (_) {
+    await manifest.dispose();
+    rethrow;
+  }
   var acknowledged = false;
   try {
     if (compression) wire.require('block-gzip-v1');
-    await wire.send(WireType.offer, {
-      ...manifest.toJson(),
-      if (compression) 'compression': true,
-    });
+    if (manifest is PagedManifest) {
+      await manifest.send(wire, compression: compression);
+    } else {
+      await wire.send(WireType.offer, {
+        ...manifest.toJson(),
+        if (compression) 'compression': true,
+      });
+    }
     final accept = await wire.expect(
       WireType.accept,
       wait: const Duration(minutes: 5),
@@ -77,7 +94,7 @@ Future<TransferResult> sendPath(
     }
     var files = 0, bytes = 0, skipped = 0, reused = 0, networkBytes = 0;
     final elapsed = Stopwatch()..start();
-    for (final entry in manifest.entries) {
+    await for (final entry in manifest.streamEntries()) {
       cancellation?.check();
       await wire.send(WireType.fileStart, {
         ..._entryMessage(manifest, entry),
@@ -218,6 +235,7 @@ Future<TransferResult> sendPath(
     rethrow;
   } finally {
     await wire.close();
+    await manifest.dispose();
   }
 }
 
@@ -235,6 +253,7 @@ class TransferReceiver {
     this.onResult,
     this.onError,
     this.allowCompression,
+    this.approveClipboard,
   );
   final SecureServerSocket _server;
   final DeviceIdentity identity;
@@ -242,6 +261,7 @@ class TransferReceiver {
   final Directory output;
   final ConflictPolicy conflict;
   final bool allowCompression;
+  final ClipboardApproval? approveClipboard;
   final PairingApproval? approvePeer;
   final OfferApproval approveOffer;
   final String? expectedFingerprint;
@@ -263,6 +283,7 @@ class TransferReceiver {
     int port = 53317,
     bool discover = true,
     bool allowCompression = false,
+    ClipboardApproval? approveClipboard,
     int discoveryPort = 1970,
     ConflictPolicy conflict = ConflictPolicy.refuse,
     PairingApproval? approvePeer,
@@ -289,6 +310,7 @@ class TransferReceiver {
       onResult,
       onError,
       allowCompression,
+      approveClipboard,
     );
     receiver._subscription = server.listen(
       receiver._accept,
@@ -322,6 +344,7 @@ class TransferReceiver {
   }
 
   Future<void> _handle(WireConnection wire) async {
+    Manifest? disposableManifest;
     try {
       final peer = await authenticateIncoming(
         wire,
@@ -330,10 +353,46 @@ class TransferReceiver {
         approve: approvePeer,
         expectedFingerprint: expectedFingerprint,
       );
-      final offer = await wire.expect(
-        WireType.offer,
-        wait: const Duration(minutes: 5),
-      );
+      final first = await wire.read(wait: const Duration(minutes: 5));
+      if (first.type == WireType.pair) {
+        wire.require('pair-v1');
+        final token = requiredString(first.json, 'token', max: 64);
+        await InvitationStore(identity.directory).consume(token);
+        await wire.send(WireType.pairAck, {'token': token});
+        onResult?.call(const TransferResult(0, 0));
+        return;
+      }
+      if (first.type == WireType.clipboard) {
+        wire.require('clipboard-v1');
+        final data = first.json;
+        final id = requiredString(data, 'id', max: 64);
+        final text = data['text'];
+        final expiry = requiredInt(data, 'expires');
+        final now = DateTime.now().millisecondsSinceEpoch;
+        if (text is! String ||
+            utf8.encode(text).length > maxClipboardBytes ||
+            expiry <= now ||
+            expiry > now + const Duration(minutes: 5).inMilliseconds) {
+          throw const NshareException(
+            'protocol',
+            'Invalid or expired clipboard offer',
+          );
+        }
+        if (approveClipboard == null ||
+            !await wire.waitFor(
+              approveClipboard!(ClipboardOffer(peer, text, id)),
+            )) {
+          throw const NshareException('rejected', 'Clipboard offer declined');
+        }
+        await wire.send(WireType.clipboardAck, {'id': id});
+        onResult?.call(const TransferResult(0, 0));
+        return;
+      }
+      if (first.type != WireType.offer &&
+          first.type != WireType.manifestBegin) {
+        throw const NshareException('protocol', 'Expected transfer offer');
+      }
+      final offer = first.json;
       final compression = offer['compression'] == true;
       if (compression &&
           (!allowCompression || !wire.supports('block-gzip-v1'))) {
@@ -342,7 +401,10 @@ class TransferReceiver {
           'Receiver compression is disabled',
         );
       }
-      final manifest = Manifest.parse(offer);
+      final manifest = first.type == WireType.manifestBegin
+          ? await PagedManifest.receive(wire, offer)
+          : Manifest.parse(offer);
+      disposableManifest = manifest;
       if (!await wire.waitFor(
         approveOffer(TransferOffer(peer, manifest.files, manifest.bytes)),
       )) {
@@ -363,7 +425,7 @@ class TransferReceiver {
       });
       var files = 0, bytes = 0, skipped = 0, reused = 0, networkBytes = 0;
       final elapsed = Stopwatch()..start();
-      for (final entry in manifest.entries) {
+      await for (final entry in manifest.streamEntries()) {
         final start = await wire.expect(WireType.fileStart);
         _checkEntry(start, manifest, entry);
         if (start['resume'] is! bool) {
@@ -542,6 +604,7 @@ class TransferReceiver {
     } finally {
       await wire.close();
       _connections.remove(wire);
+      await disposableManifest?.dispose();
     }
   }
 

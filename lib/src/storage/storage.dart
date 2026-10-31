@@ -92,6 +92,9 @@ class Manifest {
   Manifest(this.entries) : id = manifestId(entries);
   final List<ManifestEntry> entries;
   final String id;
+  Stream<ManifestEntry> streamEntries() => Stream.fromIterable(entries);
+  Future<void> dispose() async {}
+  Map<String, dynamic> get stateJson => toJson();
   int get bytes => entries.fold(0, (a, b) => a + b.size);
   int get files => entries.where((e) => !e.directory).length;
   Map<String, dynamic> toJson() => {
@@ -286,10 +289,10 @@ class DestinationStore {
       'version': protocolVersion,
       'peer': peer,
       'root': root.path,
-      ...manifest.toJson(),
+      ...manifest.stateJson,
     });
     final store = DestinationStore._(root, state, manifest, policy);
-    for (final entry in manifest.entries) {
+    await for (final entry in manifest.streamEntries()) {
       await store.destination(entry);
     }
     return store;

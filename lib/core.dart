@@ -9,3 +9,7 @@ export 'src/transfer/transfer.dart';
 export 'src/core/task.dart';
 
 export 'src/application/state.dart';
+export 'src/storage/paged_manifest.dart'
+    show PagedManifest, collectTransferManifest;
+export 'src/application/pairing.dart';
+export 'src/application/sharing.dart';
