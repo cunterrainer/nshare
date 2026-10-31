@@ -242,6 +242,12 @@ class DestinationStore {
     await state.create(recursive: true);
     await privatePath(p.dirname(state.path), directory: true);
     await privatePath(state.path, directory: true);
+    await atomicJson(File(p.join(state.path, 'manifest.json')), {
+      'version': protocolVersion,
+      'peer': peer,
+      'root': root.path,
+      ...manifest.toJson(),
+    });
     final store = DestinationStore._(root, state, manifest, policy);
     for (final entry in manifest.entries) {
       await store.destination(entry);
@@ -297,6 +303,12 @@ class DestinationStore {
         }
         // File.rename replaces ordinary files on supported desktop platforms.
       }
+      // Persist intent first: retries rehash the actual destination before reuse,
+      // including a crash between rename and acknowledgment.
+      await atomicJson(receipt(entry), {
+        'sha256': entry.hash,
+        'size': entry.size,
+      });
       await part.rename(dest);
     }
     await atomicJson(receipt(entry), {

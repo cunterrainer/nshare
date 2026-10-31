@@ -279,14 +279,14 @@ Future<WireConnection> connectAuthenticated(
     if (!certificateAllowed(cert))
       throw const NshareException('identity', 'Peer certificate rejected');
     final receiver = PeerIdentity(host, sha256.convert(cert.der).toString());
-    await trust
-        .approve(
-          receiver,
-          approve,
-          expectedFingerprint: expectedFingerprint,
-          endpoint: endpoint,
-        )
-        .timeout(const Duration(minutes: 5));
+    await wire.waitFor(
+      trust.approve(
+        receiver,
+        approve,
+        expectedFingerprint: expectedFingerprint,
+        endpoint: endpoint,
+      ),
+    );
     final clientNonce = randomNonce();
     await wire.send(WireType.hello, {
       'name': identity.name,
@@ -353,9 +353,9 @@ Future<PeerIdentity> authenticateIncoming(
   )) {
     throw const NshareException('identity', 'Peer failed identity proof');
   }
-  await trust
-      .approve(peer, approve, expectedFingerprint: expectedFingerprint)
-      .timeout(const Duration(minutes: 5));
+  await wire.waitFor(
+    trust.approve(peer, approve, expectedFingerprint: expectedFingerprint),
+  );
   await wire.send(WireType.ready, {'version': protocolVersion});
   return peer;
 }

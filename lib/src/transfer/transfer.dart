@@ -36,7 +36,7 @@ Future<TransferResult> sendPath(
   String? expectedFingerprint,
   CancellationToken? cancellation,
   ProgressCallback? onProgress,
-  bool resume = false,
+  bool resume = true,
 }) async {
   final manifest = await Manifest.collect(input, cancellation: cancellation);
   onProgress?.call(
@@ -60,7 +60,7 @@ Future<TransferResult> sendPath(
     );
     if (accept['transfer'] != manifest.id)
       throw const NshareException('protocol', 'Unexpected accepted transfer');
-    var files = 0, bytes = 0, skipped = 0;
+    var files = 0, bytes = 0, skipped = 0, reused = 0;
     final elapsed = Stopwatch()..start();
     for (final entry in manifest.entries) {
       cancellation?.check();
@@ -75,11 +75,13 @@ Future<TransferResult> sendPath(
         continue;
       }
       var offset = requiredInt(accepted, 'offset', max: entry.size);
-      if (offset != 0)
+      if (!resume && offset != 0) {
         throw const NshareException(
           'protocol',
-          'Resume is not available in this version',
+          'Receiver ignored restart request',
         );
+      }
+      reused += offset;
       if (!entry.directory) {
         final source = File(entry.source!);
         if (await FileSystemEntity.type(source.path, followLinks: false) !=
@@ -90,8 +92,18 @@ Future<TransferResult> sendPath(
             'Source changed since the offer was created',
           );
         }
+        final prefix = offset == 0
+            ? sha256.convert([]).toString()
+            : await hashFile(source, end: offset);
+        if (accepted['prefixHash'] != prefix) {
+          throw const NshareException(
+            'resume',
+            'Retained data differs from source; retry with --no-resume to discard the partial file',
+          );
+        }
         final reader = await source.open();
         try {
+          await reader.setPosition(offset);
           while (offset < entry.size) {
             cancellation?.check();
             final chunk = await reader.read(
@@ -109,7 +121,7 @@ Future<TransferResult> sendPath(
               TransferProgress(
                 phase: TransferPhase.transferring,
                 path: entry.path,
-                bytes: bytes,
+                bytes: bytes + reused,
                 total: manifest.bytes,
                 verifiedFiles: files,
                 bytesPerSecond:
@@ -154,7 +166,7 @@ Future<TransferResult> sendPath(
     onProgress?.call(
       TransferProgress(
         phase: TransferPhase.complete,
-        bytes: bytes,
+        bytes: bytes + reused,
         total: manifest.bytes,
         verifiedFiles: files,
       ),
@@ -288,9 +300,9 @@ class TransferReceiver {
       final manifest = Manifest.parse(
         await wire.expect(WireType.offer, wait: const Duration(minutes: 5)),
       );
-      if (!await approveOffer(
-        TransferOffer(peer, manifest.files, manifest.bytes),
-      ).timeout(const Duration(minutes: 5))) {
+      if (!await wire.waitFor(
+        approveOffer(TransferOffer(peer, manifest.files, manifest.bytes)),
+      )) {
         throw const NshareException(
           'rejected',
           'Receiver declined the transfer',
@@ -303,17 +315,23 @@ class TransferReceiver {
         conflict,
       );
       await wire.send(WireType.accept, {'transfer': manifest.id});
-      var files = 0, bytes = 0, skipped = 0;
+      var files = 0, bytes = 0, skipped = 0, reused = 0;
       final elapsed = Stopwatch()..start();
       for (final entry in manifest.entries) {
         final start = await wire.expect(WireType.fileStart);
         _checkEntry(start, manifest, entry);
+        if (start['resume'] is! bool)
+          throw const NshareException('protocol', 'Invalid resume policy');
+        final finalized =
+            start['resume'] == true && await store.isFinalized(entry);
         final destination = await store.destination(entry);
         final existing = await FileSystemEntity.type(
           destination,
           followLinks: false,
         );
-        if (!entry.directory && existing != FileSystemEntityType.notFound) {
+        if (!finalized &&
+            !entry.directory &&
+            existing != FileSystemEntityType.notFound) {
           if (conflict == ConflictPolicy.skip &&
               existing == FileSystemEntityType.file) {
             await wire.send(WireType.fileAccept, {
@@ -333,16 +351,33 @@ class TransferReceiver {
         }
         RandomAccessFile? writer;
         try {
-          if (!entry.directory) {
-            await assertNoLinks(store.partial(entry).path);
-            writer = await store.partial(entry).open(mode: FileMode.write);
+          var offset = finalized ? entry.size : 0;
+          var prefixHash = finalized && !entry.directory
+              ? entry.hash
+              : sha256.convert([]).toString();
+          if (!entry.directory && !finalized) {
+            final partial = store.partial(entry);
+            await assertNoLinks(partial.path);
+            if (start['resume'] == true && await partial.exists()) {
+              final length = await partial.length();
+              if (length <= entry.size) {
+                offset = length == entry.size
+                    ? length
+                    : length ~/ maxChunkBytes * maxChunkBytes;
+                if (offset > 0)
+                  prefixHash = await hashFile(partial, end: offset);
+              }
+            }
+            writer = await partial.open(mode: FileMode.append);
+            await writer.truncate(offset);
+            await writer.setPosition(offset);
           }
+          reused += offset;
           await wire.send(WireType.fileAccept, {
             ..._entryMessage(manifest, entry),
-            'offset': 0,
-            'prefixHash': sha256.convert([]).toString(),
+            'offset': offset,
+            'prefixHash': prefixHash,
           });
-          var offset = 0;
           while (offset < entry.size) {
             final frame = await wire.read();
             if (frame.type != WireType.data || frame.payload.length <= 8) {
@@ -368,7 +403,7 @@ class TransferReceiver {
               TransferProgress(
                 phase: TransferPhase.transferring,
                 path: entry.path,
-                bytes: bytes,
+                bytes: bytes + reused,
                 total: manifest.bytes,
                 verifiedFiles: files,
                 bytesPerSecond:
@@ -392,12 +427,12 @@ class TransferReceiver {
             TransferProgress(
               phase: TransferPhase.verifying,
               path: entry.path,
-              bytes: bytes,
+              bytes: bytes + reused,
               total: manifest.bytes,
               verifiedFiles: files,
             ),
           );
-          await store.finalize(entry);
+          if (!finalized) await store.finalize(entry);
           await wire.send(WireType.fileAck, {
             ..._entryMessage(manifest, entry),
             'sha256': entry.hash,
@@ -424,7 +459,7 @@ class TransferReceiver {
       onProgress?.call(
         TransferProgress(
           phase: TransferPhase.complete,
-          bytes: bytes,
+          bytes: bytes + reused,
           total: manifest.bytes,
           verifiedFiles: files,
         ),

@@ -116,13 +116,20 @@ class WireConnection {
   }) {
     final decoder = FrameDecoder();
     _frames = StreamIterator(_decode(socket, decoder));
-    cancellation?.whenCancelled.then((_) => socket.destroy());
+    cancellation?.whenCancelled.then((_) => close());
     _cancellation = cancellation;
   }
   final Socket socket;
   final Duration timeout;
   late final StreamIterator<Frame> _frames;
   CancellationToken? _cancellation;
+  final _closed = Completer<void>();
+  Future<T> waitFor<T>(Future<T> operation) => Future.any([
+    operation,
+    _closed.future.then<T>(
+      (_) => throw const NshareException('cancelled', 'Connection closed'),
+    ),
+  ]).timeout(const Duration(minutes: 5));
 
   static Stream<Frame> _decode(Socket socket, FrameDecoder decoder) async* {
     await for (final bytes in socket) {
@@ -179,6 +186,8 @@ class WireConnection {
   }
 
   Future<void> close() async {
+    if (_closed.isCompleted) return;
+    _closed.complete();
     socket.destroy();
     await _frames.cancel();
   }
