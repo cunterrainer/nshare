@@ -42,7 +42,11 @@ ArgParser createParser() {
     ArgParser()
       ..addFlag('help', abbr: 'h', negatable: false)
       ..addOption('output', abbr: 'o', defaultsTo: './downloads')
-      ..addOption('bind', defaultsTo: '0.0.0.0')
+      ..addOption(
+        'bind',
+        help:
+            'Bind a specific address; default is IPv4/IPv6 dual stack where available',
+      )
       ..addOption('port', defaultsTo: '53317')
       ..addOption('discovery-port', defaultsTo: '1970')
       ..addOption(
@@ -135,6 +139,7 @@ ArgParser createParser() {
           'retry',
           'move',
           'remove',
+          'events',
         ],
         defaultsTo: 'list',
       )
@@ -399,6 +404,7 @@ Future<int> runCli(List<String> arguments) async {
     if (command.name == 'pair') {
       final join = command['join'] as String?;
       if (join != null) {
+        stderr.writeln('Your fingerprint: ${identity.fingerprint}');
         await joinInvitation(
           PairingInvitation.parse(join),
           identity,
@@ -529,7 +535,9 @@ Future<int> runCli(List<String> arguments) async {
               ? command['allow-compression'] as bool
               : settings.allowCompression,
         );
-        stderr.writeln('Listening on 0.0.0.0:${service.receiver!.port}');
+        stderr.writeln(
+          'Listening on ${service.receiver!.address.address}:${service.receiver!.port}',
+        );
         await service.done;
         return 0;
       } finally {
@@ -622,7 +630,9 @@ Future<int> runCli(List<String> arguments) async {
       identity: identity,
       trust: trust,
       output: Directory(command['output'] as String),
-      bind: InternetAddress(command['bind'] as String),
+      bind: command['bind'] == null
+          ? null
+          : InternetAddress(command['bind'] as String),
       port: parsePort(command['port'] as String),
       discover: command['discover'] as bool,
       allowCompression: command.wasParsed('allow-compression')
@@ -664,7 +674,7 @@ Future<int> runCli(List<String> arguments) async {
       },
     );
     stderr.writeln(
-      'Listening on ${command['bind']}:${receiver.port}\nThis device: ${identity.fingerprint}',
+      'Listening on ${receiver.address.address}:${receiver.port}\nThis device: ${identity.fingerprint}',
     );
     try {
       return await Future.any([

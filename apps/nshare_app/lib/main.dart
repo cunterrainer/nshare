@@ -45,6 +45,7 @@ class NshareHome extends StatefulWidget {
 class _HomeState extends State<NshareHome> with WidgetsBindingObserver {
   int page = 0;
   bool resumeReceiver = false;
+  final ownHost = TextEditingController();
   final host = TextEditingController(),
       port = TextEditingController(text: '53317'),
       pin = TextEditingController(),
@@ -134,6 +135,7 @@ class _HomeState extends State<NshareHome> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     c.removeListener(changed);
+    ownHost.dispose();
     for (final field in [host, port, pin, source, invite]) {
       field.dispose();
     }
@@ -228,7 +230,7 @@ class _HomeState extends State<NshareHome> with WidgetsBindingObserver {
           child: ListTile(
             title: Text(device.name),
             subtitle: Text(
-              '${device.address}:${device.port}\n${device.fingerprint}',
+              '${device.address}:${device.port}${device.remembered ? ' (saved; reachability unverified)' : ''}\n${device.fingerprint}',
             ),
             isThreeLine: true,
             trailing: const Icon(Icons.chevron_right),
@@ -342,7 +344,7 @@ class _HomeState extends State<NshareHome> with WidgetsBindingObserver {
                     'Stop receiving before changing destination',
                   );
                 }
-                c.receiveDirectory = Directory(value);
+                await c.setReceiveDirectory(Directory(value));
               }
             }),
         ],
@@ -364,10 +366,33 @@ class _HomeState extends State<NshareHome> with WidgetsBindingObserver {
       const Text(
         'Display a pairing QR or copy its invitation. A PC does not need a camera.',
       ),
-      field('This device’s reachable LAN IP address', host),
+      field('This device’s reachable LAN IP address', ownHost),
+      action('Choose this device IP', () async {
+        final addresses = await localAddresses();
+        if (!mounted) return;
+        final value = await showDialog<String>(
+          context: context,
+          builder: (ctx) => SimpleDialog(
+            title: const Text('Local network addresses'),
+            children: [
+              for (final address in addresses)
+                SimpleDialogOption(
+                  onPressed: () => Navigator.pop(ctx, address.address),
+                  child: Text('${address.interfaceName}: ${address.address}'),
+                ),
+              if (addresses.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('No local addresses found.'),
+                ),
+            ],
+          ),
+        );
+        if (value != null) ownHost.text = value;
+      }),
       action(
         'Create five-minute invitation',
-        () => c.makeInvitation(host.text),
+        () => c.makeInvitation(ownHost.text),
         icon: Icons.qr_code,
       ),
       if (c.invitation != null) ...[
@@ -427,7 +452,7 @@ class _HomeState extends State<NshareHome> with WidgetsBindingObserver {
                     children: [
                       if ([
                         JobStatus.queued,
-                        JobStatus.transferring,
+                        ...activeJobStatuses,
                         JobStatus.interrupted,
                       ].contains(job.status))
                         action('Pause', () => c.queueAction(job.id, 'pause')),
@@ -446,7 +471,7 @@ class _HomeState extends State<NshareHome> with WidgetsBindingObserver {
                         JobStatus.cancelled,
                       ].contains(job.status))
                         action('Cancel', () => c.queueAction(job.id, 'cancel')),
-                      if (job.status != JobStatus.transferring)
+                      if (!activeJobStatuses.contains(job.status))
                         action('Remove', () => c.queueAction(job.id, 'remove')),
                       if (!history)
                         action(

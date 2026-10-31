@@ -41,8 +41,9 @@ class LocalService {
   static Future<LocalService> start(
     Directory directory,
     DeviceIdentity identity,
-    TrustStore trust,
-  ) async {
+    TrustStore trust, {
+    ProgressCallback? onProgress,
+  }) async {
     final key = p.normalize(p.absolute(directory.path));
     if (!_owners.add(key)) {
       throw const NshareException(
@@ -83,9 +84,11 @@ class LocalService {
       http.listen(service._handle);
       final runner = QueueRunner(QueueStore(directory), identity, trust);
       service._runner = runner;
-      service._running = runner.run(watch: true).catchError((Object error) {
-        service._runner = null;
-      });
+      service._running = runner
+          .run(watch: true, onProgress: onProgress)
+          .catchError((Object error) {
+            service._runner = null;
+          });
       return service;
     } catch (_) {
       await http?.close(force: true);

@@ -47,6 +47,7 @@ Future<TransferResult> sendPath(
   bool resume = true,
   bool compression = false,
 }) async {
+  onProgress?.call(const TransferProgress(phase: TransferPhase.scanning));
   final manifest = await collectTransferManifest(
     input,
     cancellation: cancellation,
@@ -72,6 +73,12 @@ Future<TransferResult> sendPath(
   }
   var acknowledged = false;
   try {
+    onProgress?.call(
+      TransferProgress(
+        phase: TransferPhase.awaitingApproval,
+        total: manifest.bytes,
+      ),
+    );
     if (compression) wire.require('block-gzip-v1');
     if (manifest is PagedManifest) {
       await manifest.send(wire, compression: compression);
@@ -176,6 +183,16 @@ Future<TransferResult> sendPath(
           await reader.close();
         }
       }
+      onProgress?.call(
+        TransferProgress(
+          phase: TransferPhase.verifying,
+          path: entry.path,
+          bytes: bytes + reused,
+          total: manifest.bytes,
+          verifiedFiles: files,
+          networkBytes: networkBytes,
+        ),
+      );
       await wire.send(WireType.fileEnd, {
         ..._entryMessage(manifest, entry),
         'sha256': entry.hash,
@@ -189,6 +206,16 @@ Future<TransferResult> sendPath(
         );
       }
       if (!entry.directory) files++;
+      onProgress?.call(
+        TransferProgress(
+          phase: TransferPhase.transferring,
+          path: entry.path,
+          bytes: bytes + reused,
+          total: manifest.bytes,
+          verifiedFiles: files,
+          networkBytes: networkBytes,
+        ),
+      );
     }
     await wire.send(WireType.complete, {
       'transfer': manifest.id,
@@ -280,6 +307,7 @@ class TransferReceiver {
   RandomAccessFile? _outputLock;
   bool _closed = false;
   int get port => _server.port;
+  InternetAddress get address => _server.address;
 
   static Future<TransferReceiver> start({
     required DeviceIdentity identity,
@@ -299,11 +327,29 @@ class TransferReceiver {
     void Function(TransferResult)? onResult,
     void Function(Object)? onError,
   }) async {
-    final server = await SecureServerSocket.bind(
-      bind ?? InternetAddress.anyIPv4,
-      port,
-      identity.serverContext,
-    );
+    late final SecureServerSocket server;
+    if (bind != null) {
+      server = await SecureServerSocket.bind(
+        bind,
+        port,
+        identity.serverContext,
+      );
+    } else {
+      try {
+        server = await SecureServerSocket.bind(
+          InternetAddress.anyIPv6,
+          port,
+          identity.serverContext,
+          v6Only: false,
+        );
+      } on SocketException {
+        server = await SecureServerSocket.bind(
+          InternetAddress.anyIPv4,
+          port,
+          identity.serverContext,
+        );
+      }
+    }
     final receiver = TransferReceiver._(
       server,
       identity,
@@ -323,27 +369,43 @@ class TransferReceiver {
       receiver._accept,
       onError: (Object error) => onError?.call(error),
     );
-    try {
-      if (discover) {
+    if (discover && !server.address.isLoopback) {
+      try {
         receiver._discovery = await DiscoveryService.advertise(
           identity,
           server.port,
           port: discoveryPort,
         );
-        // Failure of multicast must not disable UDP or direct-IP reception.
-        for (final ipv6 in [false, true]) {
-          try {
-            receiver._mdns.add(
-              await MdnsAdvertiser.start(identity, server.port, ipv6: ipv6),
-            );
-          } catch (_) {}
-        }
+      } catch (_) {
+        /* The authenticated listener remains usable without discovery. */
       }
-    } catch (_) {
-      await receiver.close();
-      rethrow;
+      // Optional providers must never delay listener readiness or crash reception.
+      unawaited(receiver._advertiseMdns());
     }
     return receiver;
+  }
+
+  Future<void> _advertiseMdns() async {
+    for (final ipv6 in [
+      false,
+      if (address.type == InternetAddressType.IPv6) true,
+    ]) {
+      if (_closed) return;
+      try {
+        final advertiser = await MdnsAdvertiser.start(
+          identity,
+          port,
+          ipv6: ipv6,
+        );
+        if (_closed) {
+          await advertiser.close();
+          return;
+        }
+        _mdns.add(advertiser);
+      } catch (_) {
+        /* Broadcast/direct IP remain available on restricted hosts. */
+      }
+    }
   }
 
   Future<void> _acquireOutput() async {

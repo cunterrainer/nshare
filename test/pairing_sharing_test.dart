@@ -102,7 +102,7 @@ void main() {
     expect(base.svg, contains('viewBox='));
     expect(base.svg, contains('fill="white"'));
     expect(base.svg, contains('fill="black"'));
-    expect(base.terminalQr, contains('\x1b[47m'));
+    expect(base.terminalQr, contains('47m▀'));
     expect(base.svg, isNot(contains('PRIVATE KEY')));
   });
   test('UTF8 clipboard limit counts bytes', () {

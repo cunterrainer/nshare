@@ -318,11 +318,14 @@ class _Builder {
   }
 
   Future<void> abort() async {
-    if (!_closed) {
-      await writer.close();
+    try {
+      if (!_closed) {
+        await writer.close();
+      }
+    } finally {
       _closed = true;
+      if (await directory.exists()) await directory.delete(recursive: true);
     }
-    if (await directory.exists()) await directory.delete(recursive: true);
   }
 }
 

@@ -85,15 +85,16 @@ class PairingInvitation {
     );
     final out = StringBuffer();
     // Black modules on an explicit white quiet zone; no terminal theme dependence.
-    for (var y = -4; y < image.moduleCount + 4; y++) {
+    bool dark(int x, int y) =>
+        x >= 0 &&
+        y >= 0 &&
+        x < image.moduleCount &&
+        y < image.moduleCount &&
+        image.isDark(y, x);
+    for (var y = -4; y < image.moduleCount + 4; y += 2) {
       for (var x = -4; x < image.moduleCount + 4; x++) {
-        final dark =
-            x >= 0 &&
-            y >= 0 &&
-            x < image.moduleCount &&
-            y < image.moduleCount &&
-            image.isDark(y, x);
-        out.write(dark ? '\x1b[40m  ' : '\x1b[47m  ');
+        // Half-block cells keep modules square and fit ordinary 80-column terminals.
+        out.write('\x1b[${dark(x, y) ? 30 : 37};${dark(x, y + 1) ? 40 : 47}m▀');
       }
       out.writeln('\x1b[0m');
     }

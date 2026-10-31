@@ -16,8 +16,9 @@ void main() {
       ['compile', 'exe', 'bin/nshare.dart', '-o', executable],
       workingDirectory: '../..',
     );
-    if (build.exitCode != 0)
+    if (build.exitCode != 0) {
       throw StateError('CLI compilation failed: ${build.stderr}');
+    }
   });
   tearDownAll(() => root.delete(recursive: true));
   Future<NshareController> controller(String name) async {
@@ -42,10 +43,13 @@ void main() {
     final timeout = DateTime.now().add(const Duration(seconds: 20));
     while (DateTime.now().isBefore(timeout)) {
       final jobs = await QueueStore(c.stateDirectory!).list();
-      if (jobs.any((j) => j.status == JobStatus.failed))
+      if (jobs.any((j) => j.status == JobStatus.failed)) {
         throw StateError('Job failed: ${jobs.first.error}');
-      if (jobs.isNotEmpty && jobs.every((j) => j.status == JobStatus.completed))
+      }
+      if (jobs.isNotEmpty &&
+          jobs.every((j) => j.status == JobStatus.completed)) {
         return;
+      }
       await Future<void>.delayed(const Duration(milliseconds: 50));
     }
     throw TimeoutException('Transfer did not complete');
@@ -117,8 +121,9 @@ void main() {
             .transform(const LineSplitter())
             .listen((line) {
               stderr.writeln(line);
-              if (line.startsWith('Listening on') && !ready.isCompleted)
+              if (line.startsWith('Listening on') && !ready.isCompleted) {
                 ready.complete();
+              }
             });
         final drained = process.stdout.drain<void>();
         try {

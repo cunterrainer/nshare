@@ -7,6 +7,10 @@ import '../transfer/transfer.dart';
 import 'state.dart';
 
 enum JobStatus {
+  scanning,
+  connecting,
+  awaitingApproval,
+  verifying,
   queued,
   transferring,
   paused,
@@ -15,6 +19,14 @@ enum JobStatus {
   failed,
   cancelled,
 }
+
+const activeJobStatuses = {
+  JobStatus.scanning,
+  JobStatus.connecting,
+  JobStatus.awaitingApproval,
+  JobStatus.transferring,
+  JobStatus.verifying,
+};
 
 class TransferJob {
   TransferJob({
@@ -139,7 +151,7 @@ class QueueStore {
           case 'pause':
             if (![
               JobStatus.queued,
-              JobStatus.transferring,
+              ...activeJobStatuses,
               JobStatus.interrupted,
             ].contains(status)) {
               throw const NshareException('usage', 'Job cannot be paused');
@@ -173,7 +185,7 @@ class QueueStore {
             jobs.removeAt(index);
             jobs.insert(position, job);
           case 'remove':
-            if (status == JobStatus.transferring) {
+            if (activeJobStatuses.contains(status)) {
               throw const NshareException(
                 'usage',
                 'Cancel an active job before removing it',
@@ -188,7 +200,7 @@ class QueueStore {
   Future<void> recover() => _store.update((data) {
     final jobs = _jobs(data);
     for (final job in jobs) {
-      if (job['status'] == JobStatus.transferring.name) {
+      if (activeJobStatuses.any((s) => s.name == job['status'])) {
         job['status'] = JobStatus.interrupted.name;
         job['error'] = 'Receiver owner stopped; resume explicitly';
       }
@@ -199,9 +211,27 @@ class QueueStore {
     final jobs = _jobs(data);
     final index = jobs.indexWhere((v) => v['status'] == JobStatus.queued.name);
     if (index < 0) return null;
-    jobs[index]['status'] = JobStatus.transferring.name;
+    jobs[index]['status'] = JobStatus.scanning.name;
     data['jobs'] = jobs;
     return TransferJob.fromJson(jobs[index]);
+  });
+  Future<void> phase(String id, TransferPhase phase) => _store.update((data) {
+    final jobs = _jobs(data);
+    final index = jobs.indexWhere((j) => j['id'] == id);
+    if (index < 0 ||
+        !activeJobStatuses.any((s) => s.name == jobs[index]['status'])) {
+      return;
+    }
+    final status = switch (phase) {
+      TransferPhase.scanning => JobStatus.scanning,
+      TransferPhase.connecting => JobStatus.connecting,
+      TransferPhase.awaitingApproval => JobStatus.awaitingApproval,
+      TransferPhase.verifying => JobStatus.verifying,
+      TransferPhase.transferring => JobStatus.transferring,
+      TransferPhase.complete => null,
+    };
+    if (status != null) jobs[index]['status'] = status.name;
+    data['jobs'] = jobs;
   });
   Future<void> finish(String id, {TransferResult? result, Object? error}) =>
       _store.update((data) {
@@ -210,7 +240,7 @@ class QueueStore {
         if (index < 0) return;
         final job = jobs[index];
         // User pause/cancel wins over an in-flight network completion.
-        if (job['status'] == JobStatus.transferring.name) {
+        if (activeJobStatuses.any((s) => s.name == job['status'])) {
           job['status'] =
               (result != null ? JobStatus.completed : JobStatus.failed).name;
           job['error'] = error is NshareException
@@ -288,7 +318,8 @@ class QueueRunner {
           try {
             final jobs = await store.list();
             final current = jobs.where((v) => v.id == job.id).firstOrNull;
-            if (current == null || current.status != JobStatus.transferring) {
+            if (current == null ||
+                !activeJobStatuses.contains(current.status)) {
               cancellation.cancel();
             }
           } catch (_) {
@@ -297,6 +328,8 @@ class QueueRunner {
             polling = false;
           }
         });
+        TransferPhase? previousPhase;
+        var lastPhaseSaved = DateTime.fromMillisecondsSinceEpoch(0);
         try {
           final result = await sendPath(
             job.path,
@@ -307,7 +340,22 @@ class QueueRunner {
             expectedFingerprint: job.fingerprint,
             compression: job.compression,
             cancellation: cancellation,
-            onProgress: onProgress,
+            onProgress: (progress) {
+              if (previousPhase != progress.phase &&
+                  DateTime.now().difference(lastPhaseSaved).inMilliseconds >=
+                      250) {
+                previousPhase = progress.phase;
+                lastPhaseSaved = DateTime.now();
+                unawaited(
+                  store.phase(job.id, progress.phase).catchError((
+                    Object error,
+                  ) {
+                    cancellation.cancel();
+                  }),
+                );
+              }
+              onProgress?.call(progress);
+            },
           );
           await store.finish(job.id, result: result);
         } catch (error) {

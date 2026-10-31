@@ -51,7 +51,7 @@ void main() {
         final allowed = switch (action) {
           'pause' => [
             JobStatus.queued,
-            JobStatus.transferring,
+            ...activeJobStatuses,
             JobStatus.interrupted,
           ].contains(status),
           'resume' => [
@@ -67,7 +67,7 @@ void main() {
             JobStatus.completed,
             JobStatus.cancelled,
           ].contains(status),
-          'remove' => status != JobStatus.transferring,
+          'remove' => !activeJobStatuses.contains(status),
           _ => false,
         };
         if (allowed) {

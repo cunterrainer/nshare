@@ -308,33 +308,38 @@ class MdnsAdvertiser {
     }
 
     var previous = DateTime.fromMillisecondsSinceEpoch(0);
-    final sub = socket.listen((event) {
-      if (event != RawSocketEvent.read) return;
-      Datagram? datagram;
-      while ((datagram = socket.receive()) != null) {
-        final data = datagram!.data;
-        if (data.length < 12 || data.length > 9000 || data[2] & 0x80 != 0) {
-          continue;
-        }
-        try {
-          final r = _Reader(data)..position = 4;
-          final count = r.u16();
-          r.position = 12;
-          if (count > 64) continue;
-          for (var i = 0; i < count; i++) {
-            final name = r.name();
-            final type = r.u16();
-            r.u16();
-            if (name == mdnsServiceName &&
-                (type == 12 || type == 255) &&
-                DateTime.now().difference(previous).inMilliseconds > 250) {
-              previous = DateTime.now();
-              advertise();
-            }
+    final sub = socket.listen(
+      (event) {
+        if (event != RawSocketEvent.read) return;
+        Datagram? datagram;
+        while ((datagram = socket.receive()) != null) {
+          final data = datagram!.data;
+          if (data.length < 12 || data.length > 9000 || data[2] & 0x80 != 0) {
+            continue;
           }
-        } catch (_) {}
-      }
-    });
+          try {
+            final r = _Reader(data)..position = 4;
+            final count = r.u16();
+            r.position = 12;
+            if (count > 64) continue;
+            for (var i = 0; i < count; i++) {
+              final name = r.name();
+              final type = r.u16();
+              r.u16();
+              if (name == mdnsServiceName &&
+                  (type == 12 || type == 255) &&
+                  DateTime.now().difference(previous).inMilliseconds > 250) {
+                previous = DateTime.now();
+                advertise();
+              }
+            }
+          } catch (_) {}
+        }
+      },
+      onError: (Object error) {
+        /* Multicast interfaces may disappear asynchronously. */
+      },
+    );
     advertise();
     final timer = Timer.periodic(
       const Duration(seconds: 60),
@@ -366,16 +371,21 @@ Future<List<DiscoveredDevice>> discoverMdns({
   try {
     final interfaces = await _join(socket, group);
     socket.multicastHops = 255;
-    sub = socket.listen((event) {
-      if (event != RawSocketEvent.read) return;
-      Datagram? packet;
-      while ((packet = socket.receive()) != null) {
-        final device = parseMdns(packet!.data, packet.address.address);
-        if (device != null && devices.length < 256) {
-          devices[device.fingerprint] = device;
+    sub = socket.listen(
+      (event) {
+        if (event != RawSocketEvent.read) return;
+        Datagram? packet;
+        while ((packet = socket.receive()) != null) {
+          final device = parseMdns(packet!.data, packet.address.address);
+          if (device != null && devices.length < 256) {
+            devices[device.fingerprint] = device;
+          }
         }
-      }
-    });
+      },
+      onError: (Object error) {
+        /* Missing multicast routes do not invalidate direct IP. */
+      },
+    );
     _multicast(socket, group, interfaces, mdnsQuery());
     await Future<void>.delayed(duration);
     await sub.cancel();

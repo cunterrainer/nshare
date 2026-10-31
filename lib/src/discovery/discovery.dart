@@ -6,7 +6,14 @@ import '../identity/identity.dart';
 import '../protocol/protocol.dart';
 
 class DiscoveredDevice {
-  const DiscoveredDevice(this.name, this.fingerprint, this.address, this.port);
+  const DiscoveredDevice(
+    this.name,
+    this.fingerprint,
+    this.address,
+    this.port, {
+    this.remembered = false,
+  });
+  final bool remembered;
   final String name;
   final String fingerprint;
   final String address;
@@ -29,41 +36,46 @@ class DiscoveryService {
       port,
     );
     final recent = <String, DateTime>{};
-    final subscription = socket.listen((event) {
-      if (event != RawSocketEvent.read) return;
-      Datagram? packet;
-      while ((packet = socket.receive()) != null) {
-        final datagram = packet!;
-        if (datagram.data.length > 2048) continue;
-        try {
-          final json =
-              jsonDecode(utf8.decode(datagram.data)) as Map<String, dynamic>;
-          if (json['magic'] != 'nshare-discover' ||
-              json['version'] != protocolVersion) {
-            continue;
+    final subscription = socket.listen(
+      (event) {
+        if (event != RawSocketEvent.read) return;
+        Datagram? packet;
+        while ((packet = socket.receive()) != null) {
+          final datagram = packet!;
+          if (datagram.data.length > 2048) continue;
+          try {
+            final json =
+                jsonDecode(utf8.decode(datagram.data)) as Map<String, dynamic>;
+            if (json['magic'] != 'nshare-discover' ||
+                json['version'] != protocolVersion) {
+              continue;
+            }
+            final request = requiredString(json, 'request', max: 64);
+            final now = DateTime.now();
+            recent.removeWhere((_, time) => now.difference(time).inSeconds > 2);
+            final key = '${datagram.address.address}:${datagram.port}';
+            if (recent.containsKey(key) || recent.length >= 256) continue;
+            recent[key] = now;
+            final response = utf8.encode(
+              jsonEncode({
+                'magic': 'nshare-device',
+                'version': protocolVersion,
+                'request': request,
+                'name': identity.name,
+                'fingerprint': identity.fingerprint,
+                'port': transferPort,
+              }),
+            );
+            socket.send(response, datagram.address, datagram.port);
+          } catch (_) {
+            /* Ignore malformed unauthenticated discovery datagrams. */
           }
-          final request = requiredString(json, 'request', max: 64);
-          final now = DateTime.now();
-          recent.removeWhere((_, time) => now.difference(time).inSeconds > 2);
-          final key = '${datagram.address.address}:${datagram.port}';
-          if (recent.containsKey(key) || recent.length >= 256) continue;
-          recent[key] = now;
-          final response = utf8.encode(
-            jsonEncode({
-              'magic': 'nshare-device',
-              'version': protocolVersion,
-              'request': request,
-              'name': identity.name,
-              'fingerprint': identity.fingerprint,
-              'port': transferPort,
-            }),
-          );
-          socket.send(response, datagram.address, datagram.port);
-        } catch (_) {
-          /* Ignore malformed unauthenticated discovery datagrams. */
         }
-      }
-    });
+      },
+      onError: (Object error) {
+        /* Ignore asynchronous datagram send failures. */
+      },
+    );
     return DiscoveryService._(socket, subscription);
   }
 
@@ -89,35 +101,40 @@ Future<List<DiscoveredDevice>> discoverDevices({
       'request': request,
     }),
   );
-  final subscription = socket.listen((event) {
-    if (event != RawSocketEvent.read) return;
-    Datagram? packet;
-    while ((packet = socket.receive()) != null) {
-      final datagram = packet!;
-      if (datagram.data.length > 2048) continue;
-      try {
-        final json =
-            jsonDecode(utf8.decode(datagram.data)) as Map<String, dynamic>;
-        if (json['magic'] != 'nshare-device' ||
-            json['version'] != protocolVersion ||
-            json['request'] != request) {
-          continue;
+  final subscription = socket.listen(
+    (event) {
+      if (event != RawSocketEvent.read) return;
+      Datagram? packet;
+      while ((packet = socket.receive()) != null) {
+        final datagram = packet!;
+        if (datagram.data.length > 2048) continue;
+        try {
+          final json =
+              jsonDecode(utf8.decode(datagram.data)) as Map<String, dynamic>;
+          if (json['magic'] != 'nshare-device' ||
+              json['version'] != protocolVersion ||
+              json['request'] != request) {
+            continue;
+          }
+          final fingerprint = requiredString(json, 'fingerprint', max: 64);
+          if (!RegExp(r'^[0-9a-f]{64}$').hasMatch(fingerprint)) continue;
+          final transferPort = requiredInt(json, 'port', max: 65535);
+          if (transferPort == 0 || devices.length >= 256) continue;
+          devices[fingerprint] = DiscoveredDevice(
+            requiredString(json, 'name', max: 255),
+            fingerprint,
+            datagram.address.address,
+            transferPort,
+          );
+        } catch (_) {
+          /* Discovery results are untrusted hints only. */
         }
-        final fingerprint = requiredString(json, 'fingerprint', max: 64);
-        if (!RegExp(r'^[0-9a-f]{64}$').hasMatch(fingerprint)) continue;
-        final transferPort = requiredInt(json, 'port', max: 65535);
-        if (transferPort == 0 || devices.length >= 256) continue;
-        devices[fingerprint] = DiscoveredDevice(
-          requiredString(json, 'name', max: 255),
-          fingerprint,
-          datagram.address.address,
-          transferPort,
-        );
-      } catch (_) {
-        /* Discovery results are untrusted hints only. */
       }
-    }
-  });
+    },
+    onError: (Object error) {
+      /* Ignore unavailable broadcast interfaces. */
+    },
+  );
   void send() {
     socket.send(message, target ?? InternetAddress('255.255.255.255'), port);
   }

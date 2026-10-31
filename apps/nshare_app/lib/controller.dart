@@ -109,6 +109,10 @@ class NshareController extends ChangeNotifier {
         stateDirectory!,
         identity!,
         TrustStore(stateDirectory!),
+        onProgress: (value) {
+          progress = value;
+          notify();
+        },
       );
       externalStatus = null;
     } on NshareException catch (e) {
@@ -164,6 +168,33 @@ class NshareController extends ChangeNotifier {
           error = message;
         },
       )).where((d) => d.fingerprint != identity?.fingerprint).toList();
+      final known = await TrustStore(stateDirectory!).list();
+      for (final peer in known.entries) {
+        if (devices.any((d) => d.fingerprint == peer.key) ||
+            peer.key == identity?.fingerprint) {
+          continue;
+        }
+        final data = peer.value as Map;
+        for (final endpoint in data['endpoints'] as List? ?? []) {
+          final text = endpoint.toString();
+          final split = text.lastIndexOf(':');
+          if (split < 1) {
+            continue;
+          }
+          final port = int.tryParse(text.substring(split + 1));
+          if (port == null) continue;
+          devices.add(
+            DiscoveredDevice(
+              data['name'].toString(),
+              peer.key,
+              text.substring(0, split),
+              port,
+              remembered: true,
+            ),
+          );
+          break;
+        }
+      }
     } catch (e) {
       error = e.toString();
     } finally {
@@ -272,6 +303,21 @@ class NshareController extends ChangeNotifier {
       await LocalServiceClient(stateDirectory!).stop();
       externalStatus = null;
     }
+    notify();
+  }
+
+  Future<void> setReceiveDirectory(Directory directory) async {
+    if (receiving) {
+      throw const NshareException(
+        'busy',
+        'Stop receiving before changing destination',
+      );
+    }
+    final path = p.normalize(p.absolute(directory.path));
+    await StateStore(stateDirectory!, 'ui').update((data) {
+      data['output'] = path;
+    });
+    receiveDirectory = Directory(path);
     notify();
   }
 

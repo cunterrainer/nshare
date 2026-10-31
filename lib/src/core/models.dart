@@ -27,6 +27,7 @@ class CancellationToken {
 enum ConflictPolicy { refuse, overwrite, skip }
 
 enum TransferPhase {
+  scanning,
   connecting,
   awaitingApproval,
   transferring,
@@ -43,6 +44,7 @@ class TransferProgress {
     this.verifiedFiles = 0,
     this.bytesPerSecond = 0,
     this.networkBytes = 0,
+    this.scannedEntries = 0,
   });
   final TransferPhase phase;
   final String path;
@@ -51,6 +53,7 @@ class TransferProgress {
   final int verifiedFiles;
   final double bytesPerSecond;
   final int networkBytes;
+  final int scannedEntries;
 }
 
 class PeerIdentity {
