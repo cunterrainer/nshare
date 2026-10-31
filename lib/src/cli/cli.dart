@@ -2,14 +2,16 @@ import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:path/path.dart' as p;
 import '../identity/identity.dart';
 import '../transfer/transfer.dart';
 import '../discovery/discovery.dart';
+import '../discovery/mdns.dart';
 import 'package:args/args.dart';
 import '../core/models.dart';
 import '../application/state.dart';
 import '../application/queue.dart';
+import '../application/service.dart';
+import '../application/paths.dart';
 import '../application/pairing.dart';
 import '../application/sharing.dart';
 import '../discovery/interfaces.dart';
@@ -143,6 +145,21 @@ ArgParser createParser() {
       ..addFlag('watch', negatable: false)
       ..addFlag('json', negatable: false),
   );
+  parser.addCommand(
+    'service',
+    ArgParser()
+      ..addFlag('help', abbr: 'h', negatable: false)
+      ..addOption(
+        'action',
+        allowed: ['run', 'start', 'status', 'stop'],
+        defaultsTo: 'status',
+      )
+      ..addOption('output', defaultsTo: './downloads')
+      ..addOption('port', defaultsTo: '53317')
+      ..addOption('peer-fingerprint')
+      ..addFlag('accept', negatable: false)
+      ..addFlag('allow-compression'),
+  );
   return parser;
 }
 
@@ -164,7 +181,7 @@ Future<int> runCli(List<String> arguments) async {
     if (args['help'] as bool || arguments.isEmpty) {
       stdout.writeln(
         'nshare v2 — local network file transfer\n'
-        'Usage: nshare [global options] <send|receive|devices|trust|settings|pair|clipboard|queue> [options]\n'
+        'Usage: nshare [global options] <send|receive|devices|trust|settings|pair|clipboard|queue|service> [options]\n'
         '${parser.usage}',
       );
       return 0;
@@ -211,7 +228,7 @@ Future<int> runCli(List<String> arguments) async {
       );
     }
     final directory = Directory(
-      args['state-dir'] as String? ?? _defaultStateDirectory(),
+      args['state-dir'] as String? ?? defaultStateDirectory().path,
     );
     final settingsStore = SettingsStore(directory);
     if (command.name == 'settings') {
@@ -223,6 +240,60 @@ Future<int> runCli(List<String> arguments) async {
       if (key != null) await settingsStore.set(key, value == 'true');
       stdout.writeln(jsonEncode((await settingsStore.load()).toJson()));
       return 0;
+    }
+    if (command.name == 'service' &&
+        ['status', 'stop', 'start'].contains(command['action'])) {
+      final client = LocalServiceClient(directory);
+      if (command['action'] == 'stop') {
+        await client.stop();
+        return 0;
+      }
+      if (command['action'] == 'status') {
+        stdout.writeln(jsonEncode(await client.status()));
+        return 0;
+      }
+      final executable = Platform.resolvedExecutable;
+      final script = Platform.script.toFilePath();
+      final childArgs = [
+        if (script.endsWith('.dart')) script,
+        '--state-dir',
+        directory.absolute.path,
+        'service',
+        '--action',
+        'run',
+        '--output',
+        Directory(command['output'] as String).absolute.path,
+        '--port',
+        command['port'] as String,
+        if (command['accept'] as bool) '--accept',
+        if (command.wasParsed('allow-compression'))
+          (command['allow-compression'] as bool
+              ? '--allow-compression'
+              : '--no-allow-compression'),
+        if (command['peer-fingerprint'] != null) ...[
+          '--peer-fingerprint',
+          command['peer-fingerprint'] as String,
+        ],
+      ];
+      await Process.start(
+        executable,
+        childArgs,
+        mode: ProcessStartMode.detached,
+      );
+      for (var attempt = 0; attempt < 40; attempt++) {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        try {
+          final status = await client.status();
+          if (status['receiverPort'] != null) {
+            stdout.writeln(jsonEncode(status));
+            return 0;
+          }
+        } catch (_) {}
+      }
+      throw const NshareException(
+        'service',
+        'Service failed to become ready; run service --action run for diagnostics',
+      );
     }
     final settings = await settingsStore.load();
     final identity = await DeviceIdentity.load(directory);
@@ -340,7 +411,7 @@ Future<int> runCli(List<String> arguments) async {
       (_) => cancellation.cancel(),
     );
     if (command.name == 'devices') {
-      final devices = await discoverDevices(
+      final devices = await discoverNearby(
         port: parsePort(command['discovery-port'] as String),
       );
       for (final device in devices) {
@@ -364,6 +435,34 @@ Future<int> runCli(List<String> arguments) async {
       );
     }
 
+    if (command.name == 'service') {
+      final service = await LocalService.start(directory, identity, trust);
+      final signal = ProcessSignal.sigint.watch().listen(
+        (_) => unawaited(service.close()),
+      );
+      try {
+        await service.startReceiver(
+          output: Directory(command['output'] as String),
+          port: parsePort(command['port'] as String),
+          expectedFingerprint: expected,
+          approvePeer: stdin.hasTerminal ? approvePeer : null,
+          approveOffer: (offer) async =>
+              command['accept'] as bool ||
+              await terminal.confirm(
+                'Accept ${offer.fileCount} files (${offer.bytes} bytes)?',
+              ),
+          allowCompression: command.wasParsed('allow-compression')
+              ? command['allow-compression'] as bool
+              : settings.allowCompression,
+        );
+        stderr.writeln('Listening on 0.0.0.0:${service.receiver!.port}');
+        await service.done;
+        return 0;
+      } finally {
+        await signal.cancel();
+        await service.close();
+      }
+    }
     if (command.name == 'clipboard') {
       var text = command['text'] as String?;
       if (text == null) {
@@ -411,7 +510,7 @@ Future<int> runCli(List<String> arguments) async {
       var port = parsePort(command['port'] as String);
       if (host == null) {
         final device = selectDevice(
-          await discoverDevices(
+          await discoverNearby(
             port: parsePort(command['discovery-port'] as String),
           ),
           command['to'] as String?,
@@ -536,22 +635,6 @@ String _fingerprint(String value) {
     );
   }
   return value.toLowerCase();
-}
-
-String _defaultStateDirectory() {
-  final environment = Platform.environment;
-  final base = Platform.isWindows
-      ? environment['APPDATA']
-      : environment['XDG_CONFIG_HOME'];
-  if (base != null && base.isNotEmpty) return p.join(base, 'nshare');
-  final home = environment[Platform.isWindows ? 'USERPROFILE' : 'HOME'];
-  if (home == null) {
-    throw const NshareException(
-      'usage',
-      'Set --state-dir when no home directory is available',
-    );
-  }
-  return p.join(home, '.config', 'nshare');
 }
 
 class _Terminal {

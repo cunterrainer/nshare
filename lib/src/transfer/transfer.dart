@@ -7,6 +7,7 @@ import '../core/models.dart';
 import '../application/sharing.dart';
 import '../application/pairing.dart';
 import '../discovery/discovery.dart';
+import '../discovery/mdns.dart';
 import '../identity/identity.dart';
 import '../protocol/protocol.dart';
 import '../protocol/compression.dart';
@@ -270,6 +271,7 @@ class TransferReceiver {
   final void Function(Object)? onError;
   StreamSubscription<SecureSocket>? _subscription;
   DiscoveryService? _discovery;
+  final _mdns = <MdnsAdvertiser>[];
   final Set<WireConnection> _connections = {};
   final Set<Future<void>> _tasks = {};
   int get port => _server.port;
@@ -323,6 +325,14 @@ class TransferReceiver {
           server.port,
           port: discoveryPort,
         );
+        // Failure of multicast must not disable UDP or direct-IP reception.
+        for (final ipv6 in [false, true]) {
+          try {
+            receiver._mdns.add(
+              await MdnsAdvertiser.start(identity, server.port, ipv6: ipv6),
+            );
+          } catch (_) {}
+        }
       }
     } catch (_) {
       await receiver.close();
@@ -609,6 +619,10 @@ class TransferReceiver {
   }
 
   Future<void> close() async {
+    for (final advertiser in _mdns) {
+      await advertiser.close();
+    }
+    _mdns.clear();
     await _discovery?.close();
     await _subscription?.cancel();
     await _server.close();

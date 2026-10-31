@@ -14,3 +14,6 @@ export 'src/storage/paged_manifest.dart'
 export 'src/application/pairing.dart';
 export 'src/application/sharing.dart';
 export 'src/application/queue.dart';
+export 'src/discovery/mdns.dart' show discoverNearby, watchNearby;
+export 'src/application/service.dart';
+export 'src/application/paths.dart';
