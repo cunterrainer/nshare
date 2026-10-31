@@ -1,0 +1,25 @@
+name: Dart v2
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        sdk: [stable]
+        include:
+          - os: ubuntu-latest
+            sdk: '3.8.0'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ matrix.sdk }}
+      - run: dart pub get
+      - run: dart format --output=none --set-exit-if-changed lib bin test example tool
+      - run: dart analyze --fatal-infos
+      - run: dart test --reporter expanded
+      - run: dart compile exe bin/nshare.dart -o nshare-cli${{ runner.os == 'Windows' && '.exe' || '' }}

@@ -34,6 +34,7 @@ Future<TransferResult> sendPath(
   TrustStore trust, {
   PairingApproval? approvePeer,
   String? expectedFingerprint,
+  String? targetFingerprint,
   CancellationToken? cancellation,
   ProgressCallback? onProgress,
   bool resume = true,
@@ -49,6 +50,7 @@ Future<TransferResult> sendPath(
     trust,
     approve: approvePeer,
     expectedFingerprint: expectedFingerprint,
+    targetFingerprint: targetFingerprint,
     cancellation: cancellation,
   );
   var acknowledged = false;
@@ -58,8 +60,9 @@ Future<TransferResult> sendPath(
       WireType.accept,
       wait: const Duration(minutes: 5),
     );
-    if (accept['transfer'] != manifest.id)
+    if (accept['transfer'] != manifest.id) {
       throw const NshareException('protocol', 'Unexpected accepted transfer');
+    }
     var files = 0, bytes = 0, skipped = 0, reused = 0;
     final elapsed = Stopwatch()..start();
     for (final entry in manifest.entries) {
@@ -94,7 +97,7 @@ Future<TransferResult> sendPath(
         }
         final prefix = offset == 0
             ? sha256.convert([]).toString()
-            : await hashFile(source, end: offset);
+            : await hashFile(source, end: offset, cancellation: cancellation);
         if (accepted['prefixHash'] != prefix) {
           throw const NshareException(
             'resume',
@@ -109,8 +112,9 @@ Future<TransferResult> sendPath(
             final chunk = await reader.read(
               (entry.size - offset).clamp(0, maxChunkBytes),
             );
-            if (chunk.isEmpty)
+            if (chunk.isEmpty) {
               throw const NshareException('source', 'Source was truncated');
+            }
             final payload = Uint8List(8 + chunk.length);
             ByteData.sublistView(payload).setUint64(0, offset, Endian.big);
             payload.setRange(8, payload.length, chunk);
@@ -141,11 +145,12 @@ Future<TransferResult> sendPath(
       });
       final ack = await wire.expect(WireType.fileAck);
       _checkEntry(ack, manifest, entry);
-      if (ack['sha256'] != entry.hash)
+      if (ack['sha256'] != entry.hash) {
         throw const NshareException(
           'integrity',
           'Receiver acknowledged a different digest',
         );
+      }
       if (!entry.directory) files++;
     }
     await wire.send(WireType.complete, {
@@ -263,12 +268,13 @@ class TransferReceiver {
       onError: (Object error) => onError?.call(error),
     );
     try {
-      if (discover)
+      if (discover) {
         receiver._discovery = await DiscoveryService.advertise(
           identity,
           server.port,
           port: discoveryPort,
         );
+      }
     } catch (_) {
       await receiver.close();
       rethrow;
@@ -320,8 +326,9 @@ class TransferReceiver {
       for (final entry in manifest.entries) {
         final start = await wire.expect(WireType.fileStart);
         _checkEntry(start, manifest, entry);
-        if (start['resume'] is! bool)
+        if (start['resume'] is! bool) {
           throw const NshareException('protocol', 'Invalid resume policy');
+        }
         final finalized =
             start['resume'] == true && await store.isFinalized(entry);
         final destination = await store.destination(entry);
@@ -364,8 +371,9 @@ class TransferReceiver {
                 offset = length == entry.size
                     ? length
                     : length ~/ maxChunkBytes * maxChunkBytes;
-                if (offset > 0)
+                if (offset > 0) {
                   prefixHash = await hashFile(partial, end: offset);
+                }
               }
             }
             writer = await partial.open(mode: FileMode.append);
@@ -415,11 +423,12 @@ class TransferReceiver {
           }
           final end = await wire.expect(WireType.fileEnd);
           _checkEntry(end, manifest, entry);
-          if (end['sha256'] != entry.hash)
+          if (end['sha256'] != entry.hash) {
             throw const NshareException(
               'integrity',
               'Sender digest does not match manifest',
             );
+          }
           await writer?.flush();
           await writer?.close();
           writer = null;

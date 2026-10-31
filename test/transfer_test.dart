@@ -62,6 +62,47 @@ void main() {
     },
   );
   test(
+    'explicit skip and overwrite policies preserve their distinct outcomes',
+    () async {
+      final source = File('${temp.path}/conflict.txt')
+        ..writeAsStringSync('new verified content');
+      final output = Directory('${temp.path}/conflict-out')..createSync();
+      final destination = File('${output.path}/conflict.txt')
+        ..writeAsStringSync('keep me');
+      for (final policy in [ConflictPolicy.skip, ConflictPolicy.overwrite]) {
+        final server = await TransferReceiver.start(
+          identity: receiverIdentity,
+          trust: TrustStore(receiverIdentity.directory),
+          output: output,
+          conflict: policy,
+          approveOffer: (_) async => true,
+          expectedFingerprint: sender.fingerprint,
+          bind: InternetAddress.loopbackIPv4,
+          port: 0,
+          discover: false,
+        );
+        try {
+          final result = await sendPath(
+            source.path,
+            '127.0.0.1',
+            server.port,
+            sender,
+            TrustStore(sender.directory),
+            expectedFingerprint: receiverIdentity.fingerprint,
+          );
+          expect(result.skipped, policy == ConflictPolicy.skip ? 1 : 0);
+          expect(result.files, policy == ConflictPolicy.skip ? 0 : 1);
+          expect(
+            await destination.readAsString(),
+            policy == ConflictPolicy.skip ? 'keep me' : 'new verified content',
+          );
+        } finally {
+          await server.close();
+        }
+      }
+    },
+  );
+  test(
     'refused offer never writes destination and sender does not claim success',
     () async {
       final source = File('${temp.path}/refused.txt')

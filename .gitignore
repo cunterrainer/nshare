@@ -3,3 +3,8 @@
 .dart_tool/
 .idea/
 nshare
+# Local build output and example identities
+/build/
+/nshare.exe
+/nshare-cli*
+/.nshare-example/

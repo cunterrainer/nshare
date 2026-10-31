@@ -55,9 +55,38 @@ void main() {
       }
     },
   );
+  test(
+    'case and Unicode normalization collisions and oversized totals are rejected',
+    () {
+      const hash =
+          'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+      for (final paths in [
+        ['A', 'a'],
+        ['é', 'e\u0301'],
+      ]) {
+        final manifest = Manifest([
+          ManifestEntry(0, paths[0], 0, false, hash),
+          ManifestEntry(1, paths[1], 0, false, hash),
+        ]);
+        expect(
+          () => Manifest.parse(manifest.toJson()),
+          throwsA(isA<NshareException>()),
+        );
+      }
+      final oversized = Manifest([
+        const ManifestEntry(0, 'a', 0x7fffffffffffffff, false, hash),
+        const ManifestEntry(1, 'b', 1, false, hash),
+      ]);
+      expect(
+        () => Manifest.parse(oversized.toJson()),
+        throwsA(isA<NshareException>()),
+      );
+    },
+  );
   test('symlink destinations are refused', () async {
-    if (Platform.isWindows)
+    if (Platform.isWindows) {
       return; // Windows link creation needs host privileges.
+    }
     final temp = await Directory.systemTemp.createTemp('nshare_links_');
     try {
       await Directory('${temp.path}/target').create();

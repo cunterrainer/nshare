@@ -1,6 +1,4 @@
 import 'dart:io';
-import 'package:nshare/src/discovery/discovery.dart';
-import 'package:nshare/src/identity/identity.dart';
 import 'package:nshare/core.dart';
 import 'package:test/test.dart';
 

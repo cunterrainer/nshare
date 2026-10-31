@@ -31,7 +31,7 @@ enum TransferPhase {
   awaitingApproval,
   transferring,
   verifying,
-  complete
+  complete,
 }
 
 class TransferProgress {

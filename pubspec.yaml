@@ -1,19 +1,20 @@
 name: nshare
-description: A sample command-line application.
-version: 1.0.0
-# repository: https://github.com/my_org/my_repo
+description: Secure, resumable LAN file transfers with a reusable Dart core.
+version: 2.0.0
+repository: https://github.com/cunterrainer/nshare
+
+executables:
+    nshare: nshare
 
 environment:
     sdk: ^3.8.0
 
-# Add regular dependencies here.
 dependencies:
     args: ^2.7.0
     basic_utils: ^5.8.2
-    pointycastle: ^4.0.0
-    convert: ^3.1.1
     crypto: ^3.0.3
     path: ^1.8.3
+    unorm_dart: ^0.3.3
 
 dev_dependencies:
     lints: ^6.0.0

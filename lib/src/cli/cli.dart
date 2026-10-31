@@ -107,8 +107,9 @@ Future<int> runCli(List<String> arguments) async {
           '${address.interfaceName}\t${address.family}\t${address.address}',
         );
       }
-      if (addresses.isEmpty)
+      if (addresses.isEmpty) {
         stderr.writeln('No local network addresses found.');
+      }
       return 0;
     }
     final command = args.command;
@@ -160,8 +161,9 @@ Future<int> runCli(List<String> arguments) async {
           '${device.fingerprint}\t${_safe(device.name)}\t${device.address}:${device.port}',
         );
       }
-      if (devices.isEmpty)
+      if (devices.isEmpty) {
         stderr.writeln('No receivers found. Try a direct --ip address.');
+      }
       return 0;
     }
     final expected = command['peer-fingerprint'] as String?;
@@ -192,6 +194,7 @@ Future<int> runCli(List<String> arguments) async {
       if (command['ip'] != null && command['to'] != null) {
         throw const NshareException('usage', 'Choose either --ip or --to');
       }
+      String? targetFingerprint;
       var host = command['ip'] as String?;
       var port = parsePort(command['port'] as String);
       if (host == null) {
@@ -202,6 +205,7 @@ Future<int> runCli(List<String> arguments) async {
           command['to'] as String?,
         );
         host = device.address;
+        targetFingerprint = device.fingerprint;
         port = device.port;
       }
       final result = await sendPath(
@@ -212,6 +216,7 @@ Future<int> runCli(List<String> arguments) async {
         trust,
         approvePeer: stdin.hasTerminal ? approvePeer : null,
         expectedFingerprint: expected?.toLowerCase(),
+        targetFingerprint: targetFingerprint,
         cancellation: cancellation,
         onProgress: progress,
         resume: command['resume'] as bool,
@@ -243,13 +248,15 @@ Future<int> runCli(List<String> arguments) async {
         stdout.writeln(
           'Complete: ${result.files} verified files, ${result.skipped} skipped.',
         );
-        if (command['once'] as bool && !stopped.isCompleted)
+        if (command['once'] as bool && !stopped.isCompleted) {
           stopped.complete(0);
+        }
       },
       onError: (error) {
         stderr.writeln(_safe(error.toString()));
-        if (command['once'] as bool && !stopped.isCompleted)
+        if (command['once'] as bool && !stopped.isCompleted) {
           stopped.complete(1);
+        }
       },
     );
     stderr.writeln(
@@ -268,7 +275,11 @@ Future<int> runCli(List<String> arguments) async {
     return 64;
   } on NshareException catch (e) {
     stderr.writeln(e);
-    return e.code == 'usage' ? 64 : 1;
+    return e.code == 'usage'
+        ? 64
+        : e.code == 'cancelled'
+        ? 130
+        : 1;
   } on FileSystemException catch (e) {
     stderr.writeln('filesystem: ${e.message}');
     return 1;
@@ -306,11 +317,12 @@ String _defaultStateDirectory() {
       : environment['XDG_CONFIG_HOME'];
   if (base != null && base.isNotEmpty) return p.join(base, 'nshare');
   final home = environment[Platform.isWindows ? 'USERPROFILE' : 'HOME'];
-  if (home == null)
+  if (home == null) {
     throw const NshareException(
       'usage',
       'Set --state-dir when no home directory is available',
     );
+  }
   return p.join(home, '.config', 'nshare');
 }
 
@@ -322,8 +334,9 @@ class _Terminal {
     _lines ??= StreamIterator(
       stdin.transform(utf8.decoder).transform(const LineSplitter()),
     );
-    if (!await _lines!.moveNext().timeout(const Duration(minutes: 5)))
+    if (!await _lines!.moveNext().timeout(const Duration(minutes: 5))) {
       return false;
+    }
     return _lines!.current.trim().toLowerCase() == 'yes';
   }
 

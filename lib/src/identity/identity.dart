@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:math';
@@ -21,11 +22,12 @@ Future<void> privatePath(String path, {bool directory = false}) async {
       directory ? '700' : '600',
       path,
     ]);
-    if (result.exitCode != 0)
+    if (result.exitCode != 0) {
       throw const NshareException(
         'permissions',
         'Cannot restrict local state permissions',
       );
+    }
   }
 }
 
@@ -138,8 +140,9 @@ bool verifyProof(
     final data = X509Utils.x509CertificateFromPem(certificate);
     final exponent = data.tbsCertificate!.subjectPublicKeyInfo.exponent;
     if (data.tbsCertificate!.subjectPublicKeyInfo.length! < 2048 ||
-        exponent == null)
+        exponent == null) {
       return false;
+    }
     final key = RSAPublicKey(
       X509Utils.getModulusFromRSAX509Pem(certificate),
       BigInt.from(exponent),
@@ -161,19 +164,48 @@ class TrustStore {
   Future<Map<String, dynamic>> list() async => await _file.exists()
       ? Map<String, dynamic>.from(jsonDecode(await _file.readAsString()) as Map)
       : <String, dynamic>{};
-  Future<void> forget(String fingerprint) async {
-    final peers = await list()
-      ..remove(fingerprint);
-    await atomicJson(_file, peers);
+  static final _queues = <String, Future<void>>{};
+
+  Future<void> _mutate(Future<void> Function(Map<String, dynamic>) action) {
+    final key = p.normalize(p.absolute(directory.path));
+    final previous = _queues[key] ?? Future<void>.value();
+    final result = previous.then((_) async {
+      final lock = await File(
+        p.join(directory.path, 'trust.lock'),
+      ).open(mode: FileMode.append);
+      await lock.lock(FileLock.blockingExclusive);
+      try {
+        final peers = await list();
+        await action(peers);
+        await atomicJson(_file, peers);
+      } finally {
+        await lock.unlock();
+        await lock.close();
+      }
+    });
+    final tail = result.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    _queues[key] = tail;
+    unawaited(
+      tail.then((_) {
+        if (identical(_queues[key], tail)) _queues.remove(key);
+      }),
+    );
+    return result;
   }
+
+  Future<void> forget(String fingerprint) => _mutate((peers) async {
+    peers.remove(fingerprint);
+  });
 
   Future<void> approve(
     PeerIdentity peer,
     PairingApproval? approval, {
     String? expectedFingerprint,
     String? endpoint,
-  }) async {
-    final peers = await list();
+  }) => _mutate((peers) async {
     if (expectedFingerprint != null &&
         peer.fingerprint != expectedFingerprint.toLowerCase()) {
       throw const NshareException(
@@ -200,13 +232,13 @@ class TrustStore {
         if (!endpoints.contains(endpoint)) {
           entry['endpoints'] = [...endpoints, endpoint];
           peers[peer.fingerprint] = entry;
-          await atomicJson(_file, peers);
         }
       }
       return;
     }
     if (expectedFingerprint == null &&
-        (approval == null || !await approval(peer))) {
+        (approval == null ||
+            !await approval(peer).timeout(const Duration(minutes: 5)))) {
       throw const NshareException(
         'untrusted',
         'Peer fingerprint requires out-of-band verification',
@@ -214,10 +246,9 @@ class TrustStore {
     }
     peers[peer.fingerprint] = {
       'name': peer.name,
-      'endpoints': [if (endpoint != null) endpoint],
+      'endpoints': [?endpoint],
     };
-    await atomicJson(_file, peers);
-  }
+  });
 }
 
 List<int> _transcript(
@@ -242,8 +273,10 @@ Future<WireConnection> connectAuthenticated(
   TrustStore trust, {
   PairingApproval? approve,
   String? expectedFingerprint,
+  String? targetFingerprint,
   CancellationToken? cancellation,
 }) async {
+  cancellation?.check();
   final known = await trust.list();
   final endpoint = '$host:$port';
   final pins = known.entries
@@ -259,6 +292,7 @@ Future<WireConnection> connectAuthenticated(
     return now.isAfter(cert.startValidity) &&
         now.isBefore(cert.endValidity) &&
         (pins.isEmpty || pins.contains(fingerprint)) &&
+        (targetFingerprint == null || fingerprint == targetFingerprint) &&
         (expectedFingerprint == null ||
             fingerprint == expectedFingerprint.toLowerCase()) &&
         (known.containsKey(fingerprint) ||
@@ -276,8 +310,9 @@ Future<WireConnection> connectAuthenticated(
   final wire = WireConnection(socket, cancellation: cancellation);
   try {
     final cert = socket.peerCertificate!;
-    if (!certificateAllowed(cert))
+    if (!certificateAllowed(cert)) {
       throw const NshareException('identity', 'Peer certificate rejected');
+    }
     final receiver = PeerIdentity(host, sha256.convert(cert.der).toString());
     await wire.waitFor(
       trust.approve(

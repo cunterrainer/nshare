@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
+import 'package:unorm_dart/unorm_dart.dart' as unicode;
 import '../core/models.dart';
 import '../identity/identity.dart';
 import '../protocol/protocol.dart';
@@ -37,8 +38,21 @@ String validateRelativePath(String value) {
   return value;
 }
 
-Future<String> hashFile(File file, {int? end}) async =>
-    (await sha256.bind(file.openRead(0, end)).first).toString();
+Future<String> hashFile(
+  File file, {
+  int? end,
+  CancellationToken? cancellation,
+}) async =>
+    (await sha256
+            .bind(
+              file.openRead(0, end).map((chunk) {
+                cancellation?.check();
+                return chunk;
+              }),
+            )
+            .first)
+        .toString();
+
 String manifestId(List<ManifestEntry> entries) => sha256
     .convert(
       utf8.encode(
@@ -103,11 +117,12 @@ class Manifest {
         );
       }
       paths.add(path);
-      if (paths.length > maxEntries)
+      if (paths.length > maxEntries) {
         throw const NshareException(
           'limit',
           'Offer exceeds 1024 entries; split the folder',
         );
+      }
       if (type == FileSystemEntityType.directory) {
         await for (final entity in Directory(path).list(followLinks: false)) {
           await visit(entity.path);
@@ -130,7 +145,9 @@ class Manifest {
           relative,
           directory ? 0 : await File(source).length(),
           directory,
-          directory ? '' : await hashFile(File(source)),
+          directory
+              ? ''
+              : await hashFile(File(source), cancellation: cancellation),
           source: source,
         ),
       );
@@ -151,30 +168,42 @@ class Manifest {
     if (values is! List || values.isEmpty || values.length > maxEntries) {
       throw const NshareException('protocol', 'Invalid manifest entry count');
     }
+    var totalBytes = 0;
     final paths = <String, bool>{};
     final entries = <ManifestEntry>[];
     for (final value in values) {
-      if (value is! Map<String, dynamic>)
+      if (value is! Map<String, dynamic>) {
         throw const NshareException('protocol', 'Invalid manifest entry');
+      }
       final id = requiredInt(value, 'id', max: maxEntries);
-      if (id != entries.length)
+      if (id != entries.length) {
         throw const NshareException(
           'protocol',
           'Entry IDs must be consecutive',
         );
+      }
       final path = validateRelativePath(
         requiredString(value, 'path', max: 1024),
       );
-      final key = path.toLowerCase();
-      if (paths.containsKey(key))
+      final key = unicode.nfc(path).toLowerCase();
+      if (paths.containsKey(key)) {
         throw const NshareException(
           'path',
           'Duplicate or case-colliding manifest paths',
         );
+      }
       final kind = requiredString(value, 'kind');
-      if (kind != 'file' && kind != 'directory')
+      if (kind != 'file' && kind != 'directory') {
         throw const NshareException('protocol', 'Unknown entry kind');
+      }
       final size = requiredInt(value, 'size');
+      if (size > 0x7fffffffffffffff - totalBytes) {
+        throw const NshareException(
+          'limit',
+          'Total transfer size exceeds signed 64-bit limit',
+        );
+      }
+      totalBytes += size;
       final hash = value['sha256'];
       if (hash is! String ||
           (kind == 'file'
@@ -188,8 +217,9 @@ class Manifest {
     for (final key in paths.keys) {
       final segments = key.split('/');
       for (var i = 1; i < segments.length; i++) {
-        if (paths[segments.take(i).join('/')] == false)
+        if (paths[segments.take(i).join('/')] == false) {
           throw const NshareException('path', 'File is used as a directory');
+        }
       }
     }
     final manifest = Manifest(entries);
@@ -231,9 +261,19 @@ class DestinationStore {
     String peer,
     ConflictPolicy policy,
   ) async {
-    final root = Directory(p.normalize(p.absolute(directory.path)));
+    final requested = Directory(p.normalize(p.absolute(directory.path)));
+    if (await FileSystemEntity.type(requested.path, followLinks: false) ==
+        FileSystemEntityType.link) {
+      throw const NshareException(
+        'path',
+        'Output root must not be a symbolic link',
+      );
+    }
+    await requested.create(recursive: true);
+    // Resolve caller-chosen parent aliases (e.g. macOS /var -> /private/var).
+    // Every receiver-controlled component below this canonical root rejects links.
+    final root = Directory(await requested.resolveSymbolicLinks());
     await assertNoLinks(root.path);
-    await root.create(recursive: true);
     final binding = sha256
         .convert(utf8.encode('$peer:${manifest.id}:${root.path}'))
         .toString();
@@ -260,8 +300,9 @@ class DestinationStore {
       root.path,
       ...validateRelativePath(entry.path).split('/'),
     ]);
-    if (!p.isWithin(root.path, dest))
+    if (!p.isWithin(root.path, dest)) {
       throw const NshareException('path', 'Destination escapes root');
+    }
     await assertNoLinks(dest);
     return dest;
   }

@@ -80,15 +80,17 @@ class FrameDecoder {
         );
       }
       final types = WireType.values.where((t) => t.id == buffer[offset + 5]);
-      if (types.isEmpty)
+      if (types.isEmpty) {
         throw const NshareException('protocol', 'Unknown message type');
+      }
       final type = types.single;
       final length = ByteData.sublistView(
         buffer,
       ).getUint32(offset + 6, Endian.big);
       final limit = type == WireType.data ? maxChunkBytes + 8 : maxControlBytes;
-      if (length > limit)
+      if (length > limit) {
         throw const NshareException('protocol', 'Frame exceeds size limit');
+      }
       if (buffer.length - offset < 10 + length) break;
       frames.add(
         Frame(
@@ -103,8 +105,9 @@ class FrameDecoder {
   }
 
   void finish() {
-    if (_pending.isNotEmpty)
+    if (_pending.isNotEmpty) {
       throw const NshareException('protocol', 'Truncated frame');
+    }
   }
 }
 
@@ -114,6 +117,8 @@ class WireConnection {
     this.timeout = const Duration(seconds: 60),
     CancellationToken? cancellation,
   }) {
+    // Control frames are small and acknowledgment-driven; avoid Nagle/delayed-ACK stalls.
+    socket.setOption(SocketOption.tcpNoDelay, true);
     final decoder = FrameDecoder();
     _frames = StreamIterator(_decode(socket, decoder));
     cancellation?.whenCancelled.then((_) => close());
@@ -152,14 +157,16 @@ class WireConnection {
       );
     }
     _cancellation?.check();
-    if (!available)
+    if (!available) {
       throw const NshareException(
         'disconnected',
         'Peer disconnected before acknowledgment',
       );
+    }
     final frame = _frames.current;
-    if (frame.type == WireType.cancel)
+    if (frame.type == WireType.cancel) {
       throw const NshareException('cancelled', 'Peer cancelled');
+    }
     if (frame.type == WireType.error) {
       final error = frame.json;
       throw NshareException('remote', '${error['code']}: ${error['message']}');
@@ -169,11 +176,12 @@ class WireConnection {
 
   Future<Map<String, dynamic>> expect(WireType type, {Duration? wait}) async {
     final frame = await read(wait: wait);
-    if (frame.type != type)
+    if (frame.type != type) {
       throw NshareException(
         'protocol',
         'Expected ${type.name}, received ${frame.type.name}',
       );
+    }
     return frame.json;
   }
 
@@ -211,7 +219,8 @@ int requiredInt(
   int max = 0x7fffffffffffffff,
 }) {
   final value = json[field];
-  if (value is! int || value < 0 || value > max)
+  if (value is! int || value < 0 || value > max) {
     throw NshareException('protocol', 'Invalid $field');
+  }
   return value;
 }

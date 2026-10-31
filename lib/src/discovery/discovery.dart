@@ -39,8 +39,9 @@ class DiscoveryService {
           final json =
               jsonDecode(utf8.decode(datagram.data)) as Map<String, dynamic>;
           if (json['magic'] != 'nshare-discover' ||
-              json['version'] != protocolVersion)
+              json['version'] != protocolVersion) {
             continue;
+          }
           final request = requiredString(json, 'request', max: 64);
           final now = DateTime.now();
           recent.removeWhere((_, time) => now.difference(time).inSeconds > 2);
@@ -99,8 +100,9 @@ Future<List<DiscoveredDevice>> discoverDevices({
             jsonDecode(utf8.decode(datagram.data)) as Map<String, dynamic>;
         if (json['magic'] != 'nshare-device' ||
             json['version'] != protocolVersion ||
-            json['request'] != request)
+            json['request'] != request) {
           continue;
+        }
         final fingerprint = requiredString(json, 'fingerprint', max: 64);
         if (!RegExp(r'^[0-9a-f]{64}$').hasMatch(fingerprint)) continue;
         final transferPort = requiredInt(json, 'port', max: 65535);
@@ -140,15 +142,17 @@ DiscoveredDevice selectDevice(
   final matches = fingerprint == null
       ? devices
       : devices.where((d) => d.fingerprint == fingerprint).toList();
-  if (matches.isEmpty)
+  if (matches.isEmpty) {
     throw const NshareException(
       'discovery',
       'No matching receiver found; try a direct --ip address',
     );
-  if (matches.length != 1)
+  }
+  if (matches.length != 1) {
     throw const NshareException(
       'discovery',
       'Multiple receivers found; select one with --to <full fingerprint>',
     );
+  }
   return matches.single;
 }
