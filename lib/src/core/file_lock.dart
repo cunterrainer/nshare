@@ -29,6 +29,11 @@ class FileLease implements Finalizable {
         Int32 Function(Pointer<Void>),
         int Function(Pointer<Void>)
       >('fileno');
+  static final _fcntl = _libc
+      .lookupFunction<
+        Int32 Function(Int32, Int32, VarArgs<(Int32,)>),
+        int Function(int, int, int)
+      >('fcntl');
   static final _flock = _libc
       .lookupFunction<Int32 Function(Int32, Int32), int Function(int, int)>(
         'flock',
@@ -60,6 +65,17 @@ class FileLease implements Finalizable {
       final mode = 'r+'.toNativeUtf8();
       try {
         stream = _open(path, mode);
+        // fopen descriptors otherwise survive exec and let an unrelated child
+        // keep the flock alive after its actual owner has closed the lease.
+        if (stream != nullptr && _fcntl(_descriptor(stream), 2, 1) != 0) {
+          final code = _errno().value;
+          _close(stream);
+          throw FileSystemException(
+            'Cannot prevent lock inheritance',
+            sentinel.path,
+            OSError('fcntl F_SETFD failed', code),
+          );
+        }
       } finally {
         malloc.free(path);
         malloc.free(mode);

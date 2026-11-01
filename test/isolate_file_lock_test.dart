@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 import 'package:nshare/nshare.dart';
@@ -150,6 +151,36 @@ void main() {
       }
     },
   );
+  test('a live child process does not retain its parent owner lease', () async {
+    final script = await File('${root.path}/child.dart').writeAsString("""
+import 'dart:io';
+Future<void> main() async { print('ready'); await stdin.first; }
+""");
+    final file = File('${root.path}/child-owner.lock');
+    final owner = await FileLease.acquire(file);
+    Process? child;
+    try {
+      child = await Process.start(Platform.resolvedExecutable, [script.path]);
+      expect(
+        await child.stdout
+            .transform(utf8.decoder)
+            .transform(const LineSplitter())
+            .first
+            .timeout(const Duration(seconds: 10)),
+        'ready',
+      );
+      await owner.close();
+      final replacement = await FileLease.acquire(file);
+      await replacement.close();
+    } finally {
+      await owner.close();
+      if (child != null) {
+        child.stdin.writeln('done');
+        await child.stdin.close();
+        await child.exitCode.timeout(const Duration(seconds: 10));
+      }
+    }
+  });
   test(
     'failed contenders preserve the original lock seen by older CLI processes',
     () async {
