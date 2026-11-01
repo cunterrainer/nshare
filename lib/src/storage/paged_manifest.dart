@@ -70,6 +70,7 @@ class PagedManifest extends Manifest {
   static Future<PagedManifest> collect(
     String input, {
     CancellationToken? cancellation,
+    ScanCallback? onScan,
   }) async {
     final builder = await _Builder.create();
     final root = p.normalize(p.absolute(input));
@@ -96,6 +97,7 @@ class PagedManifest extends Manifest {
         source: source,
       );
       await builder.add(entry.toJson(), source: source);
+      onScan?.call(builder.count, source);
       if (directory) {
         // Bound a single directory listing too, rather than collecting the tree.
         final children = <String>[];
@@ -332,11 +334,28 @@ class _Builder {
 Future<Manifest> collectTransferManifest(
   String input, {
   CancellationToken? cancellation,
+  ScanCallback? onScan,
 }) async {
+  var reported = 0;
+  void report(int count, String path) {
+    if (count > reported) {
+      reported = count;
+      onScan?.call(count, path);
+    }
+  }
+
   try {
-    return await Manifest.collect(input, cancellation: cancellation);
+    return await Manifest.collect(
+      input,
+      cancellation: cancellation,
+      onScan: report,
+    );
   } on NshareException catch (error) {
     if (error.code != 'limit') rethrow;
-    return PagedManifest.collect(input, cancellation: cancellation);
+    return PagedManifest.collect(
+      input,
+      cancellation: cancellation,
+      onScan: report,
+    );
   }
 }

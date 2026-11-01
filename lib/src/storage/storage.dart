@@ -105,6 +105,7 @@ class Manifest {
   static Future<Manifest> collect(
     String input, {
     CancellationToken? cancellation,
+    ScanCallback? onScan,
   }) async {
     final root = p.normalize(p.absolute(input));
     final base = p.dirname(root);
@@ -120,6 +121,7 @@ class Manifest {
         );
       }
       paths.add(path);
+      onScan?.call(paths.length, path);
       if (paths.length > maxEntries) {
         throw const NshareException(
           'limit',

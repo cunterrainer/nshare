@@ -73,6 +73,8 @@ class TransferOffer {
 }
 
 typedef OfferApproval = Future<bool> Function(TransferOffer offer);
+typedef ScanCallback = void Function(int entries, String path);
+
 typedef ProgressCallback = void Function(TransferProgress progress);
 
 class TransferResult {

@@ -624,7 +624,7 @@ Future<int> runCli(List<String> arguments) async {
           now.difference(previousProgress).inMilliseconds >= 500) {
         stderr.writeln(
           '${event.phase.name}: ${_safe(event.path)} ${event.bytes}/${event.total} bytes; '
-          '${event.verifiedFiles} verified; ${(event.bytesPerSecond / 1048576).toStringAsFixed(1)} MiB/s',
+          '${event.scannedEntries} scanned; ${event.verifiedFiles} verified; ${(event.bytesPerSecond / 1048576).toStringAsFixed(1)} MiB/s',
         );
         previousProgress = now;
       }

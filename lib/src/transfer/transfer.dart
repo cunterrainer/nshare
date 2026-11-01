@@ -48,9 +48,33 @@ Future<TransferResult> sendPath(
   bool compression = false,
 }) async {
   onProgress?.call(const TransferProgress(phase: TransferPhase.scanning));
+  final scanClock = Stopwatch()..start();
+  var scanned = 0;
+  var scanPath = input;
   final manifest = await collectTransferManifest(
     input,
     cancellation: cancellation,
+    onScan: (count, path) {
+      scanned = count;
+      scanPath = path;
+      if (count == 1 || scanClock.elapsedMilliseconds >= 100) {
+        onProgress?.call(
+          TransferProgress(
+            phase: TransferPhase.scanning,
+            path: path,
+            scannedEntries: count,
+          ),
+        );
+        scanClock.reset();
+      }
+    },
+  );
+  onProgress?.call(
+    TransferProgress(
+      phase: TransferPhase.scanning,
+      path: scanPath,
+      scannedEntries: scanned,
+    ),
   );
   onProgress?.call(
     TransferProgress(phase: TransferPhase.connecting, total: manifest.bytes),
