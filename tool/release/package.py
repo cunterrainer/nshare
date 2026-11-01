@@ -20,7 +20,14 @@ APP = ROOT / 'apps/nshare_app'
 
 def run(args, cwd=ROOT, env=None):
     # Never print commands: signing tools may receive credentials as arguments.
-    result = subprocess.run([str(a) for a in args], cwd=cwd, env=env)
+    command = [str(a) for a in args]
+    # CreateProcess does not search PATHEXT like an interactive Windows shell.
+    # Resolve flutter.bat/apksigner.bat explicitly while preserving argv.
+    executable = shutil.which(command[0])
+    if executable is None:
+        raise RuntimeError(f'Required executable is unavailable: {Path(command[0]).name}')
+    command[0] = executable
+    result = subprocess.run(command, cwd=cwd, env=env)
     if result.returncode:
         raise RuntimeError(f'{Path(str(args[0])).name} failed (exit {result.returncode})')
 
