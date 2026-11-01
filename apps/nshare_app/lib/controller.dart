@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'android_receiver.dart';
+import 'ios_discovery.dart';
 import 'package:nshare/nshare.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -202,11 +203,16 @@ class NshareController extends ChangeNotifier {
     searching = true;
     notify();
     try {
-      devices = (await discoverNearby(
-        onDiagnostic: (message) {
-          error = message;
-        },
-      )).where((d) => d.fingerprint != identity?.fingerprint).toList();
+      devices =
+          (await (Platform.isIOS
+                  ? const IosDiscovery().search()
+                  : discoverNearby(
+                      onDiagnostic: (message) {
+                        error = message;
+                      },
+                    )))
+              .where((d) => d.fingerprint != identity?.fingerprint)
+              .toList();
       final known = await TrustStore(stateDirectory!).list();
       for (final peer in known.entries) {
         if (devices.any((d) => d.fingerprint == peer.key) ||
@@ -315,10 +321,19 @@ class NshareController extends ChangeNotifier {
         notify();
       },
     );
+    if (Platform.isIOS) {
+      try {
+        await const IosDiscovery().publish(identity!, service!.receiver!.port);
+      } catch (e) {
+        error =
+            'Bonjour advertising unavailable: $e. Direct address and invitation pairing remain available.';
+      }
+    }
     notify();
   }
 
   Future<void> stopReceiver() async {
+    if (Platform.isIOS) await const IosDiscovery().stop();
     if (Platform.isAndroid && await FlutterForegroundTask.isRunningService) {
       _handoff = true;
       try {
@@ -469,6 +484,7 @@ class NshareController extends ChangeNotifier {
   Future<void> forget(String fingerprint) =>
       TrustStore(stateDirectory!).forget(fingerprint);
   Future<void> shutdown() async {
+    if (Platform.isIOS) await const IosDiscovery().stop();
     _refresh?.cancel();
     _discoveryRefresh?.cancel();
     await service?.close();
