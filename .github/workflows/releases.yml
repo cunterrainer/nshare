@@ -8,6 +8,9 @@ on:
         description: Build platform-signed distributions using release environment secrets
         type: boolean
         default: false
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:

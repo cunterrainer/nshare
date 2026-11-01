@@ -4,6 +4,9 @@ on:
     paths: ['lib/**', 'bin/**', 'apps/**', 'pubspec.*', '.github/workflows/flutter.yml']
   pull_request:
     paths: ['lib/**', 'bin/**', 'apps/**', 'pubspec.*', '.github/workflows/flutter.yml']
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:

@@ -2,9 +2,12 @@ name: Mobile runtime transfers
 on:
   workflow_dispatch:
   push:
-    paths: ['apps/nshare_app/integration_test/device_transfer_test.dart', '.github/workflows/device-tests.yml']
+    paths: ['lib/**', 'apps/**', '.github/workflows/device-tests.yml']
   pull_request:
     paths: ['lib/**', 'apps/**', '.github/workflows/device-tests.yml']
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
