@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -132,8 +133,35 @@ void main() {
       await tester.pumpAndSettle();
       final file = File('${root.path}/from-window.txt');
       await file.writeAsString('Queued through the Flutter interface.');
+      tester.widget<DropTarget>(find.byType(DropTarget)).onDragDone!(
+        DropDoneDetails(
+          files: [DropItemFile(file.path)],
+          localPosition: Offset.zero,
+          globalPosition: Offset.zero,
+        ),
+      );
+      for (var i = 0; i < 100; i++) {
+        await tester.pump(const Duration(milliseconds: 20));
+        if (tester
+                .widget<TextField>(
+                  find.widgetWithText(TextField, 'File or folder path'),
+                )
+                .controller!
+                .text ==
+            file.path) {
+          break;
+        }
+      }
+      expect(
+        tester
+            .widget<TextField>(
+              find.widgetWithText(TextField, 'File or folder path'),
+            )
+            .controller!
+            .text,
+        file.path,
+      );
       for (final field in {
-        'File or folder path': file.path,
         'IP address or hostname': '127.0.0.1',
         'Port': '$port',
         'Verified full SHA-256 fingerprint': identity.fingerprint,
@@ -143,6 +171,7 @@ void main() {
           field.value,
         );
       }
+      await tester.ensureVisible(find.text('Add to transfer queue'));
       await tester.tap(find.text('Add to transfer queue'));
       await tester.pump();
       await waitFor(tester, find.text('Confirm target identity'));
@@ -166,6 +195,49 @@ void main() {
       await receiver.exitCode;
       await logs.cancel();
       await drained;
+      await c.shutdown();
+      await tester.pumpWidget(const SizedBox());
+      c.dispose();
+    }
+  });
+  testWidgets('desktop window requires approval of matching pairing code', (
+    tester,
+  ) async {
+    final c = NshareController(
+      stateDirectory: Directory('${root.path}/code-gui'),
+      receiveDirectory: Directory('${root.path}/code-out'),
+    );
+    await c.initialize();
+    await tester.pumpWidget(NshareApp(controller: c));
+    await tester.pumpAndSettle();
+    await c.startReceiver(port: 0);
+    final sender = await DeviceIdentity.load(
+      Directory('${root.path}/code-cli'),
+    );
+    String? clientCode;
+    final pairing = pairByCode(
+      '127.0.0.1',
+      c.service!.receiver!.port,
+      sender,
+      TrustStore(sender.directory),
+      approvePeer: (peer) async {
+        clientCode = peer.confirmationCode;
+        return true;
+      },
+    );
+    try {
+      await waitFor(tester, find.text('Verify peer identity'));
+      expect(clientCode, isNotNull);
+      expect(find.textContaining('Matching code: $clientCode'), findsOneWidget);
+      expect(await TrustStore(sender.directory).list(), isEmpty);
+      await tester.tap(find.text('Approve'));
+      await tester.pumpAndSettle();
+      expect((await pairing).fingerprint, c.identity!.fingerprint);
+      expect(
+        await TrustStore(sender.directory).list(),
+        contains(c.identity!.fingerprint),
+      );
+    } finally {
       await c.shutdown();
       await tester.pumpWidget(const SizedBox());
       c.dispose();

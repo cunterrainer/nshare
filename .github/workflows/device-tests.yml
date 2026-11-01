@@ -1,0 +1,57 @@
+name: Mobile runtime transfers
+on:
+  workflow_dispatch:
+  push:
+    paths: ['apps/nshare_app/integration_test/device_transfer_test.dart', '.github/workflows/device-tests.yml']
+  pull_request:
+    paths: ['lib/**', 'apps/**', '.github/workflows/device-tests.yml']
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: KVM access
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - run: flutter pub get
+        working-directory: apps/nshare_app
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          working-directory: apps/nshare_app
+          script: flutter test integration_test/device_transfer_test.dart -d emulator-5554 --reporter expanded
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Boot an available iPhone simulator
+        run: |
+          DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(x["udid"] for group in d["devices"].values() for x in group if x["name"].startswith("iPhone")))')
+          xcrun simctl boot "$DEVICE_ID" || true
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+          echo "NSHARE_TEST_DEVICE=$DEVICE_ID" >> "$GITHUB_ENV"
+      - run: flutter pub get
+        working-directory: apps/nshare_app
+      - run: flutter test integration_test/device_transfer_test.dart -d "$NSHARE_TEST_DEVICE" --reporter expanded
+        working-directory: apps/nshare_app

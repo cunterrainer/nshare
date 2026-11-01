@@ -65,7 +65,8 @@ class PeerIdentity {
   final String? confirmationCode;
 }
 
-/// Caller must compare the fingerprint through a trusted channel before approval.
+/// Compare the session confirmation code when present, otherwise the full
+/// fingerprint, through a trusted channel before approval.
 typedef PairingApproval = Future<bool> Function(PeerIdentity peer);
 
 class TransferOffer {

@@ -182,14 +182,14 @@ final class LocalBonjour: NSObject, NetServiceBrowserDelegate, NetServiceDelegat
     advertisement?.stop(); advertisement = nil
   }
   func netServiceBrowser(_ browser: NetServiceBrowser, didFind service: NetService, moreComing: Bool) {
-    guard services.count < 256 else { return }
+    guard browser === self.browser, pendingSearch != nil, services.count < 256 else { return }
     services.append(service); service.delegate = self; service.resolve(withTimeout: 2)
   }
   func netServiceBrowser(_ browser: NetServiceBrowser, didNotSearch errorDict: [String: NSNumber]) {
     finishSearch(FlutterError(code: "permission", message: "Bonjour browsing unavailable; check local-network permission", details: nil))
   }
   func netServiceDidResolveAddress(_ sender: NetService) {
-    guard pendingSearch != nil, let txtData = sender.txtRecordData() else { return }
+    guard pendingSearch != nil, services.contains(where: { $0 === sender }), let txtData = sender.txtRecordData() else { return }
     let txt = NetService.dictionary(fromTXTRecord: txtData)
     guard let fpData = txt["fp"], let fp = String(data: fpData, encoding: .utf8),
       let nameData = txt["name"], let name = String(data: nameData, encoding: .utf8),
