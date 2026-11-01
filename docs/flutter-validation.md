@@ -1,7 +1,7 @@
 # Flutter and CLI delivery validation
 
-Implementation branch: `feature/flutter-lan-suite-20261031`, created from
-`dc34848`. Coherent implementation/test commits were pushed after each commit;
+Original branch: `feature/flutter-lan-suite-20261031`, created from `dc34848`.
+Completion branch: `feature/finish-flutter-plan-20261101`, created from `faba6b0`. Coherent implementation/test commits were pushed after each commit;
 no existing branch was overwritten and no history was force-pushed.
 
 ## Implemented
@@ -9,14 +9,18 @@ no existing branch was overwritten and no history was force-pushed.
 - Standalone Dart CLI and responsive Android/iOS/Windows/macOS/Linux Flutter
   project, sharing services, trust, streaming transfers and settings.
 - QR display, SVG export, phone scanner and camera-free invitation paste/direct
-  address/full-fingerprint pairing. Expiring invitations are atomically consumed.
+  address/full-fingerprint pairing. Matching-code pairing now requires explicit
+  approval of a committed session code on both endpoints, without a camera.
+  Expiring invitations are atomically consumed.
 - Explicit capability negotiation over the existing encrypted v2 envelope;
   ordinary transfers interoperate with old v2 binaries.
 - Disk-backed paginated manifests and collision indexes, persistent jobs,
   pause/resume/reorder/cancel/retry, bounded transient-network backoff, progress
   phases, history and JSON CLI event snapshots.
+- Desktop multi-file/folder drag selection and live folder scanning counts.
 - IPv4/IPv6 mDNS plus UDP fallback, fresh discovery snapshots, remembered hints,
-  network-interface advertisement refresh and dual-stack listening.
+  network-interface advertisement refresh and dual-stack listening. iOS uses system
+  Bonjour browsing/advertising through its declared local-network permission.
 - CLI/Flutter existing-file policies and explicit restart after corrupt partials.
   A real queued TLS regression checks rejection followed by verified restart.
 - User-enabled compression, independently bounded gzip blocks, original-offset
@@ -35,28 +39,34 @@ no existing branch was overwritten and no history was force-pushed.
 
 The macOS desktop target intentionally uses direct distribution outside App
 Sandbox so CLI/UI state and queued filesystem paths remain accessible. Store
-submission, production signing/notarization and installers are not configured.
+submission is not automated. Distribution packages and optional platform
+signing/notarization adapters are configured; see [releases](releases.md). Signed
+paths remain unexecuted without owner credentials.
 
 ## Local automated evidence
 
 Validated on Linux using Dart 3.13.7 and Flutter 3.47.9. Test inventory is generated
-from runner events, excluding hidden setup/teardown and skipped cases. See
+from runner output/events, excluding setup/teardown, loading and skipped cases. See
 [the inventory](flutter-test-inventory.json) for individual test names and counts.
 
 - Original baseline: all 322 tests passed before implementation.
-- Expanded Dart suite: 664 passing tests, plus separately run real queue
-  reconnection, picker-source persistence and restart/lifecycle and receiver-owner control regressions (683 distinct Dart tests
-  in total).
-- Flutter: 53 passing tests (50 widget/layout cases and 3 real controller
-  interoperability tests), no skips.
-- Normal packaged Linux app startup and isolated CLI/UI profile control succeeded;
-  its receiver stayed off until explicitly started, and executable help exited 0.
-- Native GTK desktop window: 2 passing integration tests. One clicks peer and
-  transfer approval dialogs for a separate native CLI sender; the other enters
-  a source/target in the GUI and queues a transfer to a separate CLI receiver.
-- Total: 738 distinct registered tests, 416 additional tests beyond the baseline.
+- Full Dart suite: 703 passing tests; the discovery port-race fix also passed
+  locally and in all four core CI jobs, including Dart 3.8.0 and macOS/Windows.
+- Flutter: 73 passing tests (56 widget/layout/drop cases, 4 real controller
+  interoperability cases, 13 Bonjour adapter cases), no skips.
+- Normal packaged Linux app startup and isolated CLI/UI profile control succeeded.
+- Native GTK desktop window: 3 passing cases, including a dropped source sent to
+  native CLI and approval of a matching session code in the actual dialog.
+- Portable native-device suite: 2 passing cases on Linux. A 1,052-entry folder
+  passed through the GUI queue with explicit compression; all 1,050 files were
+  compared. The second case exercised real system clipboard refusal/acceptance.
+- Linux release build, DEB and portable tar packaging succeeded. The extracted
+  DEB's CLI and GUI started; its CLI sent plain and compressed folders through
+  TLS with byte-for-byte destination verification and artifact checksum checks.
+- Total: 781 registered passing cases, 459 beyond the original baseline. Some
+  independently registered invalid-input cases have identical displayed names.
 - Formatting, fatal-info Dart analysis, Flutter analysis and native CLI
-  compilation pass. Native Linux Flutter debug build succeeds.
+  compilation pass. Native Linux Flutter debug and release builds succeed.
 
 The 55 new native process checks include 40 real compressed-file cases, exact
 UTF-8 clipboard delivery/consent, single-use pairing, queue pause/resume, service
@@ -142,9 +152,8 @@ The following runtime checks still require corresponding physical devices/hosts:
 - Android camera, selected document providers, foreground-service notification,
   locked screen, battery restrictions, forced termination and network changes.
 - iOS camera, security-scoped providers, local-network permission, actual
-  suspension/reopening and physical installation/signing. Raw UDP/multicast
-  discovery also needs validation against signed-device networking capabilities;
-  Apple multicast entitlement provisioning is not performed by this workspace.
+  suspension/reopening and physical installation/signing. System Bonjour browsing
+  and advertising need validation with local-network permission on signed devices.
   QR invitations and direct-IP transfers provide a discovery-independent path.
 - Two-device LAN discovery, Wi-Fi client isolation, IPv6 link-local routing,
   firewall prompts and mixed desktop/mobile transfers.
@@ -154,3 +163,21 @@ Native cross-platform build success does not establish any of those runtime
 checks. iOS has no unrestricted always-listening background LAN receiver; the
 implementation stops its foreground listener on suspension and restores it when
 that app session resumes. Android's service remains subject to OS restrictions.
+
+
+## Completion-pass automation
+
+The core matrix after the atomic UDP bind fix passed Linux/macOS/Windows and
+minimum Dart 3.8.0: [run 41257162935](https://github.com/cunterrainer/nshare/actions/runs/41257162935).
+All five native builds plus application tests passed after system Bonjour was
+added: [run 41256790761](https://github.com/cunterrainer/nshare/actions/runs/41256790761).
+The distribution workflow builds DEB/tar, Windows setup/ZIP, macOS DMG, Android
+release APK/AAB and unsigned iOS app ZIP. The optional signed path supports
+Authenticode, Developer ID/notarization, Android keystores and iOS profiles.
+Android release builds do not fall back to debug signing. The native runtime
+suite is wired for desktop, Android emulator and iPhone simulator CI; workflow
+results must be checked before recording those platforms as runtime passes.
+
+No physical mobile devices or signing credentials are configured in this cloud
+environment. Physical camera/provider/background/sleep checks and signed install
+acceptance remain blocked, as detailed in [device validation](device-validation.md).

@@ -35,7 +35,7 @@ iOS applications; production signing/distribution is a separate release step.
 ## Interfaces
 
 The Flutter app has Devices, Send, Receive, Queue, History and Settings screens.
-Choose a file/folder, select a nearby device or enter its address, verify its
+Choose or drop files/folders, select a nearby device or enter its address, verify its
 identity and enqueue the transfer. Every incoming transfer and clipboard offer
 requires separate approval. Discovery results do not establish identity trust.
 
@@ -83,6 +83,19 @@ invitation into Flutter or use:
 ```sh
 nshare pair --join 'nshare://pair?v=3&host=...'
 ```
+
+You can also pair using only addresses and matching codes, with no camera or
+pre-shared fingerprint. Start Receive on the other device, then choose **Pair by
+code** in Flutter or run in an interactive terminal:
+
+```sh
+nshare pair --connect 192.168.1.42 --port 53317
+```
+
+Compare every digit of the displayed code on both devices and approve on both
+screens. Decline unexpected or mismatching requests. Older peers must use a
+verified invitation or the full fingerprint instead; code pairing never silently
+downgrades. Paired peers can then send files and clipboard text normally.
 
 Use an invitation obtained from a trusted device screen/copy channel. Invitations
 pin the receiver's full certificate fingerprint, expire after five minutes, and
@@ -276,3 +289,8 @@ See [delivery and platform evidence](docs/flutter-validation.md), the
 [v3 extension specification](docs/protocol-v3.md), the
 [v2 transport specification](docs/protocol-v2.md), and the
 [original baseline test inventory](docs/testing.md).
+
+Installable/portable CLI and GUI distributions, platform signing configuration
+and build commands are in [release instructions](docs/releases.md).
+The [device validation guide](docs/device-validation.md) includes runnable native
+transfer suites and the remaining physical-device acceptance matrix.

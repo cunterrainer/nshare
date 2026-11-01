@@ -2,9 +2,17 @@
   "baselineDartTests": 322,
   "suites": {
     "dart": {
-      "passed": 683,
+      "passed": 703,
       "skipped": 0,
       "tests": [
+        {
+          "file": "test/service_control_test.dart",
+          "name": "native CLI starts a queue-only owner receiver with an explicit verified policy"
+        },
+        {
+          "file": "test/service_control_test.dart",
+          "name": "service shutdown waits for an in-flight receiver start to release its port"
+        },
         {
           "file": "test/receiver_validation_test.dart",
           "name": "receiver rejects a noncontiguous first data offset"
@@ -52,6 +60,10 @@
         {
           "file": "test/extensions_test.dart",
           "name": "negotiates pair-v1"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "negotiates confirmation-code-v1"
         },
         {
           "file": "test/extensions_test.dart",
@@ -156,6 +168,14 @@
         {
           "file": "test/extensions_test.dart",
           "name": "pairAck rejects excessive advertised payload before allocation"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "authConfirm explicit id round trip"
+        },
+        {
+          "file": "test/extensions_test.dart",
+          "name": "authConfirm rejects excessive advertised payload before allocation"
         },
         {
           "file": "test/extensions_test.dart",
@@ -343,6 +363,10 @@
         },
         {
           "file": "test/queue_test.dart",
+          "name": "restart from waitingForPeer enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
           "name": "cancel from waitingForPeer enforces lifecycle"
         },
         {
@@ -360,6 +384,10 @@
         {
           "file": "test/queue_test.dart",
           "name": "retry from scanning enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "restart from scanning enforces lifecycle"
         },
         {
           "file": "test/queue_test.dart",
@@ -383,6 +411,10 @@
         },
         {
           "file": "test/queue_test.dart",
+          "name": "restart from connecting enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
           "name": "cancel from connecting enforces lifecycle"
         },
         {
@@ -400,6 +432,10 @@
         {
           "file": "test/queue_test.dart",
           "name": "retry from awaitingApproval enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "restart from awaitingApproval enforces lifecycle"
         },
         {
           "file": "test/queue_test.dart",
@@ -423,6 +459,10 @@
         },
         {
           "file": "test/queue_test.dart",
+          "name": "restart from verifying enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
           "name": "cancel from verifying enforces lifecycle"
         },
         {
@@ -440,6 +480,10 @@
         {
           "file": "test/queue_test.dart",
           "name": "retry from queued enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "restart from queued enforces lifecycle"
         },
         {
           "file": "test/queue_test.dart",
@@ -463,6 +507,10 @@
         },
         {
           "file": "test/queue_test.dart",
+          "name": "restart from transferring enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
           "name": "cancel from transferring enforces lifecycle"
         },
         {
@@ -480,6 +528,10 @@
         {
           "file": "test/queue_test.dart",
           "name": "retry from paused enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "restart from paused enforces lifecycle"
         },
         {
           "file": "test/queue_test.dart",
@@ -503,6 +555,10 @@
         },
         {
           "file": "test/queue_test.dart",
+          "name": "restart from interrupted enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
           "name": "cancel from interrupted enforces lifecycle"
         },
         {
@@ -520,6 +576,10 @@
         {
           "file": "test/queue_test.dart",
           "name": "retry from completed enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "restart from completed enforces lifecycle"
         },
         {
           "file": "test/queue_test.dart",
@@ -543,6 +603,10 @@
         },
         {
           "file": "test/queue_test.dart",
+          "name": "restart from failed enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
           "name": "cancel from failed enforces lifecycle"
         },
         {
@@ -560,6 +624,10 @@
         {
           "file": "test/queue_test.dart",
           "name": "retry from cancelled enforces lifecycle"
+        },
+        {
+          "file": "test/queue_test.dart",
+          "name": "restart from cancelled enforces lifecycle"
         },
         {
           "file": "test/queue_test.dart",
@@ -640,6 +708,18 @@
         {
           "file": "test/queue_test.dart",
           "name": "permanent protocol is never retried automatically"
+        },
+        {
+          "file": "test/picker_source_test.dart",
+          "name": "picker staging rejects a missing file without retaining a snapshot"
+        },
+        {
+          "file": "test/picker_source_test.dart",
+          "name": "picker staging rejects a directory without retaining a snapshot"
+        },
+        {
+          "file": "test/picker_source_test.dart",
+          "name": "persistent picker copy survives cache deletion and completes a real queued TLS transfer"
         },
         {
           "file": "test/native_e2e_matrix_test.dart",
@@ -814,6 +894,22 @@
           "name": "cancellation is idempotent and observable by adapters"
         },
         {
+          "file": "test/scanning_progress_test.dart",
+          "name": "scan reports all 0 files monotonically across paging fallback"
+        },
+        {
+          "file": "test/scanning_progress_test.dart",
+          "name": "scan reports all 3 files monotonically across paging fallback"
+        },
+        {
+          "file": "test/scanning_progress_test.dart",
+          "name": "scan reports all 1030 files monotonically across paging fallback"
+        },
+        {
+          "file": "test/scanning_progress_test.dart",
+          "name": "scan cancellation stops enumeration"
+        },
+        {
           "file": "test/process_test.dart",
           "name": "compiled CLI survives killed sender and resumes after both processes restart"
         },
@@ -836,6 +932,10 @@
         {
           "file": "test/process_test.dart",
           "name": "compiled CLI sends over IPv6 loopback on the same device"
+        },
+        {
+          "file": "test/queue_restart_test.dart",
+          "name": "queued restart discards a corrupt retained prefix and verifies the replacement"
         },
         {
           "file": "test/v3_native_e2e_test.dart",
@@ -1056,6 +1156,10 @@
         {
           "file": "test/v3_native_e2e_test.dart",
           "name": "native service help is available without side effects"
+        },
+        {
+          "file": "test/cli_matrix_test.dart",
+          "name": "native CLI pairs by code through a real terminal and persists trust"
         },
         {
           "file": "test/cli_matrix_test.dart",
@@ -1818,8 +1922,60 @@
           "name": "refused offer never writes destination and sender does not claim success"
         },
         {
+          "file": "test/confirmation_code_test.dart",
+          "name": "matching codes pair both devices and enable an actual trusted transfer"
+        },
+        {
+          "file": "test/confirmation_code_test.dart",
+          "name": "receiver decline leaves both trust stores unchanged"
+        },
+        {
+          "file": "test/confirmation_code_test.dart",
+          "name": "client decline leaves both trust stores unchanged"
+        },
+        {
+          "file": "test/confirmation_code_test.dart",
+          "name": "every session has a fresh matching code, including already trusted devices"
+        },
+        {
+          "file": "test/confirmation_code_test.dart",
+          "name": "noninteractive receiver cannot automatically accept a code pairing"
+        },
+        {
+          "file": "test/confirmation_code_test.dart",
+          "name": "cancelling a pending code approval does not save trust"
+        },
+        {
+          "file": "test/confirmation_code_test.dart",
+          "name": "code handshake rejects bad commitment before storing trust"
+        },
+        {
+          "file": "test/confirmation_code_test.dart",
+          "name": "code handshake rejects changed secret before storing trust"
+        },
+        {
+          "file": "test/confirmation_code_test.dart",
+          "name": "code handshake rejects wrong signature before storing trust"
+        },
+        {
+          "file": "test/confirmation_code_test.dart",
+          "name": "code handshake rejects replayed proof before storing trust"
+        },
+        {
+          "file": "test/confirmation_code_test.dart",
+          "name": "code handshake rejects missing mutual confirmation before storing trust"
+        },
+        {
+          "file": "test/confirmation_code_test.dart",
+          "name": "code pairing refuses a legacy peer rather than silently downgrading"
+        },
+        {
           "file": "test/discovery_test.dart",
           "name": "loopback UDP discovery replies to source port and stops at deadline"
+        },
+        {
+          "file": "test/queue_runner_test.dart",
+          "name": "queue retries a real unavailable peer and completes when its listener returns"
         },
         {
           "file": "test/compression_transfer_test.dart",
@@ -2660,89 +2816,37 @@
         {
           "file": "test/paged_manifest_test.dart",
           "name": "1100-file folder transfers through real TLS with paginated metadata"
-        },
-        {
-          "file": "test/queue_runner_test.dart",
-          "name": "queue retries a real unavailable peer and completes when its listener returns"
-        },
-        {
-          "file": "test/picker_source_test.dart",
-          "name": "picker staging rejects a missing file without retaining a snapshot"
-        },
-        {
-          "file": "test/picker_source_test.dart",
-          "name": "picker staging rejects a directory without retaining a snapshot"
-        },
-        {
-          "file": "test/picker_source_test.dart",
-          "name": "persistent picker copy survives cache deletion and completes a real queued TLS transfer"
-        },
-        {
-          "file": "test/queue_restart_test.dart",
-          "name": "queued restart discards a corrupt retained prefix and verifies the replacement"
-        },
-        {
-          "file": "test/queue_test.dart",
-          "name": "restart from waitingForPeer enforces lifecycle"
-        },
-        {
-          "file": "test/queue_test.dart",
-          "name": "restart from scanning enforces lifecycle"
-        },
-        {
-          "file": "test/queue_test.dart",
-          "name": "restart from connecting enforces lifecycle"
-        },
-        {
-          "file": "test/queue_test.dart",
-          "name": "restart from awaitingApproval enforces lifecycle"
-        },
-        {
-          "file": "test/queue_test.dart",
-          "name": "restart from verifying enforces lifecycle"
-        },
-        {
-          "file": "test/queue_test.dart",
-          "name": "restart from queued enforces lifecycle"
-        },
-        {
-          "file": "test/queue_test.dart",
-          "name": "restart from transferring enforces lifecycle"
-        },
-        {
-          "file": "test/queue_test.dart",
-          "name": "restart from paused enforces lifecycle"
-        },
-        {
-          "file": "test/queue_test.dart",
-          "name": "restart from interrupted enforces lifecycle"
-        },
-        {
-          "file": "test/queue_test.dart",
-          "name": "restart from completed enforces lifecycle"
-        },
-        {
-          "file": "test/queue_test.dart",
-          "name": "restart from failed enforces lifecycle"
-        },
-        {
-          "file": "test/queue_test.dart",
-          "name": "restart from cancelled enforces lifecycle"
-        },
-        {
-          "file": "test/service_control_test.dart",
-          "name": "native CLI starts a queue-only owner receiver with an explicit verified policy"
-        },
-        {
-          "file": "test/service_control_test.dart",
-          "name": "service shutdown waits for an in-flight receiver start to release its port"
         }
       ]
     },
     "flutter": {
-      "passed": 53,
+      "passed": 73,
       "skipped": 0,
       "tests": [
+        {
+          "file": "apps/nshare_app/test/source_drop_test.dart",
+          "name": "drop selects multiple files and folders once without sending"
+        },
+        {
+          "file": "apps/nshare_app/test/source_drop_test.dart",
+          "name": "missing drop source fails atomically"
+        },
+        {
+          "file": "apps/nshare_app/test/source_drop_test.dart",
+          "name": "drop refuses links"
+        },
+        {
+          "file": "apps/nshare_app/test/source_drop_test.dart",
+          "name": "promised file is retained before selection"
+        },
+        {
+          "file": "apps/nshare_app/test/source_drop_test.dart",
+          "name": "empty drop reports a recoverable error"
+        },
+        {
+          "file": "apps/nshare_app/test/source_drop_test.dart",
+          "name": "mobile keeps picker without desktop listeners"
+        },
         {
           "file": "apps/nshare_app/test/widget_test.dart",
           "name": "Devices is accessible at width 390.0"
@@ -2945,6 +3049,10 @@
         },
         {
           "file": "apps/nshare_app/test/controller_interop_test.dart",
+          "name": "controller code pairing records mutual trust and then sends a real folder"
+        },
+        {
+          "file": "apps/nshare_app/test/controller_interop_test.dart",
           "name": "native CLI sends real bytes to Flutter receiver controller"
         },
         {
@@ -2954,11 +3062,64 @@
         {
           "file": "apps/nshare_app/test/controller_interop_test.dart",
           "name": "two Flutter application controllers exchange a real queued folder"
+        },
+        {
+          "file": "apps/nshare_app/test/ios_discovery_test.dart",
+          "name": "Bonjour rejects malformed untrusted metadata {name: }"
+        },
+        {
+          "file": "apps/nshare_app/test/ios_discovery_test.dart",
+          "name": "Bonjour rejects malformed untrusted metadata {name: 123}"
+        },
+        {
+          "file": "apps/nshare_app/test/ios_discovery_test.dart",
+          "name": "Bonjour rejects malformed untrusted metadata {name: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx}"
+        },
+        {
+          "file": "apps/nshare_app/test/ios_discovery_test.dart",
+          "name": "Bonjour rejects malformed untrusted metadata {fingerprint: bad}"
+        },
+        {
+          "file": "apps/nshare_app/test/ios_discovery_test.dart",
+          "name": "Bonjour rejects malformed untrusted metadata {fingerprint: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA}"
+        },
+        {
+          "file": "apps/nshare_app/test/ios_discovery_test.dart",
+          "name": "Bonjour rejects malformed untrusted metadata {address: https://remote.example}"
+        },
+        {
+          "file": "apps/nshare_app/test/ios_discovery_test.dart",
+          "name": "Bonjour rejects malformed untrusted metadata {address: }"
+        },
+        {
+          "file": "apps/nshare_app/test/ios_discovery_test.dart",
+          "name": "Bonjour rejects malformed untrusted metadata {port: 0}"
+        },
+        {
+          "file": "apps/nshare_app/test/ios_discovery_test.dart",
+          "name": "Bonjour rejects malformed untrusted metadata {port: 65536}"
+        },
+        {
+          "file": "apps/nshare_app/test/ios_discovery_test.dart",
+          "name": "Bonjour rejects malformed untrusted metadata {port: 53317}"
+        },
+        {
+          "file": "apps/nshare_app/test/ios_discovery_test.dart",
+          "name": "Bonjour deduplicates peers while retaining valid IPv6 scope addresses"
+        },
+        {
+          "file": "apps/nshare_app/test/ios_discovery_test.dart",
+          "name": "Bonjour permission failure reaches the user interface"
+        },
+        {
+          "file": "apps/nshare_app/test/ios_discovery_test.dart",
+          "name": "Bonjour stop reaches platform lifecycle adapter"
         }
       ]
     }
   },
-  "nativeWindowTests": 2,
-  "total": 738,
-  "additional": 416
+  "nativeWindowTests": 3,
+  "portableDeviceTests": 2,
+  "total": 781,
+  "additional": 459
 }
