@@ -8,3 +8,6 @@
 /nshare.exe
 /nshare-cli*
 /.nshare-example/
+
+# Python release tooling caches
+__pycache__/

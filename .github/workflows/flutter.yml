@@ -72,6 +72,14 @@ jobs:
         if: matrix.target == 'linux'
         run: xvfb-run -a flutter test integration_test/desktop_transfer_test.dart -d linux --reporter expanded
         working-directory: apps/nshare_app
+      - name: Native device transfer and clipboard tests
+        if: matrix.target == 'linux'
+        run: xvfb-run -a flutter test integration_test/device_transfer_test.dart -d linux --reporter expanded
+        working-directory: apps/nshare_app
+      - name: Native device transfer and clipboard tests
+        if: matrix.target == 'windows' || matrix.target == 'macos'
+        run: flutter test integration_test/device_transfer_test.dart -d ${{ matrix.target }} --reporter expanded
+        working-directory: apps/nshare_app
       - uses: actions/upload-artifact@v4
         with:
           name: nshare-${{ matrix.target }}

@@ -29,11 +29,21 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (System.getenv("NSHARE_KEYSTORE_PATH") != null) {
+            create("distribution") {
+                storeFile = file(System.getenv("NSHARE_KEYSTORE_PATH"))
+                storePassword = System.getenv("NSHARE_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("NSHARE_KEY_ALIAS")
+                keyPassword = System.getenv("NSHARE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Production builds never silently use a development key.
+            signingConfig = signingConfigs.findByName("distribution")
         }
     }
 }
