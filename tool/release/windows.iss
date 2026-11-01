@@ -42,21 +42,22 @@ begin
   end;
 end;
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
-var Current, Remaining, Item: String; Separator: Integer;
+var Current, Remaining, Item: String; Separator: Integer; More, Kept: Boolean;
 begin
   if CurUninstallStep = usPostUninstall then begin
     if RegQueryStringValue(HKCU, 'Environment', 'Path', Current) then begin
-      Remaining := '';
-      while Current <> '' do begin
+      Remaining := ''; Kept := False;
+      repeat
         Separator := Pos(';', Current);
-        if Separator = 0 then Separator := Length(Current) + 1;
+        More := Separator <> 0;
+        if not More then Separator := Length(Current) + 1;
         Item := Copy(Current, 1, Separator - 1);
         Delete(Current, 1, Separator);
         if CompareText(Item, ExpandConstant('{app}')) <> 0 then begin
-          if Remaining <> '' then Remaining := Remaining + ';';
-          Remaining := Remaining + Item;
+          if Kept then Remaining := Remaining + ';';
+          Remaining := Remaining + Item; Kept := True;
         end;
-      end;
+      until not More;
       RegWriteExpandStringValue(HKCU, 'Environment', 'Path', Remaining);
     end;
   end;

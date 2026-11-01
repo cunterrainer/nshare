@@ -78,6 +78,15 @@ jobs:
       - name: Installed Linux package transfer smoke test
         if: matrix.target == 'linux'
         run: xvfb-run -a python tool/release/smoke-linux.py build/distributions/*/nshare.deb
+      - name: Windows install and uninstall smoke test
+        if: matrix.target == 'windows'
+        shell: pwsh
+        run: |
+          $installer = (Get-ChildItem build/distributions -Recurse -Filter nshare-setup.exe).FullName
+          ./tool/release/smoke-windows.ps1 -Installer $installer
+      - name: macOS mounted distribution smoke test
+        if: matrix.target == 'macos'
+        run: python tool/release/smoke-macos.py build/distributions/*/nshare-macos.dmg
       - uses: actions/upload-artifact@v4
         with:
           name: distributions-${{ matrix.target }}
