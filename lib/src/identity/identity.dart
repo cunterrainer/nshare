@@ -1,3 +1,4 @@
+import '../core/file_lock.dart';
 import 'dart:convert';
 import 'dart:ffi';
 import 'package:ffi/ffi.dart';
@@ -66,10 +67,10 @@ class DeviceIdentity {
   static Future<DeviceIdentity> load(Directory directory) async {
     await directory.create(recursive: true);
     await privatePath(directory.path, directory: true);
-    final lock = await File(
-      p.join(directory.path, 'identity.lock'),
-    ).open(mode: FileMode.append);
-    await lock.lock(FileLock.blockingExclusive);
+    final lock = await FileLease.acquire(
+      File(p.join(directory.path, 'identity.lock')),
+      blocking: true,
+    );
     try {
       final file = File(p.join(directory.path, 'identity.json'));
       if (!await file.exists()) {
@@ -123,7 +124,6 @@ class DeviceIdentity {
       }
       return identity;
     } finally {
-      await lock.unlock();
       await lock.close();
     }
   }
@@ -177,16 +177,15 @@ class TrustStore {
     final key = p.normalize(p.absolute(directory.path));
     final previous = _queues[key] ?? Future<void>.value();
     final result = previous.then((_) async {
-      final lock = await File(
-        p.join(directory.path, 'trust.lock'),
-      ).open(mode: FileMode.append);
-      await lock.lock(FileLock.blockingExclusive);
+      final lock = await FileLease.acquire(
+        File(p.join(directory.path, 'trust.lock')),
+        blocking: true,
+      );
       try {
         final peers = await list();
         await action(peers);
         await atomicJson(_file, peers);
       } finally {
-        await lock.unlock();
         await lock.close();
       }
     });

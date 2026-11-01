@@ -1,3 +1,4 @@
+import '../core/file_lock.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -49,9 +50,8 @@ class StateStore {
     final result = (_tails[key] ?? Future<void>.value()).then((_) async {
       await directory.create(recursive: true);
       await privatePath(directory.path, directory: true);
-      final lock = await File('$key.lock').open(mode: FileMode.append);
+      final lock = await FileLease.acquire(File('$key.lock'), blocking: true);
       try {
-        await lock.lock(FileLock.blockingExclusive);
         return await action();
       } finally {
         await lock.close();

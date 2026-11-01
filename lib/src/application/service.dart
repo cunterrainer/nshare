@@ -1,3 +1,4 @@
+import '../core/file_lock.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -24,7 +25,7 @@ class LocalService {
   final Directory directory;
   final DeviceIdentity identity;
   final TrustStore trust;
-  final RandomAccessFile _lock;
+  final FileLease _lock;
   final HttpServer _http;
   final String _token;
   final ProgressCallback? _onProgress;
@@ -64,16 +65,13 @@ class LocalService {
         'A receiver service already owns this state',
       );
     }
-    RandomAccessFile? lock;
+    FileLease? lock;
     HttpServer? http;
     try {
       await directory.create(recursive: true);
       await privatePath(directory.path, directory: true);
-      lock = await File(
-        p.join(key, 'service-owner.lock'),
-      ).open(mode: FileMode.append);
       try {
-        await lock.lock(FileLock.exclusive);
+        lock = await FileLease.acquire(File(p.join(key, 'service-owner.lock')));
       } on FileSystemException {
         throw const NshareException(
           'busy',

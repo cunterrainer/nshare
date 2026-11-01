@@ -1,3 +1,4 @@
+import '../core/file_lock.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:path/path.dart' as p;
@@ -348,14 +349,11 @@ class QueueRunner {
         'A queue runner already owns this state',
       );
     }
-    RandomAccessFile? lock;
+    FileLease? lock;
     try {
       await store.directory.create(recursive: true);
-      lock = await File(
-        p.join(key, 'queue-owner.lock'),
-      ).open(mode: FileMode.append);
       try {
-        await lock.lock(FileLock.exclusive);
+        lock = await FileLease.acquire(File(p.join(key, 'queue-owner.lock')));
       } on FileSystemException {
         throw const NshareException(
           'busy',

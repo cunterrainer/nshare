@@ -1,3 +1,4 @@
+import '../core/file_lock.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -328,7 +329,7 @@ class TransferReceiver {
   final Set<Future<void>> _tasks = {};
   static final _outputOwners = <String>{};
   String? _outputKey;
-  RandomAccessFile? _outputLock;
+  FileLease? _outputLock;
   bool _closed = false;
   Timer? _networkTimer;
   bool _checkingNetwork = false;
@@ -481,7 +482,7 @@ class TransferReceiver {
         'Another receiver owns this output folder',
       );
     }
-    RandomAccessFile? lease;
+    FileLease? lease;
     try {
       final state = Directory(p.join(canonical, '.nshare-state'));
       await assertNoLinks(state.path);
@@ -489,8 +490,7 @@ class TransferReceiver {
       await privatePath(state.path, directory: true);
       final path = p.join(state.path, 'receiver.lock');
       await assertNoLinks(path);
-      lease = await File(path).open(mode: FileMode.append);
-      await lease.lock(FileLock.exclusive);
+      lease = await FileLease.acquire(File(path));
       _outputKey = canonical;
       _outputLock = lease;
     } catch (_) {
