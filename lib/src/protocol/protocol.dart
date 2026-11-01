@@ -13,6 +13,7 @@ const supportedExtensions = <String>{
   'block-gzip-v1',
   'clipboard-v1',
   'pair-v1',
+  'confirmation-code-v1',
 };
 Set<String> parseExtensions(Object? value) {
   if (value == null) return {};
@@ -55,7 +56,8 @@ enum WireType {
   clipboard(34),
   clipboardAck(35),
   pair(36),
-  pairAck(37);
+  pairAck(37),
+  authConfirm(38);
 
   const WireType(this.id);
   final int id;
@@ -155,6 +157,8 @@ class WireConnection {
     _cancellation = cancellation;
   }
   Set<String> extensions = {};
+  bool confirmationCodeVerified = false;
+  PeerIdentity? remotePeer;
   bool supports(String name) => extensions.contains(name);
   void require(String name) {
     if (!supports(name)) {

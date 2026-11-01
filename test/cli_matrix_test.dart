@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:convert';
+import 'package:nshare/nshare.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 import 'support/native_cli.dart';
@@ -14,6 +16,65 @@ void main() {
     final workspace = await cli.root.createTemp('cli_');
     state = Directory(p.join(workspace.path, 'state-not-yet-created'));
   });
+  test(
+    'native CLI pairs by code through a real terminal and persists trust',
+    () async {
+      final receiverState = await Directory(
+        '${state.parent.path}/code-receiver',
+      ).create();
+      final identity = await DeviceIdentity.load(receiverState);
+      String? code;
+      final receiver = await TransferReceiver.start(
+        output: Directory('${state.parent.path}/received'),
+        identity: identity,
+        trust: TrustStore(receiverState),
+        port: 0,
+        discover: false,
+        approvePeer: (peer) async {
+          code = peer.confirmationCode;
+          return true;
+        },
+        approveOffer: (_) async => false,
+      );
+      final args = [
+        cli.executable,
+        '--state-dir',
+        state.path,
+        'pair',
+        '--connect',
+        '127.0.0.1',
+        '--port',
+        '${receiver.port}',
+      ];
+      String quote(String value) => "'${value.replaceAll("'", "'\\''")}'";
+      final process = await Process.start('script', [
+        '-q',
+        '-e',
+        '-c',
+        args.map(quote).join(' '),
+        '/dev/null',
+      ]);
+      final output = process.stdout.transform(utf8.decoder).join();
+      final errors = process.stderr.transform(utf8.decoder).join();
+      process.stdin.writeln('yes');
+      try {
+        final exit = await process.exitCode.timeout(
+          const Duration(seconds: 30),
+        );
+        expect(exit, 0, reason: '${await output} ${await errors}');
+        expect(code, isNotNull);
+        expect(await output, contains('Matching code: $code'));
+        expect(await output, contains('Paired: ${identity.fingerprint}'));
+        expect(await TrustStore(state).list(), contains(identity.fingerprint));
+      } finally {
+        process.kill();
+        await process.stdin.close();
+        await receiver.close();
+      }
+    },
+    skip: !Platform.isLinux,
+  );
+
   for (final command in ['', 'send', 'receive', 'devices', 'trust']) {
     test(
       'native CLI help for ${command.isEmpty ? 'global' : command} exits without creating state',

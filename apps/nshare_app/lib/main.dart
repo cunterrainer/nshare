@@ -227,6 +227,19 @@ class _HomeState extends State<NshareHome> with WidgetsBindingObserver {
       field('IP address or hostname', host),
       field('Port', port),
       field('Verified full SHA-256 fingerprint', pin),
+      action('Pair by code', () async {
+        if (host.text.isEmpty) {
+          throw const NshareException(
+            'usage',
+            'Enter the receiving device address',
+          );
+        }
+        final fingerprint = await c.pairAddress(host.text, targetPort());
+        if (mounted) setState(() => pin.text = fingerprint);
+      }, icon: Icons.pin),
+      const Text(
+        'No camera needed: start Receive on the other device, then compare and approve the code on both screens.',
+      ),
     ],
   );
   Widget action(String label, Future<void> Function() work, {IconData? icon}) =>

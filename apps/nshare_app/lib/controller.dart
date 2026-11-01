@@ -245,7 +245,9 @@ class NshareController extends ChangeNotifier {
   Future<bool> _approve(PeerIdentity peer) async =>
       await confirm?.call(
         'Verify peer identity',
-        'Compare the complete fingerprint on the other device before approving.\n\nPeer: ${peer.fingerprint}\n\nThis device: ${identity!.fingerprint}',
+        peer.confirmationCode == null
+            ? 'Compare the complete fingerprint on the other device before approving.\n\nPeer: ${peer.fingerprint}\n\nThis device: ${identity!.fingerprint}'
+            : 'Matching code: ${peer.confirmationCode}\n\nApprove only if the other device displays exactly this code. Decline any unexpected pairing request.',
       ) ??
       false;
   Future<void> startReceiver({int port = 53317}) async {
@@ -409,6 +411,18 @@ class NshareController extends ChangeNotifier {
       identity!.fingerprint,
     );
     notify();
+  }
+
+  Future<String> pairAddress(String host, int port) async {
+    final peer = await pairByCode(
+      host,
+      port,
+      identity!,
+      TrustStore(stateDirectory!),
+      approvePeer: _approve,
+    );
+    await refresh();
+    return peer.fingerprint;
   }
 
   Future<void> join(String text) async {

@@ -55,6 +55,50 @@ void main() {
     throw TimeoutException('Transfer did not complete');
   }
 
+  test(
+    'controller code pairing records mutual trust and then sends a real folder',
+    () async {
+      final sender = await controller('code-sender');
+      final receiver = await controller('code-receiver');
+      final codes = <String>[];
+      sender.confirm = (_, details) async {
+        codes.add(details);
+        return true;
+      };
+      receiver.confirm = (_, details) async {
+        codes.add(details);
+        return true;
+      };
+      try {
+        await receiver.startReceiver(port: 0);
+        final port = receiver.service!.receiver!.port;
+        final pin = await sender.pairAddress('127.0.0.1', port);
+        expect(pin, receiver.identity!.fingerprint);
+        expect(
+          codes.where((v) => v.startsWith('Matching code:')).toSet(),
+          hasLength(1),
+        );
+        final folder = await Directory('${root.path}/paired-folder').create();
+        await File(
+          '${folder.path}/nested.txt',
+        ).writeAsString('paired controller folder');
+        await sender.enqueue(folder.path, '127.0.0.1', port, pin);
+        await awaitCompleted(sender);
+        expect(
+          await File(
+            '${receiver.receiveDirectory!.path}/paired-folder/nested.txt',
+          ).readAsString(),
+          'paired controller folder',
+        );
+      } finally {
+        await sender.shutdown();
+        sender.dispose();
+        await receiver.shutdown();
+        receiver.dispose();
+      }
+    },
+  );
+
   testWidgets('native CLI sends real bytes to Flutter receiver controller', (
     tester,
   ) async {

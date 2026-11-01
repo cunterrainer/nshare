@@ -126,7 +126,9 @@ class ReceiverTask extends TaskHandler {
         conflict: conflict,
         approvePeer: (peer) => ask(
           'Verify peer fingerprint',
-          'Compare the full peer fingerprint on its screen:\n${peer.fingerprint}\n\nThis device:\n${identity.fingerprint}',
+          peer.confirmationCode == null
+              ? 'Compare the full peer fingerprint on its screen:\n${peer.fingerprint}\n\nThis device:\n${identity.fingerprint}'
+              : 'Matching code: ${peer.confirmationCode}\n\nApprove only if both screens display exactly this code. Decline unexpected requests.',
         ),
         approveOffer: (offer) => ask(
           'Incoming files',

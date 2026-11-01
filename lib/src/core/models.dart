@@ -57,9 +57,12 @@ class TransferProgress {
 }
 
 class PeerIdentity {
-  const PeerIdentity(this.name, this.fingerprint);
+  const PeerIdentity(this.name, this.fingerprint, {this.confirmationCode});
   final String name;
   final String fingerprint;
+
+  /// Present only for a committed, session-bound matching-code exchange.
+  final String? confirmationCode;
 }
 
 /// Caller must compare the fingerprint through a trusted channel before approval.

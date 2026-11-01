@@ -109,6 +109,10 @@ ArgParser createParser() {
       ..addFlag('qr', negatable: false)
       ..addOption('svg', help: 'Export invitation QR to an SVG file')
       ..addOption(
+        'connect',
+        help: 'Pair with an address by comparing codes on both screens',
+      )
+      ..addOption(
         'join',
         help: 'Invitation copied from a trusted device screen',
       ),
@@ -441,7 +445,29 @@ Future<int> runCli(List<String> arguments) async {
     }
     if (command.name == 'pair') {
       final join = command['join'] as String?;
-      if (join != null) {
+      final address = command['connect'] as String?;
+      if (address != null) {
+        if (join != null || command['host'] != null || !stdin.hasTerminal) {
+          throw const NshareException(
+            'usage',
+            'Use pair --connect ADDRESS in an interactive terminal, without --join or --host',
+          );
+        }
+        final peer = await pairByCode(
+          address,
+          parsePort(command['port'] as String),
+          identity,
+          trust,
+          cancellation: cancellation,
+          approvePeer: (peer) async {
+            stderr.writeln('Matching code: ${peer.confirmationCode}');
+            return terminal.confirm(
+              'Compare this code on the receiving device. Do both screens match?',
+            );
+          },
+        );
+        stdout.writeln('Paired: ${peer.fingerprint}');
+      } else if (join != null) {
         stderr.writeln('Your fingerprint: ${identity.fingerprint}');
         await joinInvitation(
           PairingInvitation.parse(join),
@@ -548,6 +574,12 @@ Future<int> runCli(List<String> arguments) async {
       stderr.writeln(
         'Your fingerprint: ${identity.fingerprint}\nPeer fingerprint: ${peer.fingerprint}',
       );
+      if (peer.confirmationCode != null) {
+        stderr.writeln('Matching code: ${peer.confirmationCode}');
+        return terminal.confirm(
+          'Compare this code on the other device. Do both screens match?',
+        );
+      }
       return terminal.confirm(
         'Verify the full peer fingerprint on the other device. Trust this peer?',
       );

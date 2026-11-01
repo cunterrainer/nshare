@@ -94,3 +94,37 @@ Future<void> joinInvitation(
     await wire.close();
   }
 }
+
+/// Pair without a camera or pre-shared fingerprint. Both screens must approve
+/// the same session code; this is not a password and must never be auto-accepted.
+Future<PeerIdentity> pairByCode(
+  String host,
+  int port,
+  DeviceIdentity identity,
+  TrustStore trust, {
+  required PairingApproval approvePeer,
+  CancellationToken? cancellation,
+}) async {
+  final wire = await connectAuthenticated(
+    host,
+    port,
+    identity,
+    trust,
+    approve: approvePeer,
+    cancellation: cancellation,
+    requireConfirmationCode: true,
+  );
+  try {
+    await wire.send(WireType.pair, {'confirmationCode': true});
+    final ack = await wire.expect(WireType.pairAck);
+    if (ack['confirmationCode'] != true) {
+      throw const NshareException(
+        'protocol',
+        'Missing code pairing acknowledgment',
+      );
+    }
+    return wire.remotePeer!;
+  } finally {
+    await wire.close();
+  }
+}

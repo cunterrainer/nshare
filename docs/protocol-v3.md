@@ -40,3 +40,38 @@ QR payload: `nshare://pair?v=3&host=...&port=...&fp=...&token=...&expires=...`.
 No private key or clipboard content is included. Invitation parsing rejects
 unknown versions, duplicate fields, invalid pins, ports, expiry and oversized
 inputs. No Internet rendezvous or relay exists.
+
+## Matching confirmation codes (`confirmation-code-v1`)
+
+`pair --connect ADDRESS --port PORT` and Flutter's **Pair by code** require
+interactive approval at both endpoints. Start Receive on the other endpoint.
+This mode fails closed on older peers; QR invitations and full fingerprints
+remain independent alternatives. A code is a comparison of two screens, never a
+password. Decline unexpected requests.
+
+The TLS client sends `codeCommit` in HELLO: SHA-256 of the canonical JSON array
+`["nshare-confirmation-commit-v1", clientFingerprint, serverFingerprint,
+clientNonce, secret]`, where secret is a fresh 32-byte padded base64url value.
+The server commits its TLS certificate before HELLO, then generates a fresh
+server nonce in CHALLENGE and sets `confirmationCode: true`. PROOF reveals
+`codeSecret` and signs the UTF-8 JSON array
+`["nshare-confirmation-code-v1", clientFingerprint, serverFingerprint,
+clientNonce, serverNonce, secret]`. The server verifies the commitment and proof
+before displaying a code. Neither participant can adapt the secret after
+learning the other nonce. All identity pins still apply.
+
+Both screens display the first 40 bits of SHA-256 of that signed transcript as
+13 zero-padded decimal digits, grouped 4/4/5. Both must approve. Approval is staged
+without writing trust. After server approval READY is sent; after client approval
+the client sends AUTH_CONFIRM (ID 38), `approved: true`. The server then records
+trust and sends a final READY, `confirmed: true`; the client records trust after
+this acknowledgment. Decline, malformed proof, cancellation, or an absent peer
+confirmation cannot create trust. Lost final acknowledgment can leave only the
+server paired; reconnecting is safe and code pairing always asks again.
+
+Only a connection that completed this handshake can send PAIR with
+`confirmationCode: true` in place of an invitation token. PAIR_ACK echoes that
+flag. Other PAIR requests still require an expiring, single-use token.
+There is one live receiver connection at a time and a five-minute approval
+window. Approximately 40-bit comparison security depends on comparing all digits
+and rejecting unexpected/repeated attempts; this is not a PAKE.

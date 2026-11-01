@@ -525,6 +525,17 @@ class TransferReceiver {
       final first = await wire.read(wait: const Duration(minutes: 5));
       if (first.type == WireType.pair) {
         wire.require('pair-v1');
+        if (first.json['confirmationCode'] == true) {
+          if (!wire.confirmationCodeVerified) {
+            throw const NshareException(
+              'untrusted',
+              'Matching code was not confirmed',
+            );
+          }
+          await wire.send(WireType.pairAck, {'confirmationCode': true});
+          onResult?.call(const TransferResult(0, 0));
+          return;
+        }
         final token = requiredString(first.json, 'token', max: 64);
         await InvitationStore(identity.directory).consume(token);
         await wire.send(WireType.pairAck, {'token': token});

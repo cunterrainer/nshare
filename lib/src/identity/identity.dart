@@ -239,19 +239,23 @@ class TrustStore {
     PairingApproval? approval, {
     String? expectedFingerprint,
     String? endpoint,
+    bool persist = true,
+    bool forceApproval = false,
   }) async {
     final snapshot = await list();
     _validatePin(snapshot, peer, expectedFingerprint, endpoint);
     // Never hold an OS lock (or a timeout timer) while a UI decision is pending.
     // The connection owns the approval deadline and cancellation race.
-    if (!snapshot.containsKey(peer.fingerprint) &&
-        expectedFingerprint == null &&
+    if ((forceApproval ||
+            (!snapshot.containsKey(peer.fingerprint) &&
+                expectedFingerprint == null)) &&
         (approval == null || !await approval(peer))) {
       throw const NshareException(
         'untrusted',
         'Peer fingerprint requires out-of-band verification',
       );
     }
+    if (!persist) return;
     await _mutate((peers) async {
       _validatePin(peers, peer, expectedFingerprint, endpoint);
       final entry = peers.containsKey(peer.fingerprint)
@@ -282,6 +286,49 @@ List<int> _transcript(
   ]),
 );
 
+// The client commits before learning the server nonce. Both certificate pins,
+// both nonces and the revealed 256-bit secret are bound into the signed proof.
+List<int> _codeTranscript(
+  String client,
+  String server,
+  String clientNonce,
+  String serverNonce,
+  String secret,
+) => utf8.encode(
+  jsonEncode([
+    'nshare-confirmation-code-v1',
+    client,
+    server,
+    clientNonce,
+    serverNonce,
+    secret,
+  ]),
+);
+String _codeCommit(String client, String server, String nonce, String secret) =>
+    sha256
+        .convert(
+          utf8.encode(
+            jsonEncode([
+              'nshare-confirmation-commit-v1',
+              client,
+              server,
+              nonce,
+              secret,
+            ]),
+          ),
+        )
+        .toString();
+String _matchingCode(List<int> transcript) {
+  final digest = sha256.convert(transcript).bytes;
+  var value = 0;
+  for (final byte in digest.take(5)) {
+    value = (value << 8) | byte;
+  }
+  // Fixed width, approximately 40 bits. It is a comparison, never a password.
+  final digits = value.toString().padLeft(13, '0');
+  return '${digits.substring(0, 4)} ${digits.substring(4, 8)} ${digits.substring(8)}';
+}
+
 Future<WireConnection> connectAuthenticated(
   String host,
   int port,
@@ -291,6 +338,7 @@ Future<WireConnection> connectAuthenticated(
   String? expectedFingerprint,
   String? targetFingerprint,
   CancellationToken? cancellation,
+  bool requireConfirmationCode = false,
 }) async {
   cancellation?.check();
   final known = await trust.list();
@@ -329,20 +377,30 @@ Future<WireConnection> connectAuthenticated(
     if (!certificateAllowed(cert)) {
       throw const NshareException('identity', 'Peer certificate rejected');
     }
-    final receiver = PeerIdentity(host, sha256.convert(cert.der).toString());
-    await wire.waitFor(
-      trust.approve(
-        receiver,
-        approve,
-        expectedFingerprint: expectedFingerprint,
-        endpoint: endpoint,
-      ),
-    );
+    var receiver = PeerIdentity(host, sha256.convert(cert.der).toString());
+    if (!requireConfirmationCode) {
+      await wire.waitFor(
+        trust.approve(
+          receiver,
+          approve,
+          expectedFingerprint: expectedFingerprint,
+          endpoint: endpoint,
+        ),
+      );
+    }
     final clientNonce = randomNonce();
+    final secret = requireConfirmationCode ? randomNonce() : null;
     await wire.send(WireType.hello, {
       'name': identity.name,
       'certificate': identity.certificate,
       'nonce': clientNonce,
+      if (secret != null)
+        'codeCommit': _codeCommit(
+          identity.fingerprint,
+          receiver.fingerprint,
+          clientNonce,
+          secret,
+        ),
       'extensions': supportedExtensions.toList(),
     });
     final challenge = await wire.expect(
@@ -350,23 +408,74 @@ Future<WireConnection> connectAuthenticated(
       wait: const Duration(minutes: 5),
     );
     final serverNonce = requiredString(challenge, 'nonce', max: 64);
-    await wire.send(WireType.proof, {
-      'signature': base64.encode(
-        identity.sign(
-          _transcript(
+    if (requireConfirmationCode && challenge['confirmationCode'] != true) {
+      throw const NshareException(
+        'unsupported',
+        'Peer does not support matching confirmation codes; use a verified invitation or full fingerprint',
+      );
+    }
+    final transcript = secret == null
+        ? _transcript(
             identity.fingerprint,
             receiver.fingerprint,
             clientNonce,
             serverNonce,
-          ),
-        ),
-      ),
+          )
+        : _codeTranscript(
+            identity.fingerprint,
+            receiver.fingerprint,
+            clientNonce,
+            serverNonce,
+            secret,
+          );
+    await wire.send(WireType.proof, {
+      'codeSecret': ?secret,
+      'signature': base64.encode(identity.sign(transcript)),
     });
+    if (secret != null) {
+      receiver = PeerIdentity(
+        host,
+        receiver.fingerprint,
+        confirmationCode: _matchingCode(transcript),
+      );
+      await wire.waitFor(
+        trust.approve(
+          receiver,
+          approve,
+          expectedFingerprint: expectedFingerprint,
+          endpoint: endpoint,
+          persist: false,
+          forceApproval: true,
+        ),
+      );
+    }
     final ready = await wire.expect(
       WireType.ready,
       wait: const Duration(minutes: 5),
     );
     wire.extensions = parseExtensions(ready['extensions']);
+    if (secret != null) {
+      wire.require('confirmation-code-v1');
+      await wire.send(WireType.authConfirm, {'approved': true});
+      final confirmed = await wire.expect(
+        WireType.ready,
+        wait: const Duration(minutes: 5),
+      );
+      if (confirmed['confirmed'] != true) {
+        throw const NshareException(
+          'protocol',
+          'Missing mutual code confirmation',
+        );
+      }
+      await trust.approve(
+        receiver,
+        null,
+        expectedFingerprint: receiver.fingerprint,
+        endpoint: endpoint,
+      );
+      wire.confirmationCodeVerified = true;
+    }
+    wire.remotePeer = receiver;
     return wire;
   } catch (_) {
     await wire.close();
@@ -387,35 +496,96 @@ Future<PeerIdentity> authenticateIncoming(
   );
   wire.extensions = parseExtensions(hello['extensions']);
   final certificate = requiredString(hello, 'certificate', max: 16384);
-  final peer = PeerIdentity(
+  var peer = PeerIdentity(
     requiredString(hello, 'name', max: 255),
     fingerprintOfPem(certificate),
   );
   final clientNonce = requiredString(hello, 'nonce', max: 64);
+  final commitment = hello['codeCommit'];
+  if (commitment != null &&
+      (commitment is! String ||
+          !RegExp(r'^[a-f0-9]{64}$').hasMatch(commitment))) {
+    throw const NshareException('protocol', 'Invalid confirmation commitment');
+  }
+  if (commitment != null) wire.require('confirmation-code-v1');
   final serverNonce = randomNonce();
-  await wire.send(WireType.challenge, {'nonce': serverNonce});
+  await wire.send(WireType.challenge, {
+    'nonce': serverNonce,
+    if (commitment != null) 'confirmationCode': true,
+  });
   final proof = await wire.expect(WireType.proof);
   final signature = base64.decode(
     requiredString(proof, 'signature', max: 4096),
   );
-  if (!verifyProof(
-    certificate,
-    _transcript(
-      peer.fingerprint,
-      identity.fingerprint,
-      clientNonce,
-      serverNonce,
-    ),
-    signature,
-  )) {
+  final secret = commitment == null
+      ? null
+      : requiredString(proof, 'codeSecret', max: 64);
+  if (secret != null &&
+      (!RegExp(r'^[A-Za-z0-9_-]{43}=$').hasMatch(secret) ||
+          _codeCommit(
+                peer.fingerprint,
+                identity.fingerprint,
+                clientNonce,
+                secret,
+              ) !=
+              commitment)) {
+    throw const NshareException(
+      'identity',
+      'Confirmation commitment does not match',
+    );
+  }
+  final transcript = secret == null
+      ? _transcript(
+          peer.fingerprint,
+          identity.fingerprint,
+          clientNonce,
+          serverNonce,
+        )
+      : _codeTranscript(
+          peer.fingerprint,
+          identity.fingerprint,
+          clientNonce,
+          serverNonce,
+          secret,
+        );
+  if (!verifyProof(certificate, transcript, signature)) {
     throw const NshareException('identity', 'Peer failed identity proof');
   }
+  if (secret != null) {
+    peer = PeerIdentity(
+      peer.name,
+      peer.fingerprint,
+      confirmationCode: _matchingCode(transcript),
+    );
+  }
   await wire.waitFor(
-    trust.approve(peer, approve, expectedFingerprint: expectedFingerprint),
+    trust.approve(
+      peer,
+      approve,
+      expectedFingerprint: expectedFingerprint,
+      persist: secret == null,
+      forceApproval: secret != null,
+    ),
   );
   await wire.send(WireType.ready, {
     'version': protocolVersion,
     'extensions': wire.extensions.toList(),
   });
+  if (secret != null) {
+    final confirmed = await wire.expect(
+      WireType.authConfirm,
+      wait: const Duration(minutes: 5),
+    );
+    if (confirmed['approved'] != true) {
+      throw const NshareException(
+        'untrusted',
+        'Peer did not confirm matching code',
+      );
+    }
+    await trust.approve(peer, null, expectedFingerprint: peer.fingerprint);
+    await wire.send(WireType.ready, {'confirmed': true});
+    wire.confirmationCodeVerified = true;
+  }
+  wire.remotePeer = peer;
   return peer;
 }
