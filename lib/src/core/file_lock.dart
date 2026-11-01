@@ -21,19 +21,21 @@ class FileLease implements Finalizable {
   static final _libc = DynamicLibrary.process();
   static final _open = _libc
       .lookupFunction<
-        Pointer<Void> Function(Pointer<Utf8>, Pointer<Utf8>),
-        Pointer<Void> Function(Pointer<Utf8>, Pointer<Utf8>)
-      >('fopen');
+        Int32 Function(Pointer<Utf8>, Int32, VarArgs<(Int32,)>),
+        int Function(Pointer<Utf8>, int, int)
+      >('open');
+  static final _fdopen = _libc
+      .lookupFunction<
+        Pointer<Void> Function(Int32, Pointer<Utf8>),
+        Pointer<Void> Function(int, Pointer<Utf8>)
+      >('fdopen');
+  static final _closeDescriptor = _libc
+      .lookupFunction<Int32 Function(Int32), int Function(int)>('close');
   static final _descriptor = _libc
       .lookupFunction<
         Int32 Function(Pointer<Void>),
         int Function(Pointer<Void>)
       >('fileno');
-  static final _fcntl = _libc
-      .lookupFunction<
-        Int32 Function(Int32, Int32, VarArgs<(Int32,)>),
-        int Function(int, int, int)
-      >('fcntl');
   static final _flock = _libc
       .lookupFunction<Int32 Function(Int32, Int32), int Function(int, int)>(
         'flock',
@@ -64,18 +66,17 @@ class FileLease implements Finalizable {
       final path = sentinel.path.toNativeUtf8();
       final mode = 'r+'.toNativeUtf8();
       try {
-        stream = _open(path, mode);
-        // fopen descriptors otherwise survive exec and let an unrelated child
-        // keep the flock alive after its actual owner has closed the lease.
-        if (stream != nullptr && _fcntl(_descriptor(stream), 2, 1) != 0) {
-          final code = _errno().value;
-          _close(stream);
-          throw FileSystemException(
-            'Cannot prevent lock inheritance',
-            sentinel.path,
-            OSError('fcntl F_SETFD failed', code),
-          );
+        // Set close-on-exec atomically with open: another engine can spawn
+        // a child between separate fopen and fcntl calls.
+        final closeOnExec = Platform.isLinux || Platform.isAndroid
+            ? 0x80000
+            : 0x1000000;
+        final descriptor = _open(path, 2 | closeOnExec, 0);
+        if (descriptor < 0) {
+          throw FileSystemException('Cannot open isolate lock', sentinel.path);
         }
+        stream = _fdopen(descriptor, mode);
+        if (stream == nullptr) _closeDescriptor(descriptor);
       } finally {
         malloc.free(path);
         malloc.free(mode);
@@ -123,6 +124,9 @@ class FileLease implements Finalizable {
       final stream = _stream;
       if (stream != null) {
         _nativeFinalizer.detach(this);
+        // Explicitly release the open-description lock before closing. A child
+        // between fork and exec may still temporarily share this description.
+        _flock(_descriptor(stream), 8); // LOCK_UN
         _close(stream);
         _stream = null;
       }
