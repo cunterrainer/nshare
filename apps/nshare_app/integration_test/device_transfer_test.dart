@@ -95,67 +95,77 @@ void main() {
     }
   }, timeout: const Timeout(Duration(minutes: 8)));
 
-  testWidgets(
-    'device clipboard changes only after explicit incoming approval',
-    (tester) async {
-      await tester.runAsync(() async {
-        final root = await Directory.systemTemp.createTemp(
-          'nshare_clipboard_device_',
+  testWidgets('device clipboard changes only after explicit incoming approval', (
+    tester,
+  ) async {
+    // Android only permits clipboard reads while this activity has input focus.
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: TextField(autofocus: true))),
+    );
+    await tester.pumpAndSettle();
+    await tester.showKeyboard(find.byType(TextField));
+    await tester.pump();
+    Future<String?> readClipboard() async {
+      for (var i = 0; i < 30; i++) {
+        final data = await Clipboard.getData(Clipboard.kTextPlain);
+        if (data != null) return data.text;
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      }
+      return null;
+    }
+
+    await tester.runAsync(() async {
+      final root = await Directory.systemTemp.createTemp(
+        'nshare_clipboard_device_',
+      );
+      final a = await DeviceIdentity.load(Directory('${root.path}/a'));
+      final b = await DeviceIdentity.load(Directory('${root.path}/b'));
+      var accepted = false;
+      final receiver = await TransferReceiver.start(
+        output: Directory('${root.path}/out'),
+        identity: b,
+        trust: TrustStore(b.directory),
+        expectedFingerprint: a.fingerprint,
+        port: 0,
+        discover: false,
+        approveOffer: (_) async => false,
+        approveClipboard: (offer) async {
+          if (!accepted) return false;
+          await Clipboard.setData(ClipboardData(text: offer.text));
+          return true;
+        },
+      );
+      try {
+        await Clipboard.setData(
+          const ClipboardData(text: 'keep existing clipboard'),
         );
-        final a = await DeviceIdentity.load(Directory('${root.path}/a'));
-        final b = await DeviceIdentity.load(Directory('${root.path}/b'));
-        var accepted = false;
-        final receiver = await TransferReceiver.start(
-          output: Directory('${root.path}/out'),
-          identity: b,
-          trust: TrustStore(b.directory),
-          expectedFingerprint: a.fingerprint,
-          port: 0,
-          discover: false,
-          approveOffer: (_) async => false,
-          approveClipboard: (offer) async {
-            if (!accepted) return false;
-            await Clipboard.setData(ClipboardData(text: offer.text));
-            return true;
-          },
-        );
-        try {
-          await Clipboard.setData(
-            const ClipboardData(text: 'keep existing clipboard'),
-          );
-          await expectLater(
-            shareText(
-              'declined text',
-              '127.0.0.1',
-              receiver.port,
-              a,
-              TrustStore(a.directory),
-              expectedFingerprint: b.fingerprint,
-            ),
-            throwsA(isA<NshareException>()),
-          );
-          expect(
-            (await Clipboard.getData(Clipboard.kTextPlain))?.text,
-            'keep existing clipboard',
-          );
-          accepted = true;
-          await shareText(
-            'approved device text',
+        expect(await readClipboard(), 'keep existing clipboard');
+        await expectLater(
+          shareText(
+            'declined text',
             '127.0.0.1',
             receiver.port,
             a,
             TrustStore(a.directory),
             expectedFingerprint: b.fingerprint,
-          );
-          expect(
-            (await Clipboard.getData(Clipboard.kTextPlain))?.text,
-            'approved device text',
-          );
-        } finally {
-          await receiver.close();
-          await root.delete(recursive: true);
-        }
-      });
-    },
-  );
+          ),
+          throwsA(isA<NshareException>()),
+        );
+        expect(await readClipboard(), 'keep existing clipboard');
+        accepted = true;
+        await shareText(
+          'approved device text',
+          '127.0.0.1',
+          receiver.port,
+          a,
+          TrustStore(a.directory),
+          expectedFingerprint: b.fingerprint,
+        );
+        expect(await readClipboard(), 'approved device text');
+      } finally {
+        await receiver.close();
+        await root.delete(recursive: true);
+      }
+    });
+  });
 }
