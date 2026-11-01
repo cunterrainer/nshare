@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'desktop.dart';
+import 'source_drop_zone.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:nshare/nshare.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -76,6 +77,7 @@ class NshareHome extends StatefulWidget {
 class _HomeState extends State<NshareHome> with WidgetsBindingObserver {
   int page = 0;
   bool resumeReceiver = false;
+  List<String> additionalSources = [];
   final ownHost = TextEditingController();
   final host = TextEditingController(),
       port = TextEditingController(text: '53317'),
@@ -192,6 +194,7 @@ class _HomeState extends State<NshareHome> with WidgetsBindingObserver {
     }
     if (path != null) {
       source.text = path;
+      additionalSources = [];
       if (mounted) setState(() => page = 1);
     }
   }
@@ -295,53 +298,82 @@ class _HomeState extends State<NshareHome> with WidgetsBindingObserver {
         action('Scan pairing QR', scan, icon: Icons.qr_code_scanner),
     ],
   );
-  Widget send() => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Wrap(
-        children: [
-          action(
-            'Choose file',
-            () => pick(false),
-            icon: Icons.insert_drive_file,
+  Widget send() => SourceDropZone(
+    enabled: !c.mobile,
+    onPaths: (paths) async {
+      if (!mounted) return;
+      setState(() {
+        source.text = paths.first;
+        additionalSources = paths.skip(1).toList();
+      });
+    },
+    onError: (error) {
+      c.error = error.toString();
+      c.notify();
+    },
+    persistFile: c.persistPickerFile,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          children: [
+            action(
+              'Choose file',
+              () => pick(false),
+              icon: Icons.insert_drive_file,
+            ),
+            action('Choose folder', () => pick(true), icon: Icons.folder),
+          ],
+        ),
+        field('File or folder path', source),
+        if (additionalSources.isNotEmpty)
+          Wrap(
+            children: additionalSources
+                .map(
+                  (path) => InputChip(
+                    label: Text(path),
+                    onDeleted: () =>
+                        setState(() => additionalSources.remove(path)),
+                  ),
+                )
+                .toList(),
           ),
-          action('Choose folder', () => pick(true), icon: Icons.folder),
-        ],
-      ),
-      field('File or folder path', source),
-      target(),
-      Text(
-        'Compression: ${c.settings.compression ? 'enabled by your setting' : 'off'}',
-      ),
-      Wrap(
-        children: [
-          action('Add to transfer queue', () async {
-            if (source.text.isEmpty || host.text.isEmpty) {
-              throw const NshareException(
-                'usage',
-                'Choose a source and target',
-              );
-            }
-            if (!await confirm(
-              'Confirm target identity',
-              'Use this verified fingerprint?\n${pin.text}',
-            )) {
-              return;
-            }
-            await c.enqueue(source.text, host.text, targetPort(), pin.text);
-            setState(() => page = 3);
-          }, icon: Icons.queue),
-          action('Send clipboard text', () async {
-            if (await confirm(
-              'Send clipboard',
-              'Send current clipboard text to this verified fingerprint?\n${pin.text}',
-            )) {
-              await c.sendClipboard(host.text, targetPort(), pin.text);
-            }
-          }, icon: Icons.content_paste),
-        ],
-      ),
-    ],
+        target(),
+        Text(
+          'Compression: ${c.settings.compression ? 'enabled by your setting' : 'off'}',
+        ),
+        Wrap(
+          children: [
+            action('Add to transfer queue', () async {
+              if (source.text.isEmpty || host.text.isEmpty) {
+                throw const NshareException(
+                  'usage',
+                  'Choose a source and target',
+                );
+              }
+              if (!await confirm(
+                'Confirm target identity',
+                'Use this verified fingerprint?\n${pin.text}',
+              )) {
+                return;
+              }
+              for (final path in {source.text, ...additionalSources}) {
+                await c.enqueue(path, host.text, targetPort(), pin.text);
+              }
+              setState(() => page = 3);
+            }, icon: Icons.queue),
+            action('Send clipboard text', () async {
+              if (await confirm(
+                'Send clipboard',
+                'Send current clipboard text to this verified fingerprint?\n${pin.text}',
+              )) {
+                await c.sendClipboard(host.text, targetPort(), pin.text);
+              }
+            }, icon: Icons.content_paste),
+          ],
+        ),
+      ],
+    ),
   );
   Widget receive() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -693,7 +725,9 @@ class _HomeState extends State<NshareHome> with WidgetsBindingObserver {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: Text(
-                      '${c.progress!.phase.name}: ${c.progress!.bytes}/${c.progress!.total} bytes',
+                      c.progress!.phase == TransferPhase.scanning
+                          ? 'Scanning: ${c.progress!.scannedEntries} entries'
+                          : '${c.progress!.phase.name}: ${c.progress!.bytes}/${c.progress!.total} bytes',
                     ),
                   ),
                 switch (page) {

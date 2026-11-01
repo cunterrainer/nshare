@@ -12,6 +12,7 @@ dependencies:
   args: ^2.7.0
   path: ^1.8.3
   path_provider: ^2.1.5
+  desktop_drop: ^0.8.4
   file_picker: ^10.3.10
   qr_flutter: ^4.1.0
   mobile_scanner: ^7.1.4
