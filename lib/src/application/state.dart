@@ -13,7 +13,11 @@ class StateStore {
   static final _tails = <String, Future<void>>{};
   File get file => File(p.join(directory.path, '$name.json'));
   Future<Map<String, dynamic>> read() async {
-    if (!await directory.exists()) return {'version': 1};
+    // A pristine profile stays read-only. Once a writer has created its lock,
+    // even an absent JSON file must be read inside that writer's transaction.
+    if (!await file.exists() && !await File('${file.path}.lock').exists()) {
+      return {'version': 1};
+    }
     return _locked(_readUnlocked);
   }
 
