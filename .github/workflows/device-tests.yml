@@ -40,7 +40,7 @@ jobs:
           working-directory: apps/nshare_app
           script: flutter test integration_test/device_transfer_test.dart -d emulator-5554 --reporter expanded
   ios:
-    runs-on: macos-latest
+    runs-on: macos-15
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
@@ -48,13 +48,34 @@ jobs:
         with:
           channel: stable
           cache: true
-      - name: Boot an available iPhone simulator
+      - name: Boot a fresh iPhone simulator with its UI
         run: |
-          DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(x["udid"] for group in d["devices"].values() for x in group if x["name"].startswith("iPhone")))')
-          xcrun simctl boot "$DEVICE_ID" || true
+          RUNTIME_ID=$(xcrun simctl list runtimes -j | python3 -c 'import json,sys; rows=[r for r in json.load(sys.stdin)["runtimes"] if r.get("isAvailable") and r["identifier"].startswith("com.apple.CoreSimulator.SimRuntime.iOS-")]; print(max(rows,key=lambda r:tuple(int(n) for n in r["version"].split(".")))["identifier"])')
+          DEVICE_ID=$(xcrun simctl create nshare-runtime com.apple.CoreSimulator.SimDeviceType.iPhone-16 "$RUNTIME_ID")
+          xcrun simctl boot "$DEVICE_ID"
+          open -a Simulator --args -CurrentDeviceUDID "$DEVICE_ID"
           xcrun simctl bootstatus "$DEVICE_ID" -b
           echo "NSHARE_TEST_DEVICE=$DEVICE_ID" >> "$GITHUB_ENV"
       - run: flutter pub get
         working-directory: apps/nshare_app
-      - run: flutter test integration_test/device_transfer_test.dart -d "$NSHARE_TEST_DEVICE" --reporter expanded
+      - name: Native iOS transfer and clipboard tests
+        timeout-minutes: 20
+        run: |
+          set -o pipefail
+          flutter test integration_test/device_transfer_test.dart -d "$NSHARE_TEST_DEVICE" --reporter expanded --verbose 2>&1 | tee ios-runtime.log
         working-directory: apps/nshare_app
+      - name: Simulator diagnostics
+        if: always()
+        run: |
+          xcrun simctl list devices
+          if [ -n "$NSHARE_TEST_DEVICE" ]; then
+            xcrun simctl io "$NSHARE_TEST_DEVICE" screenshot ios-runtime.png || true
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-runtime-diagnostics
+          path: |
+            apps/nshare_app/ios-runtime.log
+            ios-runtime.png
+          if-no-files-found: ignore
