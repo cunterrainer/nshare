@@ -13,6 +13,11 @@ class StateStore {
   static final _tails = <String, Future<void>>{};
   File get file => File(p.join(directory.path, '$name.json'));
   Future<Map<String, dynamic>> read() async {
+    if (!await directory.exists()) return {'version': 1};
+    return _locked(_readUnlocked);
+  }
+
+  Future<Map<String, dynamic>> _readUnlocked() async {
     if (!await file.exists()) return {'version': 1};
     final value = jsonDecode(await file.readAsString());
     if (value is! Map<String, dynamic> || value['version'] != 1) {
@@ -24,7 +29,18 @@ class StateStore {
     return value;
   }
 
-  Future<T> update<T>(FutureOr<T> Function(Map<String, dynamic>) change) {
+  Future<T> update<T>(FutureOr<T> Function(Map<String, dynamic>) change) =>
+      _locked(() async {
+        final data = await _readUnlocked();
+        final result = await change(data);
+        await atomicJson(file, data);
+        return result;
+      });
+
+  // Reads participate in the same transaction as replacements. In particular,
+  // Windows readers must not hold an open JSON file while a writer renames it,
+  // or observe a temporarily absent destination as an empty queue.
+  Future<T> _locked<T>(Future<T> Function() action) {
     final key = p.normalize(p.absolute(file.path));
     final result = (_tails[key] ?? Future<void>.value()).then((_) async {
       await directory.create(recursive: true);
@@ -32,10 +48,7 @@ class StateStore {
       final lock = await File('$key.lock').open(mode: FileMode.append);
       try {
         await lock.lock(FileLock.blockingExclusive);
-        final data = await read();
-        final result = await change(data);
-        await atomicJson(file, data);
-        return result;
+        return await action();
       } finally {
         await lock.close();
       }
