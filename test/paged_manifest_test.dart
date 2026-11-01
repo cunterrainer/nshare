@@ -235,6 +235,8 @@ void main() {
         await server.close();
       }
     },
-    timeout: Timeout(Duration(minutes: 3)),
+    // Two real 1100-file passes include durable per-file receipts. Keep the
+    // transport inactivity deadlines while allowing slower Windows CI disks.
+    timeout: Timeout(Duration(minutes: 8)),
   );
 }
