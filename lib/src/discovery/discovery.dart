@@ -23,6 +23,7 @@ class DiscoveredDevice {
 class DiscoveryService {
   DiscoveryService._(this._socket, this._subscription);
   final RawDatagramSocket _socket;
+  int get port => _socket.port;
   final StreamSubscription<RawSocketEvent> _subscription;
 
   static Future<DiscoveryService> advertise(

@@ -8,23 +8,19 @@ void main() {
     () async {
       final dir = await Directory.systemTemp.createTemp('nshare_discovery_');
       final identity = await DeviceIdentity.load(dir);
-      final probe = await RawDatagramSocket.bind(
-        InternetAddress.loopbackIPv4,
-        0,
-      );
-      final port = probe.port;
-      probe.close();
       final service = await DiscoveryService.advertise(
         identity,
         53317,
-        port: port,
+        port: 0,
         bindAddress: InternetAddress.loopbackIPv4,
       );
+      final port = service.port;
       try {
         final devices = await discoverDevices(
           port: port,
           target: InternetAddress.loopbackIPv4,
-          duration: const Duration(milliseconds: 150),
+          // Match the production discovery window under parallel native builds.
+          duration: const Duration(seconds: 3),
         );
         expect(devices.single.fingerprint, identity.fingerprint);
         expect(devices.single.port, 53317);
