@@ -59,14 +59,21 @@ Continuation branch: `feature/finish-flutter-plan-20261101`, created from
 `faba6b0`. Commits are pushed individually without replacing the earlier branch.
 This pass implements desktop multi-file/folder drop selection, throttled live
 scanning counts, mutually confirmed session-code pairing in CLI and Flutter,
-and iOS system Bonjour browsing/advertising. It adds native drop/pairing tests,
+and iOS system Bonjour browsing/advertising. Shared-state and ownership leases
+work across the Android foreground engine and the main app engine, with
+child-process inheritance prevented. It adds native drop/pairing tests,
 a portable device transfer/clipboard suite, Android emulator and iPhone simulator
 CI, desktop runtime CI, installable/portable distributions and signing adapters.
 
-Local registered test total: 781 (703 Dart, 73 Flutter, 3 native-window,
-2 portable native-device cases), 459 beyond the original 322-test baseline.
+Local registered test total: 790 (712 Dart, 73 Flutter, 3 native-window,
+2 portable native-device cases), 468 beyond the original 322-test baseline.
 The portable native suite verifies 1,050 actual file payloads and an empty folder.
 See [validation](flutter-validation.md), [packaging](releases.md) and
 [physical acceptance gates](device-validation.md). Physical-device checks and
 credential-dependent signing/notarization are explicitly pending; the whole
 release acceptance plan is not represented as completed without those results.
+
+All final automated core, Flutter/native-build, desktop/mobile runtime and
+distribution jobs passed on implementation revision `d49bd51`; the exact runs
+are linked from the validation record. Physical and signed acceptance remain
+separate pending gates.

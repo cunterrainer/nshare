@@ -2,9 +2,21 @@
   "baselineDartTests": 322,
   "suites": {
     "dart": {
-      "passed": 703,
+      "passed": 712,
       "skipped": 0,
       "tests": [
+        {
+          "file": "test/state_read_transaction_test.dart",
+          "name": "read waits for replacement rather than reporting missing state as empty"
+        },
+        {
+          "file": "test/state_read_transaction_test.dart",
+          "name": "concurrent status readers and replacements preserve every snapshot"
+        },
+        {
+          "file": "test/state_read_transaction_test.dart",
+          "name": "reading an absent profile does not create directories or state"
+        },
         {
           "file": "test/service_control_test.dart",
           "name": "native CLI starts a queue-only owner receiver with an explicit verified policy"
@@ -1372,6 +1384,30 @@
         {
           "file": "test/storage_test.dart",
           "name": "symlink destinations are refused"
+        },
+        {
+          "file": "test/isolate_file_lock_test.dart",
+          "name": "another isolate cannot acquire a held owner lease"
+        },
+        {
+          "file": "test/isolate_file_lock_test.dart",
+          "name": "blocking isolate acquires the lease after its owner releases it"
+        },
+        {
+          "file": "test/isolate_file_lock_test.dart",
+          "name": "read-modify-write transactions serialize across Flutter-style isolates"
+        },
+        {
+          "file": "test/isolate_file_lock_test.dart",
+          "name": "a second engine attaches instead of replacing an existing service owner"
+        },
+        {
+          "file": "test/isolate_file_lock_test.dart",
+          "name": "a live child process does not retain its parent owner lease"
+        },
+        {
+          "file": "test/isolate_file_lock_test.dart",
+          "name": "failed contenders preserve the original lock seen by older CLI processes"
         },
         {
           "file": "test/identity_test.dart",
@@ -3120,6 +3156,6 @@
   },
   "nativeWindowTests": 3,
   "portableDeviceTests": 2,
-  "total": 781,
-  "additional": 459
+  "total": 790,
+  "additional": 468
 }

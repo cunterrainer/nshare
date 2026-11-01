@@ -66,3 +66,18 @@ identifiers unchanged.
 
 Signed and notarized paths have not been executed without owner credentials.
 An unsigned build passing does not establish signing or store readiness.
+
+
+## Package smoke checks
+
+CI extracts the Linux DEB, launches its CLI and GUI, and sends real plain and
+compressed folders with byte-for-byte verification. On the disposable Windows
+runner it installs to a path containing spaces, checks CLI help/IP, native GUI
+startup and PATH registration, then uninstalls and verifies the old PATH. macOS
+CI mounts the DMG read-only, launches its CLI and GUI, validates the Applications
+link and detaches the volume. These checks exercise unsigned development packages;
+they do not replace signed installation or physical lifecycle acceptance.
+
+All five unsigned distribution jobs and their desktop smoke checks passed for
+implementation revision `d49bd51` on 2026-11-01:
+[distribution artifacts and checks](https://github.com/cunterrainer/nshare/actions/runs/41300363423).

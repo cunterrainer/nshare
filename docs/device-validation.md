@@ -21,7 +21,10 @@ file payloads, and checks that clipboard refusal preserves the previous system
 clipboard while approval changes it. It requires no host CLI process and runs on
 Android, iOS, Linux, macOS and Windows. It does not claim two-device networking.
 The **Mobile runtime transfers** workflow runs it on an Android emulator and an
-iPhone simulator. For physical iOS tests, configure development signing in Xcode.
+iPhone simulator. Both platforms passed on implementation revision `d49bd51`:
+[final mobile run](https://github.com/cunterrainer/nshare/actions/runs/41300355954).
+The desktop runtime cases also passed on Linux, macOS and Windows. For physical
+iOS tests, configure development signing in Xcode.
 
 The separate desktop suite compiles and launches the native CLI, sends files in
 both directions through a real Flutter window, selects an outgoing source via
@@ -71,7 +74,7 @@ unexpected/mismatching code prompts and confirm neither endpoint records trust.
 | Desktop background | Tray hide/show, explicit quit, startup opt in/off, user logout, sleep/wake then discovery and transfer | Linux runtime checks; full OS matrix pending |
 | Clipboard | Reject preserves clipboard; accept writes exactly once; no passive collection | Automated platform suite; physical cross-device pending |
 | Compression | Fresh settings off; enable outgoing and incoming separately; incompatible receiver error; verify logical hashes | Automated tests pass |
-| Installed releases | Install/upgrade/uninstall Linux DEB, Windows setup and macOS DMG; CLI PATH; signed Android/iOS install | Unsigned packaging automated; signed/physical pending |
+| Installed releases | Install/upgrade/uninstall Linux DEB, Windows setup and macOS DMG; CLI PATH; signed Android/iOS install | Linux extraction/transfers, Windows install/uninstall, macOS DMG startup pass in CI; signed/mobile install pending |
 | Signing | Authenticode trust/timestamp; Developer ID hardened runtime/notarization/stapling; Android key; iOS profile distribution | Credential-dependent; not run |
 
 ## Recording results

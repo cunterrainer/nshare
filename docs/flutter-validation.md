@@ -50,8 +50,8 @@ from runner output/events, excluding setup/teardown, loading and skipped cases. 
 [the inventory](flutter-test-inventory.json) for individual test names and counts.
 
 - Original baseline: all 322 tests passed before implementation.
-- Full Dart suite: 703 passing tests; the discovery port-race fix also passed
-  locally and in all four core CI jobs, including Dart 3.8.0 and macOS/Windows.
+- Full Dart suite: 712 passing tests locally and in all four final core CI
+  jobs, including Dart 3.8.0 and macOS/Windows.
 - Flutter: 73 passing tests (56 widget/layout/drop cases, 4 real controller
   interoperability cases, 13 Bonjour adapter cases), no skips.
 - Normal packaged Linux app startup and isolated CLI/UI profile control succeeded.
@@ -63,7 +63,7 @@ from runner output/events, excluding setup/teardown, loading and skipped cases. 
 - Linux release build, DEB and portable tar packaging succeeded. The extracted
   DEB's CLI and GUI started; its CLI sent plain and compressed folders through
   TLS with byte-for-byte destination verification and artifact checksum checks.
-- Total: 781 registered passing cases, 459 beyond the original baseline. Some
+- Total: 790 registered passing cases, 468 beyond the original baseline. Some
   independently registered invalid-input cases have identical displayed names.
 - Formatting, fatal-info Dart analysis, Flutter analysis and native CLI
   compilation pass. Native Linux Flutter debug and release builds succeed.
@@ -181,3 +181,55 @@ results must be checked before recording those platforms as runtime passes.
 No physical mobile devices or signing credentials are configured in this cloud
 environment. Physical camera/provider/background/sleep checks and signed install
 acceptance remain blocked, as detailed in [device validation](device-validation.md).
+
+The completion runtime matrix exposed a Windows queue-state replacement race.
+State readers now share the writer transaction/lock; pristine read-only queue
+profiles still create no state. Three regressions cover a replacement gap,
+concurrent snapshots and an absent profile. The full 706-case Dart suite and
+native 1,050-file/clipboard suite were rerun successfully after this correction.
+
+Final core matrix after the queue-state correction:
+[41258098569](https://github.com/cunterrainer/nshare/actions/runs/41258098569).
+All six application analysis/native jobs passed, including Windows/macOS/Linux
+native folder/clipboard runtime cases:
+[41258098563](https://github.com/cunterrainer/nshare/actions/runs/41258098563).
+All five distribution jobs, including real Windows install/uninstall and macOS
+DMG mounting/startup smoke checks, passed:
+[41259024001](https://github.com/cunterrainer/nshare/actions/runs/41259024001).
+The Android emulator folder and clipboard cases passed after giving the
+clipboard test a focused input view and confirming initial clipboard readability.
+
+The Android foreground receiver uses a separate Flutter isolate/engine. POSIX
+Dart file locks are process-owned, so the completion pass adds a separate
+open-description `flock` lease alongside the original inter-process Dart lock.
+Shared state, identities, trust, queue/service ownership and output reservations
+now serialize across engines. Six regressions cover competing isolates, waiting,
+concurrent state increments, service ownership, legacy-process compatibility and
+a live child process that must not inherit its parent's lock. Native descriptors
+are close-on-exec; a real Linux reproduction otherwise retained queue ownership
+until an unrelated child exited.
+
+## Final completion revision
+
+Implementation revision `d49bd51` passed every job on 2026-11-01:
+
+- [Core validation: four SDK/OS jobs](https://github.com/cunterrainer/nshare/actions/runs/41300355948).
+- [Flutter tests and all five native builds](https://github.com/cunterrainer/nshare/actions/runs/41300356021),
+  including actual Linux/macOS/Windows folder and clipboard runtime tests and
+  the Linux drop/code-pairing window suite.
+- [Android emulator and iPhone simulator runtime](https://github.com/cunterrainer/nshare/actions/runs/41300355954):
+  both platforms passed the full 1,052-entry queued transfer with all 1,050 file
+  payloads checked, and real platform clipboard rejection/acceptance.
+- [All five distribution targets](https://github.com/cunterrainer/nshare/actions/runs/41300363423):
+  Linux DEB/tar, Windows setup/ZIP, macOS DMG, Android release APK/AAB and unsigned
+  iOS app ZIP. Installed/extracted/mounted desktop smoke checks passed.
+
+The iPhone simulator runtime is selected to match the chosen Xcode SDK; pairing
+an iOS 18.5 SDK with an iOS 26.2 runtime prevented Flutter VM attachment in an
+older run. That mismatch is fixed and the final simulator tests passed.
+The final local inventory contains 790 registered cases (712 Dart, 73 Flutter,
+3 native-window and 2 portable-device cases), 468 beyond the original baseline,
+with no skips. Repeating a portable case on multiple platforms does not inflate
+this total. Source implementation and automated gates are complete. Physical
+acceptance and credential-dependent signed distribution remain pending; see
+[the acceptance checklist](device-validation.md).
